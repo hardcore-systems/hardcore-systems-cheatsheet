@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>clickhouse-internals ClickHouse Architecture & OLAP Internals Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #161820;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #2a2d3d;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .stat-badge {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .stat-badge span.num {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+        .filter-controls {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            width: 300px;
+            outline: none;
+        }
+        .search-box:focus {
+            border-color: var(--accent-color);
+        }
+        .filter-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        .filter-btn:hover {
+            color: var(--text-color);
+            background-color: #2e3b4e;
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .card-tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            color: white;
+            text-transform: uppercase;
+        }
+        .card-id {
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: white;
+        }
+        .card-body {
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.75rem;
+        }
+        .card-body li {
+            list-style-type: none;
+            padding-left: 1.2rem;
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+        .card-body li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+        .card-body code {
+            background-color: #0f1115;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #f43f5e;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>clickhouse-internals OLAP Kernel Map</h1>
+        <p>High-Density Vector Loops, ColumnVector layout, SIMD SSE/AVX registers, MergeTree async parts merge, Sparse primary indexing reference system</p>
+    </header>
+
+    <div class="stats-bar">
+        <div class="stat-badge">Core Cards: <span class="num">28</span></div>
+        <div class="stat-badge">Category Modules: <span class="num">6</span></div>
+        <div class="stat-badge">3-Level Filtering: <span class="num">L0 $ightarrow$ L2</span></div>
+        <div class="stat-badge">Zone T Tuning Parameters: <span class="num">T1/T2</span></div>
+    </div>
+
+    <div class="filter-controls">
+        <input type="text" id="search" class="search-box" placeholder="Search cards..." oninput="filterCards()">
+        <button class="filter-btn active" data-mod="all" onclick="setFilter('all', this)">All Modules</button>
+        <button class="filter-btn" data-mod="M1" onclick="setFilter('M1', this)">M1: Distributed</button>
+        <button class="filter-btn" data-mod="M2" onclick="setFilter('M2', this)">M2: Vectorized SIMD</button>
+        <button class="filter-btn" data-mod="M3" onclick="setFilter('M3', this)">M3: MergeTree</button>
+        <button class="filter-btn" data-mod="M4" onclick="setFilter('M4', this)">M4: Sparse Index</button>
+        <button class="filter-btn" data-mod="M5" onclick="setFilter('M5', this)">M5: Replica ZK</button>
+        <button class="filter-btn" data-mod="M6" onclick="setFilter('M6', this)">M6: Block Layout</button>
+    </div>
+
+    <div class="grid" id="cards-grid"></div>
+
+    <script>
+        const cards = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "Distributed Queries", "color": "#7A8B99", "title": "Native TCP & HTTP Protocols (Network Protocol)", "body": "<li>  <strong>Dual Protocol Ports</strong>: ClickHouse supports both a high-efficiency binary TCP protocol (default port 9000) and an HTTP REST API (default port 8123) for client connections.</li><li>  <strong>Block Serialization</strong>: The binary protocol packs data into columnar chunks (Blocks) before serialization, maximizing network bandwidth utilization during large data transfers.</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "Distributed Queries", "color": "#7A8B99", "title": "Two-Stage Distributed Query Execution (Distributed Query Executor)", "body": "<li>  <strong>Query Rewrite</strong>: The Distributed engine rewrites incoming queries and projects the execution plan onto remote shards.</li><li>  <strong>Parallel Execution</strong>: Remote shards execute local filters and aggregations in parallel. The coordinator node then fetches these intermediate states and merges them into the final result set.</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "Distributed Queries", "color": "#7A8B99", "title": "Cluster Shard and Replica Routing (Topology Routing)", "body": "<li>  <strong>Shards & Replicas</strong>: The database cluster definition maps shards (for data distribution) and replicas (for high availability).</li><li>  <strong>Dynamic Failover</strong>: Distributed writes distribute rows based on a hash of the <code>sharding_key</code>. For queries, the coordinator routes tasks to the replica with the lowest response latency.</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "Distributed Queries", "color": "#7A8B99", "title": "External Table Engines & FDW (Foreign Data Wrapper)", "body": "<li>  <strong>Heterogeneous Access</strong>: ClickHouse supports FDW connectors for <code>MySQL</code>, <code>PostgreSQL</code>, <code>ODBC</code>, and <code>HDFS</code>.</li><li>  <strong>Clause Pushdown</strong>: The query optimizer analyzes external table schemas and pushes down WHERE filters and LIMIT clauses to minimize remote data transfer.</li>"}, {"id": 5, "relativeId": "M2.1", "module": "M2", "moduleName": "Vectorized & SIMD", "color": "#7D8F7B", "title": "ColumnVector Contiguous Memory Layout (Column Vector Layout)", "body": "<li>  <strong>Contiguous Storage</strong>: Column elements are stored in memory as a flat C++ array (<code>ColumnVector</code>).</li><li>  <strong>Cache Locality</strong>: Storing values contiguously avoids pointer dereferencing and maximizes L1/L2 cache hit ratios, enabling high-performance memory scans.</li>"}, {"id": 6, "relativeId": "M2.2", "module": "M2", "moduleName": "Vectorized & SIMD", "color": "#7D8F7B", "title": "Vectorized Loop Chunk Iteration (Vectorized Iteration)", "body": "<li>  <strong>Virtual Calls Eliminated</strong>: ClickHouse avoids virtual function calls in inner loops, which slow down traditional row-oriented volcano engines.</li><li>  <strong>Chunk Processing</strong>: Data flows between operators in <code>Chunks</code> (defaulting to 65,536 rows). Operators process the underlying column vectors using compact, cache-friendly loops.</li>"}, {"id": 7, "relativeId": "M2.3", "module": "M2", "moduleName": "Vectorized & SIMD", "color": "#7D8F7B", "title": "SIMD Assembly Hard Acceleration (SIMD Optimizations)", "body": "<li>  <strong>Register Parallelism</strong>: Loops are compiled using SIMD instructions (SSE4.2, AVX2, AVX512) to process multiple values per clock cycle.</li><li>  <strong>Hardware Filter</strong>: A filter operation like <code>WHERE cost > 100</code> uses SIMD comparison masks to evaluate multiple columns in parallel, maximizing hardware processing speeds.</li>"}, {"id": 8, "relativeId": "M2.4", "module": "M2", "moduleName": "Vectorized & SIMD", "color": "#7D8F7B", "title": "Projections & Materialized Views (Projections & MV)", "body": "<li>  <strong>Redundant Projections</strong>: <code>Projections</code> store table data sorted by different keys to optimize specific query paths.</li><li>  <strong>Write Triggers</strong>: Materialized Views act as write-time triggers. When a new part is written, the engine processes the rows and writes them to the view table atomically.</li>"}, {"id": 9, "relativeId": "M2.5", "module": "M2", "moduleName": "Vectorized & SIMD", "color": "#7D8F7B", "title": "Memory Tracker Query Limitations (Memory Tracker)", "body": "<li>  <strong>Granular Allocation</strong>: ClickHouse attaches a <code>MemoryTracker</code> to each query execution thread.</li><li>  <strong>OOM Prevention</strong>: It tracks memory usage in real-time. If a query exceeds <code>max_memory_usage</code>, the tracker aborts the execution to protect the system from out-of-memory crashes.</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "MergeTree Engine", "color": "#9E828A", "title": "MergeTree Part Directory & Files (Part Directory Layout)", "body": "<li>  <strong>Partition Directories</strong>: Inserts are written as immutable data parts named <code>PartitionID_MinBlock_MaxBlock_Level</code>.</li><li>  <strong>Column Separation</strong>: Each column has a <code>.bin</code> file (compressed values), a <code>.mrk2</code> file (sparse index mark pointers), and a global <code>primary.idx</code> index.</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "MergeTree Engine", "color": "#9E828A", "title": "Background Part Merge Process (Merge Task Pipeline)", "body": "<li>  <strong>Part Consolidation</strong>: A background pool selects small, overlapping parts within the same partition.</li><li>  <strong>External Merge Sort</strong>: It performs an external merge sort to combine the data into a single, optimized part, removing obsolete source files.</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "MergeTree Engine", "color": "#9E828A", "title": "Row/Column TTL Physical Purging (TTL Cleaning)", "body": "<li>  <strong>Data Expiration</strong>: Supports TTL configurations at the table, column, and row levels.</li><li>  <strong>Merge-Time Cleanup</strong>: Expiration metrics are recorded in <code>ttl.txt</code>. During merges, expired rows are physically removed and expired columns are reset to default values.</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "MergeTree Engine", "color": "#9E828A", "title": "Mutation Asynchronous Updates (Mutations)", "body": "<li>  <strong>Non-Transactional Alterations</strong>: UPDATE and DELETE queries are executed as asynchronous <code>Mutations</code>.</li><li>  <strong>Part Rewrite</strong>: Since ClickHouse does not support row locks, it copies the source part directory, filters out deleted or updated rows, and writes a new part.</li>"}, {"id": 14, "relativeId": "M4.1", "module": "M4", "moduleName": "Sparse Index & Pruning", "color": "#B58A7D", "title": "Primary Sparse Index & Granules (Primary Sparse Index)", "body": "<li>  <strong>Sparse Index Sampling</strong>: The <code>primary.idx</code> file samples key values at intervals defined by <code>index_granularity</code> (default: 8192 rows), rather than indexing every row.</li><li>  <strong>Memory Resident</strong>: This sparse layout keeps the index small (typically a few megabytes), allowing it to remain resident in memory for fast lookups.</li>"}, {"id": 15, "relativeId": "M4.2", "module": "M4", "moduleName": "Sparse Index & Pruning", "color": "#B58A7D", "title": "Mark Files Pointer Mapping (.mrk Files)", "body": "<li>  <strong>Index to Bin Map</strong>: The <code>.mrk2</code> files map sparse index marks to physical byte offsets in the <code>.bin</code> data files.</li><li>  <strong>Decompression Boundary</strong>: Each mark entry records the byte offset of the compressed block in the <code>.bin</code> file and the offset of the decompressed data within that block.</li>"}, {"id": 16, "relativeId": "M4.3", "module": "M4", "moduleName": "Sparse Index & Pruning", "color": "#B58A7D", "title": "MinMax Partition Pruning (MinMax Pruning)", "body": "<li>  <strong>Partition Pruning</strong>: Tables partition data by a partition key. Each part directory includes <code>minmax_[partition_key].idx</code>.</li><li>  <strong>Early Part Rejection</strong>: Before reading the index, the query optimizer evaluates the MinMax values of each part and discards directories that do not match the query filter.</li>"}, {"id": 17, "relativeId": "M4.4", "module": "M4", "moduleName": "Sparse Index & Pruning", "color": "#B58A7D", "title": "Secondary Skip Indexes (Skip Indexes)", "body": "<li>  <strong>Granule Pruning</strong>: Secondary indexes (e.g., <code>minmax</code>, <code>set</code>, <code>bloom_filter</code>) are built on non-primary columns.</li><li>  <strong>Batch Skipping</strong>: Skip indexes aggregate statistics over a range of granules. If a block of granules does not match the search criteria, the engine skips decompression for those rows.</li>"}, {"id": 18, "relativeId": "M5.1", "module": "M5", "moduleName": "Replication & ZooKeeper", "color": "#5F7582", "title": "ReplicatedMergeTree Setup (Replicated Engine)", "body": "<li>  <strong>ZK Metadata Mapping</strong>: Replicated table engines register table metadata in ZooKeeper at <code>/clickhouse/tables/[uuid]/</code>.</li><li>  <strong>Schema Consistency</strong>: All replica nodes pull from the same ZK root to keep schemas and partitioning strategies synchronized.</li>"}, {"id": 19, "relativeId": "M5.2", "module": "M5", "moduleName": "Replication & ZooKeeper", "color": "#5F7582", "title": "Replica Logging & Synchronization (Replication Log Sync)", "body": "<li>  <strong>Write Log Entry</strong>: After writing a new data part, a replica appends a <code>GET</code> entry to the ZK <code>/log/</code> queue.</li><li>  <strong>Watch Mechanism</strong>: Other replicas monitor the <code>/log/</code> node and append the new task to their local <code>replication_queue</code>.</li>"}, {"id": 20, "relativeId": "M5.3", "module": "M5", "moduleName": "Replication & ZooKeeper", "color": "#5F7582", "title": "Replication Queue Processing (Replication Queue)", "body": "<li>  <strong>Log Pulling</strong>: Replicas parse their local queue tasks sequentially.</li><li>  <strong>HTTP Part Sync</strong>: If a replica needs a part, it downloads the compressed <code>.bin</code> files directly from the source replica via HTTP, rather than through ZooKeeper.</li>"}, {"id": 21, "relativeId": "M5.4", "module": "M5", "moduleName": "Replication & ZooKeeper", "color": "#5F7582", "title": "Distributed ON CLUSTER DDL (DDLWorker)", "body": "<li>  <strong>DDL Registry</strong>: Running <code>ALTER ... ON CLUSTER</code> writes the DDL task metadata to the <code>/query_log/</code> path in ZooKeeper.</li><li>  <strong>Local Execution</strong>: The <code>DDLWorker</code> thread on each node detects the task, executes it locally, and writes the status back to ZK for the coordinator to compile.</li>"}, {"id": 22, "relativeId": "M5.5", "module": "M5", "moduleName": "Replication & ZooKeeper", "color": "#5F7582", "title": "ClickHouse Keeper Consensus (CH Keeper)", "body": "<li>  <strong>Built-in Consensus</strong>: ClickHouse provides an integrated coordinate daemon called <code>CH Keeper</code>.</li><li>  <strong>Raft Implementation</strong>: Written in C++, CH Keeper uses the Raft protocol. It is fully compatible with ZooKeeper APIs but uses less memory and offers higher throughput.</li>"}, {"id": 23, "relativeId": "M5.6", "module": "M5", "moduleName": "Replication & ZooKeeper", "color": "#5F7582", "title": "ZK Connection Failures & Read-Only Status (ZK Connection Loss)", "body": "<li>  <strong>Split-Brain Prevention</strong>: If a replica loses its connection to ZooKeeper and its session times out.</li><li>  <strong>Write Disabling</strong>: The node automatically downgrades to <code>Read-only</code> mode, rejecting inserts to prevent data divergence.</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "Block Layout & Compression", "color": "#BFA88F", "title": "Chunk and Block Formats (Memory Chunk)", "body": "<li>  <strong>Data Vectors</strong>: A <code>Chunk</code> is the primary memory container used by the query processor, holding column vectors and row counts.</li><li>  <strong>Block Headers</strong>: A <code>Block</code> wraps a Chunk with metadata (column names, data types, and OIDs) to define schema boundaries.</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "Block Layout & Compression", "color": "#BFA88F", "title": "Compressed Block Structure (Compression Block)", "body": "<li>  <strong>Block Chaining</strong>: <code>.bin</code> files are divided into sequential <code>Compressed Blocks</code>.</li><li>  <strong>Header Boundaries</strong>: Each block header contains 1 byte for the compression codec, 4 bytes for the compressed size, and 4 bytes for the decompressed size. The block is the minimum I/O decompression unit.</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "Block Layout & Compression", "color": "#BFA88F", "title": "LZ4 vs. ZSTD Compression Codecs (LZ4 vs ZSTD Codecs)", "body": "<li>  <strong>LZ4 (Default)</strong>: Optimized for decompression speed (reaching gigabytes per second), making it ideal for hot query columns.</li><li>  <strong>ZSTD</strong>: Offers higher compression ratios, saving up to 30% of disk space. It is recommended for cold data storage, though it consumes more CPU.</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "Block Layout & Compression", "color": "#BFA88F", "title": "Column-Specific Specialized Codecs (Specialized Codecs)", "body": "<li>  <strong>DataType Optimization</strong>:</li><li>1.  <strong>DoubleDelta / Gorilla</strong>: Optimized for timestamps or sequential IDs; stores differences of differences to reduce space.</li><li>2.  <strong>T64</strong>: Transposes integers to strip out redundant high-order zeros, optimizing storage for low-cardinality fields.</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "Block Layout & Compression", "color": "#BFA88F", "title": "Too Many Parts Write Throttling (Too Many Parts Protection)", "body": "<li>  <strong>Part Thresholds</strong>: If a partition contains more than <code>parts_to_delay_insert</code> (default: 150), writes are throttled. If it exceeds <code>parts_to_throw_insert</code> (default: 300), writes fail.</li><li>  <strong>Disk Safety</strong>: This mechanism prevents disk thrashing and forces clients to batch write operations.</li>"}];
+        let activeFilter = 'all';
+
+        function renderCards() {
+            const grid = document.getElementById('cards-grid');
+            const searchVal = document.getElementById('search').value.toLowerCase();
+            grid.innerHTML = '';
+
+            cards.forEach(card => {
+                const matchesFilter = activeFilter === 'all' || card.module === activeFilter;
+                const matchesSearch = card.title.toLowerCase().includes(searchVal) || card.body.toLowerCase().includes(searchVal);
+
+                if (matchesFilter && matchesSearch) {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'card';
+                    cardEl.style.borderTop = `4px solid ${card.color}`;
+                    cardEl.innerHTML = `
+                        <div class="card-header">
+                            <span class="card-tag" style="background-color: ${card.color}">${card.relativeId}</span>
+                            <span class="card-id">Card ${card.id}</span>
+                        </div>
+                        <h3 class="card-title">${card.title}</h3>
+                        <div class="card-body">${card.body}</div>
+                    `;
+                    grid.appendChild(cardEl);
+                }
+            });
+        }
+
+        function setFilter(mod, btn) {
+            activeFilter = mod;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderCards();
+        }
+
+        function filterCards() {
+            renderCards();
+        }
+
+        window.onload = renderCards;
+    </script>
+</body>
+</html>

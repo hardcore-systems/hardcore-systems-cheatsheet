@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sqlite-internals SQLite 虚拟字节码与预写日志仿真实验室</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --panel-bg: #161820;
+            --border-color: #2a2d3d;
+            --text-color: #e2e8f0;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+            --accent-gold: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, sans-serif;
+            padding: 2rem;
+            line-height: 1.4;
+        }
+        header {
+            max-width: 1200px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #ffffff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p { color: #94a3b8; font-size: 0.9rem; }
+        .sandbox-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .sim-panel {
+            background-color: var(--panel-bg);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+        }
+        .sim-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        .sim-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            .sim-content { grid-template-columns: 1fr; }
+        }
+        .control-box {
+            background-color: #0f1115;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .visual-box {
+            background-color: #0f1115;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 300px;
+            position: relative;
+        }
+        select, input {
+            background-color: #1e293b;
+            color: #fff;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.85rem;
+            outline: none;
+        }
+        label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        button {
+            background-color: var(--accent-blue);
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #2563eb; }
+        button:disabled { background-color: #4b5563; cursor: not-allowed; }
+        .btn-red { background-color: var(--accent-red); }
+        .btn-red:hover { background-color: #dc2626; }
+        .btn-green { background-color: var(--accent-green); }
+        .btn-green:hover { background-color: #059669; }
+        
+        .console-log {
+            width: 100%;
+            background-color: #000;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #10b981;
+            height: 90px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        /* Sim 1 VDBE visualizer */
+        .vdbe-visual-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 1rem;
+            width: 100%;
+        }
+        .bytecode-table {
+            background-color: #1e293b40;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            padding: 0.4rem;
+            font-size: 0.7rem;
+            height: 200px;
+            overflow-y: auto;
+        }
+        .bytecode-table table { width: 100%; border-collapse: collapse; text-align: left; }
+        .bytecode-table th, .bytecode-table td { padding: 0.15rem 0.3rem; border-bottom: 1px solid #2d3748; }
+        .bytecode-table tr.active { background-color: #3b82f650; color: #fff; font-weight: bold; }
+        
+        .registers-box {
+            background-color: #1e293b40;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            padding: 0.4rem;
+            font-size: 0.72rem;
+        }
+        .registers-box h4 { font-size: 0.78rem; margin-bottom: 0.4rem; border-bottom: 1px solid var(--border-color); color: #fff; }
+        .reg-item { display: flex; justify-content: space-between; padding: 0.15rem 0; border-bottom: 1px dashed #2d3748; }
+        .reg-val { font-family: monospace; color: var(--accent-gold); }
+
+        /* Sim 2 WAL checker visualizer */
+        .wal-visual-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            width: 100%;
+        }
+        .wal-storage-panel {
+            background-color: #1e293b40;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            font-size: 0.72rem;
+            min-height: 180px;
+        }
+        .wal-storage-panel h4 { font-size: 0.78rem; margin-bottom: 0.4rem; border-bottom: 1px solid var(--border-color); color: #fff; text-align: center; }
+        .blocks-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-top: 0.5rem;
+        }
+        .block-unit {
+            width: 32px;
+            height: 32px;
+            border-radius: 0.25rem;
+            border: 1px solid #4b5563;
+            background-color: #1e293b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 0.65rem;
+            color: #fff;
+            transition: all 0.3s;
+        }
+        .block-unit.wal-frame { background-color: var(--accent-blue); border-color: #60a5fa; }
+        .block-unit.db-page { background-color: var(--accent-green); border-color: #34d399; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>SQLite 存储引擎内核物理仿真实验室</h1>
+        <p>交互式模拟：深度演练 SQLite VDBE 虚拟机寄存器字节码顺序分发与 WAL 预写日志共享内存 Checkpoint 合并回源</p>
+    </header>
+
+    <div class="sandbox-grid">
+        <!-- Sim 1: VDBE -->
+        <div class="sim-panel">
+            <div class="sim-title">实验一：VDBE 寄存器虚拟机字节码执行器</div>
+            <div class="sim-content">
+                <div class="control-box">
+                    <label>选择要编译的 SQL 语句：</label>
+                    <select id="querySelect">
+                        <option value="select">SELECT name FROM users WHERE age > 18;</option>
+                        <option value="insert">INSERT INTO logs VALUES(9, 'login_event');</option>
+                    </select>
+                    <button id="btnCompile" onclick="compileQuery()">编译 SQL 语句</button>
+                    <button id="btnStep" onclick="stepVdbe()" disabled>单步执行指令</button>
+                    <button id="btnRunHalt" onclick="runToHalt()" disabled>一键执行到停机</button>
+                    <button class="btn-red" onclick="resetVdbe()">重置实验室</button>
+                </div>
+                <div class="visual-box">
+                    <div class="vdbe-visual-grid">
+                        <div class="bytecode-table">
+                            <table>
+                                <thead><tr><th>PC</th><th>Opcode</th><th>P1</th><th>P2</th><th>P3</th></tr></thead>
+                                <tbody id="bytecodeBody">
+                                    <tr><td colspan="5" style="text-align:center; color:#64748b;">Not compiled</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="registers-box">
+                            <h4>Registers & Cursors</h4>
+                            <div class="reg-item"><span>PC:</span><span id="regPC" class="reg-val">0</span></div>
+                            <div class="reg-item"><span>Reg[1] (Age):</span><span id="reg1" class="reg-val">NULL</span></div>
+                            <div class="reg-item"><span>Reg[2] (Name):</span><span id="reg2" class="reg-val">NULL</span></div>
+                            <div class="reg-item"><span>Cursor 0 (Table):</span><span id="cur0" class="reg-val">Closed</span></div>
+                            <div class="reg-item"><span>Cursor 1 (Index):</span><span id="cur1" class="reg-val">Closed</span></div>
+                        </div>
+                    </div>
+                    <div class="console-log" id="vdbeLog">>>> VDBE compiler idle. Select a query to begin.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sim 2: WAL -->
+        <div class="sim-panel">
+            <div class="sim-title">实验二：WAL 预写日志物理提交与共享内存 Checkpoint</div>
+            <div class="sim-content">
+                <div class="control-box">
+                    <label>待修改的物理页 ID：</label>
+                    <input type="number" id="writePageId" value="5" min="1" max="99" style="margin-bottom:0.25rem;">
+                    <button id="btnWalWrite" onclick="commitWal()">写事务追加日志并提交 WAL</button>
+                    
+                    <label style="margin-top:0.5rem;">查询物理页 ID：</label>
+                    <input type="number" id="readPageId" value="5" min="1" max="99" style="margin-bottom:0.25rem;">
+                    <button id="btnWalRead" onclick="readPage()">查询快照数据源</button>
+                    
+                    <button class="btn-green" id="btnWalCheckpoint" onclick="runCheckpoint()" style="margin-top:0.5rem;">执行 Checkpoint (脏页回源)</button>
+                    <button class="btn-red" onclick="resetWal()">重置实验室</button>
+                </div>
+                <div class="visual-box">
+                    <div class="wal-visual-grid">
+                        <div class="wal-storage-panel">
+                            <h4>Write-Ahead Log (-wal)</h4>
+                            <div class="blocks-container" id="walBlocks">
+                                <!-- frames -->
+                            </div>
+                        </div>
+                        <div class="wal-storage-panel">
+                            <h4>Main Database (.db)</h4>
+                            <div class="blocks-container" id="dbBlocks">
+                                <!-- pages -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="console-log" id="walLog">>>> Pager: WAL concurrency system initialized. shm index ready.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Simulation 1: VDBE Virtual Machine
+        // ==========================================
+        let vdbeInstructions = [];
+        let pc = 0;
+        let reg1 = null;
+        let reg2 = null;
+        let cur0 = "Closed";
+        let isHalted = false;
+        let selectData = [
+            { id: 1, name: "Alice", age: 14 },
+            { id: 2, name: "Bob", age: 22 },
+            { id: 3, name: "Charlie", age: 19 }
+        ];
+        let selectIdx = 0;
+
+        function compileQuery() {
+            const query = document.getElementById('querySelect').value;
+            const body = document.getElementById('bytecodeBody');
+            body.innerHTML = '';
+            
+            if (query === 'select') {
+                vdbeInstructions = [
+                    { op: "Init", p1: 0, p2: 7, p3: 0, desc: "Jump to initialization" },
+                    { op: "OpenRead", p1: 0, p2: 2, p3: 0, desc: "Open table users on Cursor 0" },
+                    { op: "Rewind", p1: 0, p2: 6, p3: 0, desc: "Rewind Cursor 0, jump to Halt on empty" },
+                    { op: "Column", p1: 0, p2: 2, p3: 1, desc: "Read column age (idx 2) into Reg[1]" },
+                    { op: "Le", p1: 1, p2: 6, p3: 18, desc: "If Reg[1] <= 18, jump to next row (step 6)" },
+                    { op: "Column", p1: 0, p2: 1, p3: 2, desc: "Read column name (idx 1) into Reg[2]" },
+                    { op: "ResultRow", p1: 2, p2: 1, p3: 0, desc: "Yield Reg[2] as result output" },
+                    { op: "Next", p1: 0, p2: 3, p3: 0, desc: "Advance Cursor 0, if success jump to step 3" },
+                    { op: "Halt", p1: 0, p2: 0, p3: 0, desc: "Halt VDBE program execution" }
+                ];
+            } else {
+                vdbeInstructions = [
+                    { op: "Init", p1: 0, p2: 1, p3: 0, desc: "Jump to initialization" },
+                    { op: "OpenWrite", p1: 0, p2: 2, p3: 0, desc: "Open table logs on Cursor 0 for writing" },
+                    { op: "Integer", p1: 9, p2: 1, p3: 0, desc: "Load integer 9 into Reg[1]" },
+                    { op: "String8", p1: 0, p2: 2, p3: 0, val: "login_event", desc: "Load string 'login_event' into Reg[2]" },
+                    { op: "Insert", p1: 0, p2: 2, p3: 1, desc: "Insert key Reg[1], data Reg[2] via Cursor 0" },
+                    { op: "Halt", p1: 0, p2: 0, p3: 0, desc: "Halt VDBE program execution" }
+                ];
+            }
+
+            vdbeInstructions.forEach((inst, index) => {
+                body.innerHTML += `<tr id="pc_${index}"><td>${index}</td><td>${inst.op}</td><td>${inst.p1}</td><td>${inst.p2}</td><td>${inst.p3}</td></tr>`;
+            });
+
+            pc = 0;
+            reg1 = "NULL";
+            reg2 = "NULL";
+            cur0 = "Closed";
+            isHalted = false;
+            selectIdx = 0;
+            
+            updateVdbeVisual();
+            document.getElementById('btnStep').disabled = false;
+            document.getElementById('btnRunHalt').disabled = false;
+            document.getElementById('vdbeLog').innerHTML = `>>> Compiled SQL successfully. Program Counter reset to 0. Ready to execute ${vdbeInstructions.length} instructions.`;
+        }
+
+        function updateVdbeVisual() {
+            document.getElementById('regPC').innerText = pc;
+            document.getElementById('reg1').innerText = reg1 === null ? "NULL" : reg1;
+            document.getElementById('reg2').innerText = reg2 === null ? "NULL" : reg2;
+            document.getElementById('cur0').innerText = cur0;
+            
+            // Highlight bytecode line
+            document.querySelectorAll('.bytecode-table tr').forEach(tr => tr.classList.remove('active'));
+            const activeRow = document.getElementById(`pc_${pc}`);
+            if (activeRow) {
+                activeRow.classList.add('active');
+                activeRow.scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        function stepVdbe() {
+            if (isHalted || pc >= vdbeInstructions.length) return;
+            const log = document.getElementById('vdbeLog');
+            const inst = vdbeInstructions[pc];
+            
+            let nextPc = pc + 1;
+            log.innerHTML += `\n[PC=${pc}] Executing: ${inst.op} P1=${inst.p1} P2=${inst.p2} P3=${inst.p3} (${inst.desc})`;
+
+            if (inst.op === "Init") {
+                nextPc = inst.p2;
+            } else if (inst.op === "OpenRead" || inst.op === "OpenWrite") {
+                cur0 = inst.op === "OpenRead" ? "Open(Read)" : "Open(Write)";
+            } else if (inst.op === "Rewind") {
+                if (selectData.length === 0) {
+                    nextPc = inst.p2;
+                } else {
+                    selectIdx = 0;
+                }
+            } else if (inst.op === "Integer") {
+                reg1 = inst.p1;
+            } else if (inst.op === "String8") {
+                reg2 = inst.val;
+            } else if (inst.op === "Column") {
+                const row = selectData[selectIdx];
+                if (inst.p2 === 1) reg2 = row.name;
+                if (inst.p2 === 2) reg1 = row.age;
+            } else if (inst.op === "Le") {
+                if (reg1 <= inst.p3) {
+                    // Jump to next row scan
+                    nextPc = inst.p2;
+                }
+            } else if (inst.op === "ResultRow") {
+                log.innerHTML += `\n  >>> [Result Output]: Name="${reg2}", Age=${reg1}`;
+            } else if (inst.op === "Next") {
+                selectIdx++;
+                if (selectIdx < selectData.length) {
+                    nextPc = inst.p2;
+                } else {
+                    log.innerHTML += `\n  >>> Cursors completed scanning all table rows.`;
+                }
+            } else if (inst.op === "Insert") {
+                log.innerHTML += `\n  >>> [B-Tree Write]: Inserted row key=${reg1}, data="${reg2}" into leaf Page.`;
+            } else if (inst.op === "Halt") {
+                isHalted = true;
+                document.getElementById('btnStep').disabled = true;
+                document.getElementById('btnRunHalt').disabled = true;
+                log.innerHTML += `\n>>> Program completed (Halt). VDBE registers and cursors closed.`;
+            }
+
+            pc = nextPc;
+            updateVdbeVisual();
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function runToHalt() {
+            let limit = 0;
+            while (!isHalted && limit < 100) {
+                stepVdbe();
+                limit++;
+            }
+        }
+
+        function resetVdbe() {
+            document.getElementById('bytecodeBody').innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b;">Not compiled</td></tr>';
+            document.getElementById('btnStep').disabled = true;
+            document.getElementById('btnRunHalt').disabled = true;
+            pc = 0;
+            reg1 = "NULL";
+            reg2 = "NULL";
+            cur0 = "Closed";
+            isHalted = false;
+            updateVdbeVisual();
+            document.getElementById('vdbeLog').innerHTML = ">>> VDBE compiler idle. Select a query to begin.";
+        }
+
+        // ==========================================
+        // Simulation 2: WAL Mode Checkpoint
+        // ==========================================
+        let walFrames = [];
+        let dbPages = {
+            1: "Page1(Meta)",
+            2: "Page2(Root)",
+            3: "Page3(Data)",
+            4: "Page4(Index)"
+        };
+        let shmIndex = {}; // maps PageID to Frame Index
+
+        function renderWalBlocks() {
+            const container = document.getElementById('walBlocks');
+            container.innerHTML = '';
+            walFrames.forEach((frame, idx) => {
+                container.innerHTML += `<div class="block-unit wal-frame" title="Frame ${idx}: Page ${frame.page}">P${frame.page}</div>`;
+            });
+        }
+
+        function renderDbBlocks() {
+            const container = document.getElementById('dbBlocks');
+            container.innerHTML = '';
+            for (let pid in dbPages) {
+                container.innerHTML += `<div class="block-unit db-page" title="Page ${pid}: ${dbPages[pid]}">P${pid}</div>`;
+            }
+        }
+
+        function commitWal() {
+            const pid = parseInt(document.getElementById('writePageId').value);
+            if (!pid) return;
+
+            // Append frame to WAL
+            walFrames.push({ page: pid, data: `Page${pid}(Modified_v${walFrames.length+1})` });
+            const frameIdx = walFrames.length - 1;
+            
+            // Update shm index (pointing to latest frame index)
+            shmIndex[pid] = frameIdx;
+            
+            const log = document.getElementById('walLog');
+            log.innerHTML += `\n>>> [WAL Write] Appended page ${pid} to WAL file (Frame ${frameIdx})`;
+            log.innerHTML += `\n>>> [SHM Index Update] Mapping Page ${pid} -> WAL Frame ${frameIdx}`;
+            
+            renderWalBlocks();
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function readPage() {
+            const pid = parseInt(document.getElementById('readPageId').value);
+            const log = document.getElementById('walLog');
+            
+            if (pid in shmIndex) {
+                const frameIdx = shmIndex[pid];
+                const frameData = walFrames[frameIdx];
+                log.innerHTML += `\n>>> [PCache Read] Page ${pid} located in SHM index at WAL Frame ${frameIdx} (Dynamic Snapshot read: "${frameData.data}")`;
+            } else if (pid in dbPages) {
+                log.innerHTML += `\n>>> [PCache Read] Page ${pid} not in WAL. Routing query to main database file (Read: "${dbPages[pid]}")`;
+            } else {
+                log.innerHTML += `\n>>> [PCache Read] Page ${pid} does not exist in WAL or DB.`;
+            }
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function runCheckpoint() {
+            const log = document.getElementById('walLog');
+            if (walFrames.length === 0) {
+                log.innerHTML += "\n>>> [Checkpoint] WAL is empty. No dirty frames to checkpoint.";
+                log.scrollTop = log.scrollHeight;
+                return;
+            }
+
+            log.innerHTML += `\n>>> [Checkpoint] Initiating WAL Checkpoint...`;
+            log.innerHTML += `\n>>> [Checkpoint] Reading ${walFrames.length} frames from WAL to flush to database file`;
+            
+            // Flush in order
+            walFrames.forEach(frame => {
+                dbPages[frame.page] = `${frame.data}_Flushed`;
+                log.innerHTML += `\n  -> Flushed WAL Page ${frame.page} to main database `.db` file`;
+            });
+            
+            // fsync db
+            log.innerHTML += `\n>>> [Fsync Barrier] Issued fsync on main database file. Modifications solidified.`;
+            
+            // Reset WAL and shm
+            walFrames = [];
+            shmIndex = {};
+            
+            log.innerHTML += `\n>>> [Checkpoint SUCCESS] WAL reset. Shared memory index cleared.`;
+            
+            renderWalBlocks();
+            renderDbBlocks();
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function resetWal() {
+            walFrames = [];
+            dbPages = {
+                1: "Page1(Meta)",
+                2: "Page2(Root)",
+                3: "Page3(Data)",
+                4: "Page4(Index)"
+            };
+            shmIndex = {};
+            renderWalBlocks();
+            renderDbBlocks();
+            document.getElementById('walLog').innerHTML = ">>> Pager: WAL concurrency system initialized. shm index ready.";
+        }
+
+        // Initial blocks render
+        renderDbBlocks();
+    </script>
+</body>
+</html>

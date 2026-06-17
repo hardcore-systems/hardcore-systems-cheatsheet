@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang= + map_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V8 Engine Knowledge Topology Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --m1-color: #4B5F7A;
+            --m2-color: #6B8272;
+            --m3-color: #9C6666;
+            --m4-color: #9A825A;
+            --m5-color: #755B77;
+            --m6-color: #A07E66;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .ladder-section {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .ladder-box {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .ladder-box h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.8rem;
+            color: #f1f5f9;
+            font-weight: 600;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 0.6rem;
+        }
+
+        .ladder-box p {
+            font-size: 0.92rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+
+        .ladder-box code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: #38bdf8;
+            word-break: break-all;
+        }
+
+        .controls {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-bar {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.6rem 1rem;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            width: 300px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-bar:focus {
+            border-color: var(--accent-color);
+        }
+
+        .filters {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .cards-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.2rem;
+            transition: transform 0.25s, box-shadow 0.25s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--theme-color);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            border-color: var(--theme-color);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.8rem;
+        }
+
+        .card-num {
+            background-color: var(--theme-color);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+        }
+
+        .card-mod {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 0.6rem;
+            line-height: 1.3;
+        }
+
+        .card-body {
+            font-size: 0.86rem;
+            color: #94a3b8;
+            line-height: 1.5;
+            flex-grow: 1;
+        }
+
+        /* Detail Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            padding: 2rem;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: white;
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: white;
+            border-bottom: 2px solid var(--modal-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .modal-body {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #64748b;
+            border-top: 1px solid var(--border-color);
+            padding-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>V8 ENGINE HIGH-PERFORMANCE RUNTIME</h1>
+        <p>High-Density Technical System Architecture Cards Mapping</p>
+    </header>
+
+    <section class="ladder-section">
+        <div class="ladder-box">
+            <h3>L0 Essence / L1 Logical Framework</h3>
+            <p><strong>L0:</strong> The essence of the V8 engine is to convert JavaScript's dynamic property lookup into C++ style static offset addressing via Hidden Classes (Maps), and use Inline Caches (ICs) and Type Feedback Vectors to collect polymorphic data at runtime to drive the Ignition interpreter and TurboFan JIT optimizations/deoptimizations (Bailouts), operating in synergy with Cheney semi-space Scavenger and tri-color concurrent Major MC for highly efficient memory cycle turnover.</p>
+            <p style="margin-top: 0.8rem;"><strong>L1:</strong> 1.  **Pipeline & Lazy Parsing**: Source code is parsed on-demand via Lazy Parsing to construct AST and compiled by Ignition to bytecodes, while Map Transition Trees are built dynamically at runtime to enable rapid property addressing.
+    2.  **Type Feedback & Monomorphic IC**: Type Feedback Vectors collect runtime Maps at call sites, allowing Inline Caches (ICs) to bypass slow path dictionaries and JIT compile monomorphic access points into direct-offset machine instructions.
+    3.  **Sea of Nodes & Deopt Mechanism**: TurboFan represents bytecode in a control-and-data-unified Sea of Nodes graph for lock-free global optimizations, applying speculative compilation that safely bails out (deoptimizes) back to the interpreter upon guard check failure.
+    4.  **Generational & Concurrent GC**: Generational layout isolates cross-generation pointers via Write Barriers, with Scavenger performing zero-fragment Cheney copying for the new space and Major MC utilizing concurrent marking, lazy sweeping, and compaction for the old space.</p>
+        </div>
+        <div class="ladder-box">
+            <h3>L2 Dataflow Topology</h3>
+            <p><code>*   `JS Source` ➜ `Parser (Full/Lazy)` ➜ `AST` ➜ `Ignition Bytecode` ➜ `Interpreter Loop (Direct Threaded)` ➜ `Access Property` ➜ `Create/Transition Map (Hidden Class)` ➜ `Fill Feedback Vector Slots` ➜ `Monomorphic IC Status` ➜ `Speculative JIT (TurboFan Sea of Nodes)` ➜ `Optimized Machine Code` ➜ `Type Mismatch (e.g. String passed to Num)` ➜ `Eager Deoptimization` ➜ `Reconstruct interpreter Frame` ➜ `Bailout to Ignition` ➜ `Allocations trigger GC` ➜ `Scavenger (Cheney From ➜ To)` / `Major MC (Incremental Mark ➜ Lazy Sweep ➜ Compact)` ➜ `Write Barrier updates Remembered Set`.</code></p>
+        </div>
+    </section>
+
+    <div class="controls">
+        <input type="text" id="search" class="search-bar" placeholder= + search_placeholder + >
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterModule('all')">All Modules</button>
+            <button class="filter-btn" onclick="filterModule('M1')">M1</button>
+            <button class="filter-btn" onclick="filterModule('M2')">M2</button>
+            <button class="filter-btn" onclick="filterModule('M3')">M3</button>
+            <button class="filter-btn" onclick="filterModule('M4')">M4</button>
+            <button class="filter-btn" onclick="filterModule('M5')">M5</button>
+            <button class="filter-btn" onclick="filterModule('M6')">M6</button>
+        </div>
+    </div>
+
+    <main class="cards-grid" id="grid"></main>
+
+    <div class="modal" id="modal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <div class="modal-title" id="modalTitle"></div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <span id="modalNum"></span>
+                <span id="modalMod"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cards = [{'num': 1, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'V8 Engine Pipeline & Ignition/TurboFan Cooperation', 'body': 'During JavaScript execution, V8 first parses source code into an AST via the Parser. The Ignition interpreter generates bytecode from the AST and executes it, while gathering runtime type information into the Type Feedback Vector. When a function becomes hot (reaches an invocation threshold), the TurboFan optimizing compiler consumes the bytecode and feedback vector to generate highly optimized machine code under speculative assumptions. If a type mismatch occurs at runtime, V8 triggers deoptimization to reconstruct the stack frame and falls back to Ignition.'}, {'num': 2, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Sparkplug Non-optimizing JIT Compiler Design & Speedup Principles', 'body': 'Sparkplug is a fast, non-optimizing mid-tier JIT compiler situated between Ignition and TurboFan. It aims to generate machine code quickly without complex compilation passes or type feedback analysis. Sparkplug does not collect type feedback; instead, it performs a linear sweep over the Ignition bytecode and translates it 1:1 into corresponding CPU machine instructions. This eliminates the bytecode dispatch loop overhead of the interpreter, achieving near-zero compilation pause and providing a rapid startup boost.'}, {'num': 3, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Syntax Parser & Lazy Parsing Technology', 'body': 'To minimize initial page load times and execution latency, V8 implements Lazy Parsing. At startup, only top-level code and functions that are immediately invoked undergo a "Full Parse" to construct the AST and scope chain. Nested functions and deferred structures undergo a fast "Pre-Parse" that only checks for syntax correctness and logs external variable declarations without creating AST nodes, deferring full parsing until the function is actually called.'}, {'num': 4, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Abstract Syntax Tree (AST) Design & Scope Analysis', 'body': 'The Parser decodes the token stream into a structured AST. Meanwhile, the Scope Analyzer performs static analysis of variable scopes (e.g., Local, Context, Global). If the analyzer detects that a nested function captures an outer variable via a closure, it bypasses standard stack-allocation limits and "promotes" the outer local variable to a Context object allocated on the heap, ensuring closure lifetime safety.'}, {'num': 5, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'Hidden Class (Map / Shapes) Core Design & Property Offset Mapping', 'body': 'Since JavaScript objects are highly dynamic, V8 introduces internal "Hidden Classes" (referred to as Maps) to achieve static-like property access. A Map does not store property values itself; rather, it contains a dictionary mapping property names to their physical offsets in the object\'s storage slots. This enables V8 to read the Map and locate a property using direct offset calculation in just a few machine instructions, avoiding slow dynamic hash table lookups.'}, {'num': 6, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'Hidden Class Transition Chains & Transition Tree Branching', 'body': 'An object starts with a default empty Map. As properties are dynamically added (e.g., adding `.x`, then `.y`), V8 builds a transition chain: `Map0 ➜ (add x) ➜ Map1 ➜ (add y) ➜ Map2`. Subsequent objects that have properties added in the exact same sequence will reuse the same paths in the global Transition Tree, reducing Map allocation overhead and enhancing cache reuse.'}, {'num': 7, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'Three Physical Morphologies of Object Properties: In-Object, Fast, and Slow', 'body': 'V8 partitions property storage into three distinct configurations:\n1.  **In-Object Properties**: Property values are stored directly inside the JSObject header memory layout, yielding the fastest access speeds (single pointer offset calculation).\n2.  **Fast/Flat Properties**: When in-object slots are exhausted, properties spill into an external array mapped by offsets in the Map ($O(1)$ access).\n3.  **Slow/Dictionary Properties**: If properties are frequently deleted or exceed normal counts, the Map is discarded, and the object degrades into a raw hash table, resetting access to dictionary lookups.'}, {'num': 8, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'Hidden Class Variants in Array (Elements) Optimization & ElementsKinds', 'body': 'V8 stores indexed array elements in a dedicated Elements array, with the Map recording their specific element representation type (ElementsKinds). For instance, an array of contiguous integers is marked as `PACKED_SMI_ELEMENTS`, whereas one containing uninitialized holes is transitioned to `HOLEY_SMI_ELEMENTS`. Transitions are unidirectional and irreversible (e.g., SMI ➜ DOUBLE ➜ ELEMENTS), and maintaining arrays in highly specific kinds enables high-performance SIMD compilation.'}, {'num': 9, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'Type Feedback Vector Structure & Feedback Slots', 'body': 'To supply type information for JIT compilation, V8 allocates a dedicated Feedback Vector for each function or closure. The vector is divided into multiple Feedback Slots, each corresponding to a specific property lookup (Load/Store) or function call site in the code. Slots start in an empty state and are dynamically populated with Map pointers and invocation targets as the code runs.'}, {'num': 10, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'Inline Cache (IC) Core Logic & State Transition Graph', 'body': 'Inline Caching is a technique that caches recently encountered Maps and property offsets directly at call sites to bypass generic lookup routes. IC transitions through the following states:\n*   **UNINITIALIZED**: Initial state with empty slots.\n*   **MONOMORPHIC**: The call site has seen only 1 Map. The IC caches the Map and offset; subsequent lookups matching the Map proceed directly (critical state with ~99% hit rate).\n*   **POLYMORPHIC**: The call site has seen 2-4 distinct Maps. A small polymorphic map-handler array is iterated sequentially.\n*   **MEGAMORPHIC**: The call site encounters more than 4 Maps. V8 bypasses call site caching and queries the global Stub Cache or C++ runtime dictionaries.'}, {'num': 11, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'Monomorphic vs Polymorphic Hardware Performance Comparison', 'body': 'A monomorphic IC is compiled by the JIT into a brief instruction sequence: read the object header ➜ compare the Map pointer ➜ if matched, load value using immediate offset (near-zero latency, highly branch-predictable). A polymorphic IC generates a comparison chain (`if-else`), causing branch prediction overhead and multiple pointer jumps.'}, {'num': 12, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'Write-Path Inline Cache (Store IC) & Prototype Chain Optimizations', 'body': "Store ICs must accelerate property writes while ensuring prototype chain validity. Modifying a prototype object's Map invalidates all downstream ICs. To optimize prototype lookups, V8 registers a Prototype User link in prototype Maps; any write or structural alteration on the prototype triggers an Invalidate signal, resetting associated ICs back to `UNINITIALIZED`."}, {'num': 13, 'moduleId': 'M4', 'moduleColor': '#9A825A', 'title': 'Ignition Interpreter Bytecode Design & Accumulator Register Model', 'body': 'Ignition utilizes a hybrid register-and-accumulator architecture. Most bytecode instructions implicitly reference a special Accumulator register (`acc`) as their source or target (e.g., `LdaSmi [10]` loads constant 10 into `acc`; `Add r1` adds `r1` to `acc` and stores the result back in `acc`). This approach minimizes the size of generated bytecodes by reducing explicit register operands, saving memory bandwidth.'}, {'num': 14, 'moduleId': 'M4', 'moduleColor': '#9A825A', 'title': 'Interpreter Bytecode Dispatch Table & Direct Threaded Code Execution', 'body': 'Ignition avoids traditional `switch(opcode)` decoding loops. Instead, it populates a continuous Dispatch Table mapping each bytecode to its compiled Handler address. At the end of each handler, V8 uses Direct Threaded Code: it loads the next bytecode index, computes the handler address, and performs a direct jump (or tail call), eliminating loop condition checks and stack frame overhead.'}, {'num': 15, 'moduleId': 'M4', 'moduleColor': '#9A825A', 'title': 'Interpreter Local Environments & Stack Frame Physical Layout', 'body': 'When Ignition executes a JS function, it constructs an interpreter stack frame on the physical system stack. The frame header stores pointers to the active `JSFunction` object, the execution Context, and the active bytecode array. Local variable slots and temporary accumulators are laid out next in the frame, accessible via negative offsets relative to the frame pointer.'}, {'num': 16, 'moduleId': 'M4', 'moduleColor': '#9A825A', 'title': 'Type-feedback Collecting Bytecodes: `LdaNamedProperty` & `KeyedStoreIC`', 'body': 'V8 implements specialized bytecodes that write type feedback to vector slots during interpretation. For example, `LdaNamedProperty r0, [0], [2]` accepts a target object `r0`, a property name index `[0]`, and a slot index `[2]`. The handler queries the Map of `r0`, retrieves the property, and writes the Map and access handler to slot `[2]` in the Feedback Vector for future TurboFan optimization.'}, {'num': 17, 'moduleId': 'M5', 'moduleColor': '#755B77', 'title': 'Sea of Nodes Intermediate Representation (IR) Graph Design', 'body': 'TurboFan represents compiled code using a Sea of Nodes graph representation. This design merges the Control Flow Graph (CFG) and Data Flow Graph (DFG) into a single unified topology. Value computations, memory effects, and control blocks are represented as Node objects connected by value and control dependency edges, allowing the optimizer to perform GVN and loop transformations concurrently without CFG locks.'}, {'num': 18, 'moduleId': 'M5', 'moduleColor': '#755B77', 'title': 'Map Check Elimination & Escape Analysis', 'body': 'During Sea of Nodes optimization, TurboFan applies two critical compiler optimizations:\n1.  **Map Check Elimination**: It tracks and infers Map invariants along control paths. If an object is proven to have a constant Map throughout a segment, redundant Map checking instructions are stripped out of the generated machine code.\n2.  **Escape Analysis**: It detects objects that do not escape the current function boundary. These heap allocations are eliminated, and their fields are replaced directly by scalar variables on the stack.'}, {'num': 19, 'moduleId': 'M5', 'moduleColor': '#755B77', 'title': 'Speculative JIT Compiler Deoptimization (Bailout) Physics', 'body': 'JIT optimization relies on aggressive speculative assumptions. If a type assumption is violated at runtime (e.g., a Map Check fails because a user passed a `String` to a function optimized for `Int`), execution branches to a Bailout Handler. The handler halts execution, extracts active register values, reconstructs corresponding Ignition stack frames, and transfers control back to the interpreter.'}, {'num': 20, 'moduleId': 'M5', 'moduleColor': '#755B77', 'title': 'Soft Deopt vs Hard (Eager/Lazy) Deopt Trigger Scenarios', 'body': '*   **Eager Deopt**: Triggered synchronously when a type assertion fails (e.g., Map check mismatch), forcing immediate stack frame reconstruction and transition to the interpreter.\n*   **Lazy Deopt**: Triggered asynchronously when a prototype structure or external dependency changes, invalidating compiled JIT code. The deopt is deferred until the next thread safepoint check.\n*   **Soft Deopt**: Occurs when a non-critical speculative path (such as array out-of-bounds) is hit. V8 marks the code segment for recompilation without restructuring the current call frame.'}, {'num': 21, 'moduleId': 'M6', 'moduleColor': '#A07E66', 'title': 'V8 Heap Generational Layout & Space Division', 'body': 'V8 segments heap memory into the New Space (newly allocated, short-lived objects) and the Old Space (promoted, long-lived objects). It also designates a Large Object Space (to hold large arrays directly, avoiding copy overhead) and a Code Space (holding compiled JIT machine instructions with execute permissions).'}, {'num': 22, 'moduleId': 'M6', 'moduleColor': '#A07E66', 'title': 'Page Organization & Write Barrier Support Mechanisms', 'body': 'The heap is divided into 1MB Pages. Cross-generational references are tracked using Write Barriers: when an old-generation object is updated to point to a new-generation object, the Write Barrier intercepts the write and registers the page address in the Remembered Set (Card Table), preventing the GC from having to scan the entire old generation.'}, {'num': 23, 'moduleId': 'M6', 'moduleColor': '#A07E66', 'title': 'New Space Scavenger GC & Semi-Space Cheney Copying', 'body': 'The New Space is divided into twin spaces: To-space and From-space. During a Scavenge cycle, the GC scans From-space for active objects, copying them to To-space (or promoting them to Old Space if they survived multiple cycles). Once completed, From and To spaces swap roles, and From-space is cleared, resetting fragmentation at $O(\\text{live})$ cost.'}, {'num': 24, 'moduleId': 'M6', 'moduleColor': '#A07E66', 'title': 'Write Barrier Execution Path in Scavenger GC', 'body': 'During Scavenger cycles, the GC root set includes the Remembered Set card table alongside the execution stack and global contexts. The GC only scans old-generation Pages containing registered cross-generation pointers, ignoring the rest of the old generation. This keeps Scavenger pauses under 5 milliseconds.'}, {'num': 25, 'moduleId': 'M6', 'moduleColor': '#A07E66', 'title': 'Old Space Major MC: Mark-Sweep-Compact Algorithm', 'body': 'Major MC handles old space collection in three phases:\n1.  **Mark**: Back-end threads concurrently trace the object graph using tri-color marking to blacken active nodes.\n2.  **Sweep**: White (dead) object locations are reclaimed and added to Free Lists to accommodate new allocations.\n3.  **Compact**: Fragmented active objects are relocated to contiguous Page addresses, with all internal references updated to eliminate heap fragmentation.'}, {'num': 26, 'moduleId': 'M6', 'moduleColor': '#A07E66', 'title': 'Concurrent Marking & Write Barrier Marking Synergy', 'body': 'To minimize STW pauses, V8 runs Concurrent Marking on helper threads while JavaScript executes. If the JS thread mutates an object graph (e.g., making a black object point to a white object), the Write Barrier intercepts the write and colors the white target gray, pushing it to the GC worklist to prevent premature reclamation.'}, {'num': 27, 'moduleId': 'M6', 'moduleColor': '#A07E66', 'title': 'Incremental Marking & Lazy Sweeping Principles', 'body': '*   **Incremental Marking**: Splits the marking phase into tiny slices interleaved with JS task execution, reducing long pauses.\n*   **Lazy Sweeping**: Sweeping is deferred and performed incrementally on-demand as new allocations request memory, distributing the sweep time across execution.'}, {'num': 28, 'moduleId': 'M6', 'moduleColor': '#A07E66', 'title': 'Parallel, Concurrent, and Incremental GC Optimizations', 'body': 'V8 combines three GC execution strategies to optimize response times:\n*   **Parallel**: Suspends the main thread (STW) but spawns multiple GC worker threads to perform tasks together, shortening pause times.\n*   **Concurrent**: The main thread continues running JS code while GC threads process marking and sweeping in the background.\n*   **Incremental**: Breaks GC work into smaller steps executed alternately with application code.'}];
+        let currentFilter = 'all';
+
+        function renderCards() {
+            const grid = document.getElementById('grid');
+            const searchVal = document.getElementById('search').value.toLowerCase();
+            grid.innerHTML = '';
+
+            cards.forEach(card => {
+                const isMatchSearch = card.title.toLowerCase().includes(searchVal) || card.body.toLowerCase().includes(searchVal);
+                const isMatchFilter = currentFilter === 'all' || card.moduleId === currentFilter;
+
+                if (isMatchSearch && isMatchFilter) {
+                    const el = document.createElement('div');
+                    el.className = 'card';
+                    el.style.setProperty('--theme-color', card.moduleColor);
+                    el.onclick = () => openModal(card);
+                    el.innerHTML = `
+                        <div class="card-header">
+                            <span class="card-num">Card ${card.num}</span>
+                            <span class="card-mod">${card.moduleId}</span>
+                        </div>
+                        <div class="card-title">${card.title}</div>
+                        <div class="card-body">${card.body.substring(0, 120)}...</div>
+                    `;
+                    grid.appendChild(el);
+                }
+            });
+        }
+
+        function filterModule(mod) {
+            currentFilter = mod;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            renderCards();
+        }
+
+        function openModal(card) {
+            const modal = document.getElementById('modal');
+            const mTitle = document.getElementById('modalTitle');
+            const mBody = document.getElementById('modalBody');
+            const mNum = document.getElementById('modalNum');
+            const mMod = document.getElementById('modalMod');
+            
+            mTitle.textContent = card.title;
+            mBody.textContent = card.body;
+            mNum.textContent = 'Card ' + card.num;
+            mMod.textContent = card.moduleId;
+            modal.style.setProperty('--modal-color', card.moduleColor);
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        document.getElementById('search').oninput = renderCards;
+        window.onload = renderCards;
+    </script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>facebook / rocksdb LSM Storage Engine Internals Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #161820;
+            --text-color: #e2e8f0;
+            --accent-color: #10b981;
+            --border-color: #2a2d3d;
+            --moss-green: #7D8F7B;
+            --slate-blue: #7A8B99;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --plum-rose: #9E828A;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #10b981, #5f7582);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.8rem 1.5rem;
+            text-align: center;
+            min-width: 120px;
+        }
+        .stat-val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .stat-lbl {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .module-col {
+            background-color: rgba(22, 24, 32, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .module-header {
+            font-size: 1.1rem;
+            font-weight: 700;
+            padding-bottom: 0.8rem;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .module-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .item-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .item-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--theme-color, var(--accent-color));
+        }
+        .item-card:hover {
+            transform: translateY(-2px);
+            border-color: #10b981;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .card-id {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--theme-color);
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+        
+        /* Modal Window */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        .modal-content {
+            background-color: #161822;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            padding: 2rem;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            color: #94a3b8;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        .close-btn:hover {
+            color: #fff;
+        }
+        .modal-header {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .modal-body {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+        }
+        .modal-body p {
+            margin-bottom: 1rem;
+        }
+        .modal-body li {
+            margin-bottom: 0.5rem;
+            margin-left: 1.2rem;
+        }
+        .modal-body code {
+            background-color: rgba(0, 0, 0, 0.3);
+            color: #34d399;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>facebook / rocksdb LSM Storage Engine Physical Internals Map</h1>
+        <p>High-Density Embedded KV Engine Reference System based on Latest Storage Models and Tuning Specs</p>
+    </header>
+    
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-val">28</div>
+            <div class="stat-lbl">Core Cards</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">6</div>
+            <div class="stat-lbl">Category Modules</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">L0-L2</div>
+            <div class="stat-lbl">3-Level Filtering</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">3</div>
+            <div class="stat-lbl">Tuning Labs</div>
+        </div>
+    </div>
+    
+    <div class="map-grid" id="mapGrid"></div>
+    
+    <!-- Modal -->
+    <div class="modal" id="cardModal">
+        <div class="modal-content">
+            <button class="close-btn" id="closeModal">&times;</button>
+            <div class="modal-header">
+                <span class="card-id" id="modalCardId">M1.1</span>
+                <h2 class="modal-title" id="modalCardTitle">Title</h2>
+            </div>
+            <div class="modal-body" id="modalCardBody">Body</div>
+        </div>
+    </div>
+    
+    <script>
+        const cardsData = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "Write Flow & MemTable", "color": "#7D8F7B", "title": "Write Flow & WAL", "body": "<li>  <strong>Physical Path</strong>: Write requests (<code>Put</code>/<code>Delete</code>) are first appended sequentially to the Write-Ahead Log (WAL) on disk. The mutations are then applied to the in-memory <strong>MemTable</strong>. Once both steps succeed, the write returns.</li><li>  <strong>Sync Option</strong>: Control durability via <code>WriteOptions.sync</code>. When <code>true</code>, every write forces an <code>fsync</code> system call to flush dirty page cache blocks to disk before returning, protecting against data loss.</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "Write Flow & MemTable", "color": "#7D8F7B", "title": "SkipList MemTable", "body": "<li>  <strong>SkipList Structure</strong>: The default MemTable uses an in-memory lock-free concurrent SkipList. Its multi-level index pointers provide $O(\\log N)$ search and range scans.</li><li>  <strong>Lock-Free CAS</strong>: Pointer adjustments in the SkipList use Compare-And-Swap (CAS) optimistic concurrency, eliminating global mutex contention. It uses an <code>Arena</code> allocator to request large memory blocks from the OS, managing allocation internally to prevent standard heap fragmentation.</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "Write Flow & MemTable", "color": "#7D8F7B", "title": "MemTable Selection", "body": "<li>  <strong>Types & Use Cases</strong>:</li><li><code>SkipListMemTab</code> (Default): Supports concurrent writes and range scans;</li><li><code>VectorMemTab</code>: Uses <code>std::vector</code>, lack concurrent writes. Best for single-threaded bulk loading where queries search sorted vectors;</li><li><code>HashSkipList</code> / <code>HashLinkList</code>: Adds hash buckets over a SkipList. Speeds up point lookups and prefix scans for keys with fixed prefixes.</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "Write Flow & MemTable", "color": "#7D8F7B", "title": "Immutable MemTable & Flush", "body": "<li>  <strong>State Freeze</strong>: When a MemTable reaches <code>write_buffer_size</code>, it is frozen into an <strong>Immutable MemTable</strong> (read-only), and a new active MemTable is spawned to accept incoming writes.</li><li>  <strong>Flush Thread</strong>: A background thread is scheduled to write the Immutable MemTable sequentially to a Level 0 (L0) SSTable file on disk. Once written, the corresponding WAL space is reclaimed.</li>"}, {"id": 5, "relativeId": "M1.5", "module": "M1", "moduleName": "Write Flow & MemTable", "color": "#7D8F7B", "title": "Write Stall", "body": "<li>  <strong>Self-Preservation</strong>: When background flushes or compactions lag behind client writes, RocksDB slows down or pauses writes to prevent memory exhaustion and disk saturation.</li><li>  <strong>Trigger Conditions</strong>:</li><li>L0 SSTable count hits <code>level0_slowdown_writes_trigger</code> (default 20, slows down writes);</li><li>Hitting <code>level0_stop_writes_trigger</code> (default 30, halts writes completely);</li><li>Pending compaction bytes exceed limits.</li>"}, {"id": 6, "relativeId": "M2.1", "module": "M2", "moduleName": "SSTable Layout", "color": "#7A8B99", "title": "SSTable Format", "body": "<li>  <strong>Physical Structure</strong>: SSTables use a Block-Based Table format. Keys are grouped into fixed-size <strong>Data Blocks</strong> (default 4KB). The file ends with metadata blocks: <strong>Filter Block</strong> (Bloom filters), <strong>Index Block</strong>, <strong>MetaIndex Block</strong>, and a 48-byte <strong>Footer</strong>.</li><li>  <strong>Read Path</strong>: Readers first fetch the Footer to locate the MetaIndex, which maps to Index and Filter blocks, pointing to the exact Data Block offsets and avoiding scanning.</li>"}, {"id": 7, "relativeId": "M2.2", "module": "M2", "moduleName": "SSTable Layout", "color": "#7A8B99", "title": "Block Format & Restart Points", "body": "<li>  <strong>Prefix Sharing</strong>: Keys inside a block are sorted. To save space, keys share prefixes with their predecessor, storing only <code>shared_bytes</code>/<code>unshared_bytes</code>/<code>value</code>.</li><li>  <strong>Restart Points</strong>: To search inside a block without scanning from the start, prefix compression is broken every 16 keys, creating a <strong>Restart Point</strong> with a full key. Offset arrays of these points are stored at the block footer for binary searching.</li>"}, {"id": 8, "relativeId": "M2.3", "module": "M2", "moduleName": "SSTable Layout", "color": "#7A8B99", "title": "Bloom Filters", "body": "<li>  <strong>Lookup Bypass</strong>: Bloom filters map keys to bit arrays using hash functions. With $O(1)$ operations, they verify if a key is \"absolutely not present\" before reading disk blocks.</li><li>  <strong>Filter Formats</strong>:</li><li><code>Block-based Filter</code> (Legacy): Generates filter bits per 2KB data block, requiring multiple indexes;</li><li><code>Full Filter</code> (Modern): Generates one global filter per SSTable file, cutting lookup overhead to a single I/O.</li>"}, {"id": 9, "relativeId": "M2.4", "module": "M2", "moduleName": "SSTable Layout", "color": "#7A8B99", "title": "Index Block", "body": "<li>  <strong>Block Boundaries</strong>: The Index Block maps to each Data Block. Index keys store the shortest separator key representing the block boundary, pointing to the block's physical offset and size.</li><li>  <strong>Hash Index</strong>: Supports <code>Binary Search</code> (standard binary indexing) and <code>Hash Search</code> (prefix hash indexing utilizing prefix Bloom filters to skip binary searches).</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "Compaction Mechanics", "color": "#B58A7D", "title": "Size-Tiered Compaction", "body": "<li>  <strong>Grouping</strong>: Groups SSTables of similar sizes into tiers. When a tier hits its file threshold, background threads merge-sort them into a larger SSTable in the next tier.</li><li>  <strong>Amplification</strong>: Low write amplification but high space amplification. Merging large files requires disk space equal to the dataset size, risking disk-full deadlocks.</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "Compaction Mechanics", "color": "#B58A7D", "title": "Leveled Compaction", "body": "<li>  <strong>Layered Design</strong>: Splits disk space into Level 0 to Level Max. L0 files can overlap, while higher levels (L1-LMax) have sorted, non-overlapping keys. Levels scale in size by 10x (L1=256MB, L2=2.5GB).</li><li>  <strong>Cascading Merge</strong>: When a level exceeds its budget, a background thread selects an SSTable and merges it with overlapping files in the next level, purging deleted keys and tombstones. Extremely low space amplification but high write amplification (10-30x).</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "Compaction Mechanics", "color": "#B58A7D", "title": "Compaction Scores", "body": "<li>  <strong>Prioritization</strong>: RocksDB computes a <strong>Compaction Score</strong> per level to schedule merging:</li><li>For L0: <code>Score = L0 file count / level0_file_num_compaction_trigger</code>;</li><li>For $L_n (n \\ge 1)$: <code>Score = actual level size / level size limit</code>.</li><li>  <strong>Execution</strong>: The thread picks the level with the highest score and merges files with the longest lifespans or minimal next-level overlap to save I/O.</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "Compaction Mechanics", "color": "#B58A7D", "title": "Amplification Law", "body": "<li>  <strong>LSM Trade-offs</strong>:</li><li><strong>Write Amplification (WA)</strong>: Bytes written to disk vs bytes written by the user. High WA degrades SSD lifespans and causes write stalls;</li><li><strong>Space Amplification (SA)</strong>: Disk footprint vs logical data size. High SA wastes disk space;</li><li><strong>Read Amplification (RA)</strong>: Disk bytes read vs logical bytes retrieved. High RA degrades read QPS.</li>"}, {"id": 14, "relativeId": "M3.5", "module": "M3", "moduleName": "Compaction Mechanics", "color": "#B58A7D", "title": "FIFO Compaction", "body": "<li>  <strong>Time-Series Focus</strong>: A fast compaction mode. Files exist only in L0. When total data size exceeds <code>max_table_size_definition</code>, the oldest SSTable is deleted.</li><li>  <strong>Zero WA</strong>: Write amplification is 1. No CPU-intensive merge-sorting occurs. Best for time-series metrics, logs, and expiring caches.</li>"}, {"id": 15, "relativeId": "M4.1", "module": "M4", "moduleName": "Cache & Memory", "color": "#5F7582", "title": "Block Cache", "body": "<li>  <strong>Data Block Cache</strong>: Caches uncompressed Data Blocks retrieved from disk. RocksDB provides <code>LRUCache</code> (least-recently-used via double-linked list and hash) and <code>ClockCache</code> (circular pointer scan with higher concurrency).</li><li>  <strong>Shard Locks</strong>: To prevent global mutex lock contention under concurrent threads, Block Cache is sharded (default 16 shards). Keys map to different lock domains, reducing cache overhead.</li>"}, {"id": 16, "relativeId": "M4.2", "module": "M4", "moduleName": "Cache & Memory", "color": "#5F7582", "title": "Compressed Cache", "body": "<li>  <strong>Secondary Cache</strong>: Positions between Block Cache and disk. It caches raw, compressed disk blocks directly in memory.</li><li>  <strong>CPU Trade-off</strong>:</li><li>Uncompressed Cache (Block Cache): Stores C++ objects, saving CPU decompression cycles but consuming more RAM;</li><li>Compressed Cache: Uses less RAM but requires CPU cycles to decompress blocks on cache hits. Recommended only when memory is scarce and CPU is idle.</li>"}, {"id": 17, "relativeId": "M4.3", "module": "M4", "moduleName": "Cache & Memory", "color": "#5F7582", "title": "Row Cache", "body": "<li>  <strong>Row-Level Cache</strong>: Positions above Block Cache, caching logical Key-Value pairs rather than physical disk blocks.</li><li>  <strong>Fast Path</strong>: Read operations check Row Cache first. On hits, values return immediately, bypassing block index binary searches. On misses, it reads via Block Cache and populates Row Cache.</li>"}, {"id": 18, "relativeId": "M4.4", "module": "M4", "moduleName": "Cache & Memory", "color": "#5F7582", "title": "Pinning Index & Filters", "body": "<li>  <strong>Read Miss Shield</strong>: Index and filter blocks are large. If evicted from Block Cache, point lookups require 2-3 random disk I/O reads to reload them.</li><li>  <strong>RAM Retention</strong>: Set <code>pin_l0_filter_and_index_blocks_in_cache=true</code> (or <code>pin_top_level_index_and_filter</code>) to lock L0 and top-level metadata in memory, preventing LRU eviction and stabilizing latency.</li>"}, {"id": 19, "relativeId": "M5.1", "module": "M5", "moduleName": "Transactions", "color": "#9E828A", "title": "Snapshots & MVCC", "body": "<li>  <strong>Sequence Tracking</strong>: RocksDB increments a global <strong>Sequence Number</strong> for every write. Creating a snapshot binds it to the current Sequence Number.</li><li>  <strong>Visibility</strong>: Read operations (<code>Get</code>/<code>Iterator</code>) using a snapshot only see records where <code>SequenceNumber_record <= SequenceNumber_snapshot</code>. Reads bypass locks, enabling high-performance MVCC.</li>"}, {"id": 20, "relativeId": "M5.2", "module": "M5", "moduleName": "Transactions", "color": "#9E828A", "title": "WriteBatch & Group Commit", "body": "<li>  <strong>Request Aggregation</strong>: Concurrent user writes queue up in a global <code>WriteThread</code>. Through Group Commit, the queue leader thread locks the path and writes logs on behalf of its followers.</li><li>  <strong>Atomic Writing</strong>: The leader writes the combined batch sequentially to the WAL and performs disk syncs. Followers then parallelize writing their records into their respective MemTables, reducing thread context switches.</li>"}, {"id": 21, "relativeId": "M5.3", "module": "M5", "moduleName": "Transactions", "color": "#9E828A", "title": "Optimistic Transactions", "body": "<li>  <strong>Conflict Detection</strong>: Write operations (<code>Put</code>/<code>Delete</code>) do not lock rows. The transaction tracks the initial <code>Read Snapshot SequenceNumber</code>.</li><li>  <strong>Commit Validation</strong>: At commit time, the transaction verifies if keys have been modified by checking for higher sequence numbers. If a conflict is found, it rolls back the batch. Best for low-contention environments.</li>"}, {"id": 22, "relativeId": "M5.4", "module": "M5", "moduleName": "Transactions", "color": "#9E828A", "title": "Pessimistic Transactions", "body": "<li>  <strong>Row Locking</strong>: Acquires row-level locks via a lock manager (<code>LockManager</code>) during writes or calls to <code>GetForUpdate</code>.</li><li>  <strong>Deadlock Graph</strong>: If a lock is blocked beyond a timeout, the <code>Deadlock Detector</code> builds a Wait-For Graph in memory. If a cycle is detected, it aborts the transaction with the lowest cost to break the deadlock.</li>"}, {"id": 23, "relativeId": "M5.5", "module": "M5", "moduleName": "Transactions", "color": "#9E828A", "title": "Two-Phase Commit (2PC)", "body": "<li>  <strong>Distributed Consensus</strong>: Enables RocksDB to act as an engine for distributed databases (e.g., TiDB, CockroachDB).</li><li>  <strong>WAL State Log</strong>: Phase 1 writes a <code>Prepare</code> marker and transaction data to the WAL, keeping it invisible. Phase 2 writes a <code>Commit</code> marker upon coordinator confirmation, releasing the state to snapshots.</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "Operations & Diagnostics", "color": "#BFA88F", "title": "Column Families", "body": "<li>  <strong>Logical DBs</strong>: Partitions a single RocksDB instance into logical namespaces. They share a single WAL to ensure atomic crash recovery.</li><li>  <strong>Fine-Grained Tuning</strong>: Each Column Family manages its own MemTable, SSTables, Block Cache, and Compaction parameters, isolating resources between workloads.</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "Operations & Diagnostics", "color": "#BFA88F", "title": "SSTFileWriter", "body": "<li>  <strong>Bypassing Writes</strong>: Avoids standard write paths (WAL, MemTable locks, compaction) during massive bulk imports.</li><li>  <strong>Offline SST Gen</strong>: Uses <code>SSTFileWriter</code> to write sorted SSTable files directly in memory and calls <code>IngestExternalFile</code> to link them to RocksDB folders. The database mounts them instantly via manifest edits.</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "Operations & Diagnostics", "color": "#BFA88F", "title": "Rate Limiter", "body": "<li>  <strong>I/O Protections</strong>: Background compactions and flushes can saturate disk bandwidth, causing client read/write latency spikes.</li><li>  <strong>Throttling</strong>: Configure a <code>RateLimiter</code> to throttle the bytes written by Flush and Compaction, smoothing out disk throughput and securing stable client latencies.</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "Operations & Diagnostics", "color": "#BFA88F", "title": "Stats Dump", "body": "<li>  <strong>Internal Profiling</strong>: RocksDB regularly dumps performance statistics to log files.</li><li>  <strong>Key Metrics</strong>: Analyze:</li><li><strong>Compaction Stats</strong>: Read/write amplification multipliers and level I/O bandwidth;</li><li><strong>Cache Hit Rate</strong>: Index/Data block hit rates in Block Cache;</li><li><strong>Stall Duration</strong>: Write Stall durations to pinpoint write path blockages.</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "Operations & Diagnostics", "color": "#BFA88F", "title": "Manifest Recovery", "body": "<li>  <strong>Metadata Index</strong>: The <code>MANIFEST</code> file tracks active SSTables and their levels (VersionSet) in the database directory.</li><li>  <strong>Recovery</strong>: If the MANIFEST is corrupted during power cuts, the engine cannot boot. Restore it by calling <code>RepairDB</code>, which scans SST file headers and rebuilds the version set metadata index.</li>"}];
+        const modules = [
+            { id: "M1", name: 'Write Flow & MemTable', color: "var(--moss-green)" },
+            { id: "M2", name: 'SSTable Layout', color: "var(--slate-blue)" },
+            { id: "M3", name: 'Compaction Mechanics', color: "var(--terracotta)" },
+            { id: "M4", name: 'Cache & Memory', color: "var(--indigo)" },
+            { id: "M5", name: 'Transactions', color: "var(--plum-rose)" },
+            { id: "M6", name: 'Operations & Diagnostics', color: "var(--antique-gold)" }
+        ];
+        
+        const grid = document.getElementById('mapGrid');
+        
+        const moduleMap = {};
+        modules.forEach(m => {
+            moduleMap[m.id] = [];
+        });
+        
+        cardsData.forEach(card => {
+            if (moduleMap[card.module]) {
+                moduleMap[card.module].push(card);
+            }
+        });
+        
+        modules.forEach(m => {
+            const col = document.createElement('div');
+            col.className = 'module-col';
+            
+            const header = document.createElement('div');
+            header.className = 'module-header';
+            header.innerHTML = `<span>${m.name}</span><span class="module-dot" style="background-color: ${m.color}"></span>`;
+            col.appendChild(header);
+            
+            moduleMap[m.id].forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'item-card';
+                cardEl.style.setProperty('--theme-color', m.color);
+                cardEl.innerHTML = `
+                    <div class="card-top">
+                        <span class="card-id" style="color: ${m.color}">${card.relativeId}</span>
+                    </div>
+                    <div class="card-title">${card.title}</div>
+                `;
+                
+                cardEl.addEventListener('click', () => openModal(card));
+                col.appendChild(cardEl);
+            });
+            
+            grid.appendChild(col);
+        });
+        
+        const modal = document.getElementById('cardModal');
+        const closeModal = document.getElementById('closeModal');
+        
+        function openModal(card) {
+            document.getElementById('modalCardId').innerText = card.relativeId;
+            document.getElementById('modalCardId').style.color = card.color;
+            document.getElementById('modalCardTitle').innerText = card.title;
+            document.getElementById('modalCardBody').innerHTML = card.body;
+            modal.style.display = 'flex';
+        }
+        
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

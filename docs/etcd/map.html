@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>etcd-io / etcd 分布式强一致性协调与数据存储知识图谱</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #161820;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #2a2d3d;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            max-width: 1200px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 2rem;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+            background: linear-gradient(to right, #f3f4f6, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .stat-item {
+            background: #1e293b50;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            border: 1px solid var(--border-color);
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .filter-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        .filter-btn {
+            background-color: #1e293b;
+            color: #94a3b8;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .filter-btn:hover {
+            border-color: var(--accent-color);
+            color: #fff;
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+        }
+        .grid-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            padding: 1.25rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--theme-color);
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--theme-color);
+            box-shadow: 0 10px 20px -10px var(--theme-color-50);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .relative-id {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #fff;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            background-color: var(--theme-color);
+        }
+        .module-tag {
+            font-size: 0.7rem;
+            color: var(--theme-color);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.75rem;
+        }
+        .card-body {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.5rem;
+        }
+        .card-body ul, .card-body ol {
+            padding-left: 1rem;
+            margin-top: 0.25rem;
+        }
+        .card-body li {
+            margin-bottom: 0.25rem;
+        }
+        .card-body code {
+            font-family: monospace;
+            background-color: #0f1115;
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.25rem;
+            color: #3b82f6;
+        }
+        .card-body strong {
+            color: #f1f5f9;
+        }
+        @media (max-width: 640px) {
+            body { padding: 1rem; }
+            h1 { font-size: 1.5rem; }
+            .grid-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>etcd-io / etcd 分布式强一致协调与存储图谱</h1>
+        <p>基于 Raft 协议与 MVCC 多版本存储机制的高密度系统架构与性能优化速查体系</p>
+        <div class="stats-bar">
+            <span class="stat-item">核心速查卡片: 28</span>
+            <span class="stat-item">技术分类模块: 6</span>
+            <span class="stat-item">三层知识过滤</span>
+            <span class="stat-item">Zone T 生产调优参数</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="filter-controls">
+            <button class="filter-btn active" onclick="filterModule('all', this)">全部模块</button>
+            <button class="filter-btn" style="--theme-color: var(--slate-blue)" onclick="filterModule('M1', this)">M1. Raft共识</button>
+            <button class="filter-btn" style="--theme-color: var(--moss-green)" onclick="filterModule('M2', this)">M2. WAL与存储</button>
+            <button class="filter-btn" style="--theme-color: var(--plum-rose)" onclick="filterModule('M3', this)">M3. MVCC多版本</button>
+            <button class="filter-btn" style="--theme-color: var(--terracotta)" onclick="filterModule('M4', this)">M4. 租约生存期</button>
+            <button class="filter-btn" style="--theme-color: var(--indigo)" onclick="filterModule('M5', this)">M5. Watch事件</button>
+            <button class="filter-btn" style="--theme-color: var(--antique-gold)" onclick="filterModule('M6', this)">M6. 集群强读</button>
+        </div>
+
+        <div class="grid-layout" id="cardsGrid">
+            <!-- Cards will be dynamically injected here -->
+        </div>
+    </div>
+
+    <script>
+        const cardsData = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "Raft\u5171\u8bc6\u4e0e\u65e5\u5fd7\u590d\u5236", "color": "#7A8B99", "title": "Raft \u72b6\u6001\u673a\u4e0e\u4efb\u671f\u673a\u5236 (Raft State Machine & Term)", "body": "<li>  <strong>\u72b6\u6001\u8f6c\u6362\u7269\u7406\u673a</strong>\uff1a\u8282\u70b9\u5728 <code>Follower</code> (\u8ddf\u968f\u8005)\u3001<code>Candidate</code> (\u5019\u9009\u8005)\u3001<code>Leader</code> (\u9886\u5bfc\u8005) \u4e09\u79cd\u89d2\u8272\u95f4\u5355\u5411\u8f6c\u6362\u3002\u4efb\u671f <code>Term</code> \u662f\u903b\u8f91\u65f6\u949f\uff0c\u6bcf\u6b21\u9009\u4e3b\u81ea\u589e\u3002</li><li>  <strong>Term \u5b89\u5168\u7ea6\u675f</strong>\uff1a\u4efb\u4f55\u8282\u70b9\u6536\u5230\u6bd4\u81ea\u5df1\u5c0f\u7684 Term \u6d88\u606f\u76f4\u63a5\u5ffd\u7565\uff1b\u6536\u5230\u6bd4\u81ea\u5df1\u5927\u7684 Term \u6d88\u606f\u5219\u7acb\u5373\u9000\u5316\u4e3a Follower\uff0c\u5e76\u66f4\u65b0\u672c\u5730 Term\uff0c\u4ee5\u4fdd\u969c\u96c6\u7fa4\u903b\u8f91\u65f6\u949f\u5f3a\u4e00\u81f4\u540c\u6b65\u3002</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "Raft\u5171\u8bc6\u4e0e\u65e5\u5fd7\u590d\u5236", "color": "#7A8B99", "title": "\u9886\u5bfc\u8005\u9009\u4e3e\u4e0e\u968f\u673a\u8d85\u65f6 (Leader Election & Randomized Timeout)", "body": "<li>  <strong>\u968f\u673a\u5316\u907f\u649e (Randomized Timeout)</strong>\uff1a<code>Election Timeout</code> \u968f\u673a\u5316\u8bbe\u7f6e\uff08\u5982 1000ms - 3000ms\uff09\uff0c\u907f\u514d\u591a\u4e2a Follower \u540c\u65f6\u8d85\u65f6\u6210\u4e3a Candidate \u5e76\u53d1\u8d77\u9009\u4e3e\uff0c\u9020\u6210\u9009\u7968\u74dc\u5206\uff08Split Vote\uff09\u6b7b\u9501\u3002</li><li>  <strong>\u5f3a\u4e00\u81f4\u9009\u4e3b\u7279\u6743</strong>\uff1aCandidate \u5fc5\u987b\u83b7\u5f97\u8d85\u8fc7\u534a\u6570\u8282\u70b9\uff08Quorum\uff09\u7684\u6295\u8d5e\u6210\u7968\u624d\u80fd\u5f53\u9009\u3002\u6295\u7968\u89c4\u5219\u4e3a\uff1a\u672c\u5730\u65e5\u5fd7\u6bd4\u81ea\u5df1\u65b0\uff08Term \u66f4\u5927\uff0c\u6216 Term \u76f8\u540c\u4f46\u65e5\u5fd7 Index \u66f4\u5927\uff09\u7684 Candidate \u624d\u80fd\u6295\u8d5e\u6210\u7968\uff0c\u4fdd\u8bc1\u9009\u51fa\u7684 Leader \u5fc5\u5b9a\u5305\u542b\u6240\u6709\u5df2\u63d0\u4ea4\u7684\u65e5\u5fd7\u3002</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "Raft\u5171\u8bc6\u4e0e\u65e5\u5fd7\u590d\u5236", "color": "#7A8B99", "title": "\u65e5\u5fd7\u590d\u5236\u4e0e\u4e24\u9636\u6bb5\u63d0\u4ea4 (Log Replication & Commit)", "body": "<li>  <strong>\u4e09\u9636\u6bb5\u6d41\u6c34\u7ebf</strong>\uff1aLeader \u63a5\u6536\u5199\u8bf7\u6c42 $\\rightarrow$ \u672c\u5730\u987a\u5e8f\u8ffd\u52a0\u672a\u63d0\u4ea4\u65e5\u5fd7 $\\rightarrow$ \u5411\u6240\u6709 Follower \u5e7f\u64ad <code>AppendEntries</code> \u6d88\u606f $\\rightarrow$ \u6536\u5230\u8fc7\u534a\u6570 Follower \u6210\u529f\u5e94\u7b54 $\\rightarrow$ \u6807\u8bb0\u65e5\u5fd7\u4e3a\u5df2\u63d0\u4ea4\uff08Committed\uff09\u5e76\u5e7f\u64ad\u5e94\u7528\uff08Apply\uff09\u81f3\u72b6\u6001\u673a\u3002</li><li>  <strong>\u72b6\u6001\u8ffd\u8e2a\u6307\u9488</strong>\uff1aLeader \u4e3a\u6bcf\u4e2a Follower \u7269\u7406\u7ef4\u62a4 <code>MatchIndex</code>\uff08\u8be5 Follower \u5df2\u540c\u6b65\u7684\u6700\u5927\u65e5\u5fd7\u7d22\u5f15\uff09\u4e0e <code>NextIndex</code>\uff08\u4e0b\u4e00\u6b21\u5411\u8be5 Follower \u53d1\u9001\u65e5\u5fd7\u7684\u7d22\u5f15\uff09\uff0c\u901a\u8fc7\u56de\u9000\u63a2\u6d4b\u81ea\u52a8\u5bf9\u9f50\u5206\u533a\u8282\u70b9\u65e5\u5fd7\u3002</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "Raft\u5171\u8bc6\u4e0e\u65e5\u5fd7\u590d\u5236", "color": "#7A8B99", "title": "\u7f51\u7edc\u5206\u533a\u4e0e Pre-Vote \u9884\u6295\u7968\u673a\u5236 (Pre-Vote Phase)", "body": "<li>  <strong>\u65e7\u7248\u75db\u70b9</strong>\uff1a\u7f51\u7edc\u5206\u533a\u7684 Follower \u65e0\u6cd5\u6536\u5230 Leader \u5fc3\u8df3\uff0c\u4f1a\u4e0d\u65ad\u8d85\u65f6\u81ea\u589e Term \u53d1\u8d77\u9009\u4e3e\u3002\u5f53\u7f51\u7edc\u6062\u590d\u540e\uff0c\u8be5\u8282\u70b9\u5e26\u7740\u6781\u9ad8\u7684 Term \u5f52\u961f\uff0c\u4f1a\u5bfc\u81f4\u6b63\u5e38\u5de5\u4f5c\u7684 Leader \u5f3a\u884c\u9000\u5316\uff0c\u5f15\u8d77\u96c6\u7fa4\u5267\u70c8\u6296\u52a8\u3002</li><li>  <strong>Pre-Vote \u51c6\u5165\u673a\u5236</strong>\uff1aFollower \u8d85\u65f6\u540e\u5148\u8fdb\u5165 Pre-Vote \u9636\u6bb5\uff0c\u5411\u96c6\u7fa4\u53d1\u8d77\u4e0d\u589e\u52a0 Term \u7684\u201c\u865a\u62df\u9009\u4e3e\u6d4b\u8bd5\u201d\u3002\u53ea\u6709\u5f53 Pre-Vote \u83b7\u5f97\u591a\u6570\u6d3e\u540c\u610f\u540e\uff0c\u8282\u70b9\u624d\u771f\u6b63\u589e\u52a0 Term \u5e76\u8f6c\u6362\u4e3a Candidate\uff0c\u5f7b\u5e95\u89c4\u907f\u4e86\u7f51\u7edc\u5206\u533a\u5e72\u6270\u5065\u5eb7\u96c6\u7fa4\u7684\u9690\u60a3\u3002</li>"}, {"id": 5, "relativeId": "M1.5", "module": "M1", "moduleName": "Raft\u5171\u8bc6\u4e0e\u65e5\u5fd7\u590d\u5236", "color": "#7A8B99", "title": "\u52a8\u6001\u53d8\u66f4\u4e0e\u8054\u5408\u5171\u8bc6 (Membership Changes & Joint Consensus)", "body": "<li>  <strong>\u914d\u7f6e\u4ea4\u66ff\u98ce\u9669</strong>\uff1a\u76f4\u63a5\u4ece\u65e7\u914d\u7f6e $C_{old}$\uff08\u5982 3 \u8282\u70b9\uff09\u5207\u6362\u5230\u65b0\u914d\u7f6e $C_{new}$\uff08\u5982 5 \u8282\u70b9\uff09\u53ef\u80fd\u56e0\u914d\u7f6e\u53d8\u66f4\u6d88\u606f\u5230\u8fbe\u8282\u70b9\u7684\u5148\u540e\u987a\u5e8f\u4e0d\u540c\uff0c\u5bfc\u81f4\u5728\u540c\u4e00\u7d22\u5f15\u4f4d\u7f6e\u4ea7\u751f\u4e24\u4e2a\u72ec\u7acb\u7684\u201c\u591a\u6570\u6d3e\u201d\u4ece\u800c\u5bfc\u81f4\u8111\u88c2\u3002</li><li>  <strong>\u8054\u5408\u5171\u8bc6 (Joint Consensus)</strong>\uff1a\u53d8\u66f4\u671f\u95f4\u4f7f\u7528\u8fc7\u6e21\u72b6\u6001 $C_{old,new}$\u3002\u4efb\u4f55\u63d0\u6848\u5fc5\u987b\u540c\u65f6\u5728 $C_{old}$ \u548c $C_{new}$ \u4e24\u4e2a\u72ec\u7acb\u96c6\u5408\u4e2d\u5747\u83b7\u5f97\u591a\u6570\u6d3e\u6279\u51c6\uff0c\u624d\u7b97\u63d0\u4ea4\u6210\u529f\uff0c\u968f\u540e\u518d\u5e73\u6ed1\u63a8\u8fdb\u81f3 $C_{new}$\uff0c\u4fdd\u969c\u6210\u5458\u52a8\u6001\u70ed\u6269\u7f29\u5bb9\u65f6\u7684\u7edd\u5bf9\u5b89\u5168\u3002</li>"}, {"id": 6, "relativeId": "M2.1", "module": "M2", "moduleName": "WAL\u9884\u5199\u65e5\u5fd7\u4e0e\u5b58\u50a8", "color": "#7D8F7B", "title": "WAL \u9884\u5199\u65e5\u5fd7\u987a\u5e8f\u8ffd\u52a0\u7ed3\u6784 (WAL Append-Only Structure)", "body": "<li>  <strong>\u78c1\u76d8 I/O \u7269\u7406\u5bf9\u9f50</strong>\uff1aWAL \u6587\u4ef6\u5927\u5c0f\u56fa\u5b9a\u4e3a 64MB\u3002\u4e3a\u6d88\u9664\u78c1\u76d8\u5206\u914d\u6307\u9488\u65f6\u7684\u6587\u4ef6\u7a7a\u6d1e\u4e0e\u968f\u673a I/O \u5ef6\u8fdf\uff0cetcd \u5728\u521b\u5efa WAL \u65f6\u5229\u7528 <code>fallocate</code> \u7cfb\u7edf\u8c03\u7528\u5728\u7269\u7406\u4ecb\u8d28\u4e0a\u9884\u5206\u914d\u5e76\u9501\u5b9a\u5168\u90e8 64MB \u8fde\u7eed\u5757\u3002</li><li>  <strong>\u5185\u5b58\u5199\u5bf9\u9f50</strong>\uff1a\u5199\u65e5\u5fd7\u65f6\u4ee5 <code>512 \u5b57\u8282\uff08\u6247\u533a\u5927\u5c0f\uff09</code> \u8fdb\u884c\u5bf9\u9f50\uff0c\u5e76\u4f7f\u7528\u987a\u5e8f\u8ffd\u52a0\uff08Append-Only\uff09\u65e5\u5fd7\u6bb5\uff0c\u6781\u5927\u5730\u5229\u7528\u4e86\u78c1\u76d8\u7684\u987a\u5e8f\u5199\u6027\u80fd\u3002</li>"}, {"id": 7, "relativeId": "M2.2", "module": "M2", "moduleName": "WAL\u9884\u5199\u65e5\u5fd7\u4e0e\u5b58\u50a8", "color": "#7D8F7B", "title": "BoltDB/bbolt \u5d4c\u5165\u5f0f\u5b58\u50a8\u5f15\u64ce (bbolt B+ Tree Storage)", "body": "<li>  <strong>\u7269\u7406\u5b58\u50a8\u5e95\u5ea7</strong>\uff1aetcd \u91c7\u7528\u7eaf Go \u5b9e\u73b0\u7684\u5355\u6587\u4ef6\u5d4c\u5165\u5f0f\u952e\u503c\u6570\u636e\u5e93 <code>bbolt</code>\u3002\u5185\u90e8\u901a\u8fc7 B+ \u6811\u7269\u7406\u9875\u9762\u7ec4\u7ec7\u6570\u636e\uff0c\u53f6\u5b50\u8282\u70b9\u5b58\u50a8\u5b9e\u9645\u7684 Revision \u548c KV \u8bb0\u5f55\uff0c\u975e\u53f6\u5b50\u8282\u70b9\u5b58\u50a8\u8def\u7531\u7d22\u5f15\u3002</li><li>  <strong>\u5171\u4eab\u5185\u5b58\u5e76\u53d1</strong>\uff1a\u901a\u8fc7 <code>mmap</code> \u6280\u672f\u5c06 BoltDB \u7684\u6570\u636e\u6587\u4ef6\u76f4\u63a5\u6620\u5c04\u5230\u7528\u6237\u6001\u5185\u5b58\u7a7a\u95f4\uff0c\u89c4\u907f\u4e86\u5185\u6838\u6001\u5230\u7528\u6237\u6001\u7684\u53cc\u91cd\u7f13\u51b2\u62f7\u8d1d\u5f00\u9500\uff0c\u652f\u6301\u6781\u81f4\u7684\u53ea\u8bfb\u4e8b\u52a1\u96f6\u62f7\u8d1d\u5e76\u53d1\u3002</li>"}, {"id": 8, "relativeId": "M2.3", "module": "M2", "moduleName": "WAL\u9884\u5199\u65e5\u5fd7\u4e0e\u5b58\u50a8", "color": "#7D8F7B", "title": "WAL \u4e0e BoltDB \u63d0\u4ea4\u987a\u5e8f\u5c4f\u969c (WAL Pre-write & BoltDB Commit Sequence)", "body": "<li>  <strong>\u987a\u5e8f\u91d1\u5f8b (Sequential Barrier)</strong>\uff1a\u5728\u5904\u7406\u4e8b\u52a1\u65f6\uff0c\u4efb\u4f55\u952e\u503c\u66f4\u65b0\u5fc5\u987b <strong>\u5148\u987a\u5e8f\u5199\u5165 WAL \u7269\u7406\u78c1\u76d8\u5e76\u6267\u884c fsync \u5237\u76d8\u6210\u529f</strong>\uff0c\u7136\u540e\u624d\u80fd\u5411 BoltDB \u63d0\u4ea4\u6279\u91cf\u4e8b\u52a1\uff08Batch Commit\uff09\u5e76\u5e94\u7528\u5230\u5185\u5b58\u4e2d\u3002</li><li>  <strong>\u9632\u5d29\u6e83\u9694\u79bb</strong>\uff1a\u5373\u4f7f BoltDB \u5199\u5165\u8fc7\u7a0b\u4e2d\u53d1\u751f\u65ad\u7535\u6216\u64cd\u4f5c\u7cfb\u7edf\u5d29\u6e83\uff0c\u7cfb\u7edf\u5728\u91cd\u542f\u65f6\u4e5f\u53ef\u4ee5\u901a\u8fc7\u91cd\u653e WAL \u65e5\u5fd7\uff0c\u65e0\u635f\u91cd\u6784\u51fa\u6700\u65b0\u672a\u540c\u6b65\u5230 BoltDB \u7684\u4e00\u81f4\u6027\u6570\u636e\u3002</li>"}, {"id": 9, "relativeId": "M2.4", "module": "M2", "moduleName": "WAL\u9884\u5199\u65e5\u5fd7\u4e0e\u5b58\u50a8", "color": "#7D8F7B", "title": "\u5feb\u7167\u673a\u5236\u4e0e\u65e5\u5fd7\u5386\u53f2\u622a\u65ad (Snapshotting & WAL Truncation)", "body": "<li>  <strong>\u5185\u5b58\u81a8\u80c0\u9632\u7ebf</strong>\uff1a\u4e3a\u9632\u6b62 WAL \u65e0\u9650\u81a8\u80c0\u6491\u7206\u78c1\u76d8\uff0cetcd \u5f15\u5165\u5feb\u7167\u673a\u5236\u3002\u5b9a\u671f\u5c06 BoltDB \u4e2d\u7684\u5f53\u524d\u72b6\u6001\u673a\u5feb\u7167\u5f52\u6863\u5e76\u56fa\u5316\u5230\u78c1\u76d8\uff0c\u751f\u6210\u5feb\u7167\u6587\u4ef6\u3002</li><li>  <strong>\u5386\u53f2\u65e5\u5fd7\u88c1\u526a</strong>\uff1a\u5feb\u7167\u843d\u76d8\u540e\uff0cetcd \u4f1a\u5b89\u5168\u622a\u65ad\u5e76\u56de\u6536\u8be5\u5feb\u7167 Revision \u4e4b\u524d\u7684\u6240\u6709 WAL \u65e5\u5fd7\u6bb5\uff0c\u53ea\u4fdd\u7559\u589e\u91cf\u65e5\u5fd7\uff0c\u5b9e\u73b0\u5185\u5b58\u5f00\u9500\u4e0e\u78c1\u76d8\u5360\u7528\u7684\u52a8\u6001\u5e73\u8861\u3002</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "MVCC\u591a\u7248\u672c\u5e76\u53d1\u63a7\u5236", "color": "#9E828A", "title": "Revision \u5168\u5c40\u9012\u589e\u5e8f\u5217\u53f7 (Global Revision)", "body": "<li>  <strong>\u7edd\u5bf9\u65f6\u7a7a\u5ea7\u6807</strong>\uff1aetcd \u7ef4\u62a4\u4e00\u4e2a 64 \u4f4d\u5168\u5c40\u5355\u8c03\u9012\u589e\u7684 Revision\uff0c\u4ee3\u8868\u96c6\u7fa4\u7684\u903b\u8f91\u65f6\u949f\u3002\u6bcf\u4e00\u4e2a\u4fee\u6539\u64cd\u4f5c\uff08PUT\u3001DELETE\uff09\u90fd\u4f1a\u5bfc\u81f4\u8be5 Revision \u81ea\u589e 1\u3002</li><li>  <strong>\u53cc\u7248\u672c\u6807\u8bc6 (Revision Struct)</strong>\uff1aRevision \u7531\u4e24\u90e8\u5206\u7ec4\u6210\uff1a<code>main</code>\uff08\u5916\u90e8\u7269\u7406\u5199\u4e8b\u52a1\u5e8f\u5217\u53f7\uff09\u4e0e <code>sub</code>\uff08\u540c\u4e00\u4e2a\u5199\u4e8b\u52a1/Batch \u5185\u4e0d\u540c\u64cd\u4f5c\u7684\u5185\u90e8\u7d22\u5f15\u53f7\uff0c\u4ece 0 \u5f00\u59cb\uff09\uff0c\u6784\u6210\u4e86\u7cfb\u7edf\u5185\u4efb\u610f\u952e\u503c\u72b6\u6001\u7684\u552f\u4e00\u7d22\u5f15\u3002</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "MVCC\u591a\u7248\u672c\u5e76\u53d1\u63a7\u5236", "color": "#9E828A", "title": "KeyIndex \u5185\u5b58 B-Tree \u7d22\u5f15 (KeyIndex struct)", "body": "<li>  <strong>\u5185\u5b58\u7d22\u5f15\u5927\u56fe</strong>\uff1aBoltDB \u4e2d\u7684\u952e\u662f Revision\uff0c\u800c\u7528\u6237\u67e5\u8be2\u7684\u952e\u662f\u539f\u59cb <code>Key</code>\u3002etcd \u5728\u5185\u5b58\u4e2d\u7ef4\u62a4\u4e86\u4e00\u68f5 B-Tree\uff08KeyIndex\uff09\uff0c\u7528\u4e8e\u5b8c\u6210 <code>Key -> Revision</code> \u7684\u9ad8\u901f\u6620\u5c04\u3002</li><li>  <strong>Generation \u673a\u5236</strong>\uff1a\u6bcf\u4e2a <code>keyIndex</code> \u7ed3\u6784\u4f53\u5305\u542b\u4e00\u4e2a <code>generations</code> \u6570\u7ec4\u3002\u6bcf\u4e2a Generation \u4ee3\u8868\u8be5\u952e\u7684\u4e00\u6b21\u751f\u547d\u5468\u671f\uff08\u4ece\u521b\u5efa PUT \u5230\u5220\u9664 DELETE\uff09\uff0c\u6570\u7ec4\u4e2d\u8bb0\u5f55\u4e86\u8be5\u751f\u547d\u5468\u671f\u5185\u6240\u6709\u4fee\u6539\u64cd\u4f5c\u5bf9\u5e94\u7684\u5386\u53f2 Revision \u5217\u8868\u3002</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "MVCC\u591a\u7248\u672c\u5e76\u53d1\u63a7\u5236", "color": "#9E828A", "title": "MVCC \u5feb\u7167\u8bfb\u9694\u79bb\u4e0e Range \u67e5\u8be2 (MVCC Snapshot Isolation)", "body": "<li>  <strong>\u53ea\u8bfb\u5feb\u7167\u514d\u9501</strong>\uff1a\u7528\u6237\u5728\u8bfb\u53d6\u6570\u636e\u65f6\u5982\u679c\u4e0d\u6307\u5b9a Revision\uff0c\u9ed8\u8ba4\u4f7f\u7528\u5f53\u524d\u6700\u65b0 Revision \u8fdb\u884c\u4e00\u81f4\u6027\u8bfb\uff1b\u5982\u679c\u6307\u5b9a Revision\uff08\u5982 <code>--rev=100</code>\uff09\uff0cetcd \u4f1a\u76f4\u63a5\u5728\u5185\u5b58 KeyIndex \u4e2d\u5b9a\u4f4d Revision\uff0c\u518d\u53bb BoltDB \u67e5\u51fa\u76f8\u5e94\u7248\u672c\u7684 KV \u503c\u3002</li><li>  <strong>\u65e0\u5e72\u6d89\u8bfb\u5199\u5e76\u53d1</strong>\uff1a\u7531\u4e8e\u5386\u53f2\u7248\u672c\u7269\u7406\u4fdd\u7559\u5728 BoltDB \u4e2d\uff0c\u56e0\u6b64\u8bfb\u53d6\u64cd\u4f5c\u5b8c\u5168\u4e0d\u9700\u8981\u52a0\u9501\uff0c\u8bfb\u8bf7\u6c42\u53ef\u4ee5\u5728\u4efb\u4f55\u5386\u53f2 Revision \u7684\u5feb\u7167\u4e0a\u5e76\u53d1\u6267\u884c\uff0c\u5199\u8bf7\u6c42\u5728\u5355\u72ec\u7684\u4e8b\u52a1\u4e2d\u8fdb\u884c\uff0c\u5f7b\u5e95\u6d88\u9664\u4e86\u8bfb\u5199\u51b2\u7a81\u3002</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "MVCC\u591a\u7248\u672c\u5e76\u53d1\u63a7\u5236", "color": "#9E828A", "title": "\u5386\u53f2\u7248\u672c\u538b\u7f29\u4e0e\u7a7a\u95f4\u6574\u7406 (Compaction & DB Defragmentation)", "body": "<li>  <strong>\u7a7a\u95f4\u56de\u6536\u539f\u7406</strong>\uff1aMVCC \u968f\u7740\u5199\u5165\u589e\u957f\u4f1a\u5bfc\u81f4 BoltDB \u6587\u4ef6\u4e0d\u65ad\u589e\u5927\u3002\u7528\u6237\u9700\u5b9a\u671f\u89e6\u53d1 <code>Compaction</code>\uff0c\u7269\u7406\u5220\u9664\u6307\u5b9a Revision \u4e4b\u524d\u7684\u6240\u6709\u5386\u53f2\u7248\u672c\u6570\u636e\u3002</li><li>  <strong>\u788e\u7247\u91cd\u6574 (Defragmentation)</strong>\uff1a\u538b\u7f29\u53ea\u662f\u5728 BoltDB \u6811\u4e2d\u91ca\u653e\u4e86\u5bf9\u5e94\u7684 Key\uff0c\u5e76\u6ca1\u6709\u5c06\u7269\u7406\u78c1\u76d8\u7a7a\u95f4\u5f52\u8fd8\u7ed9\u64cd\u4f5c\u7cfb\u7edf\u3002\u9700\u8981\u901a\u8fc7 <code>etcdctl defrag</code> \u6307\u4ee4\u5bf9\u5e95\u5c42 BoltDB \u8fdb\u884c\u9875\u9762\u91cd\u65b0\u6392\u5e03\u4e0e\u7d27\u51d1\u5316\uff0c\u91cd\u5efa\u7d22\u5f15\u4ee5\u7269\u7406\u56de\u6536\u78c1\u76d8\u788e\u7247\u3002</li>"}, {"id": 14, "relativeId": "M4.1", "module": "M4", "moduleName": "Lease\u79df\u7ea6\u4e0e\u751f\u5b58\u671f\u7ba1\u7406", "color": "#B58A7D", "title": "Lease \u79df\u7ea6\u7ba1\u7406\u5668\u7269\u7406\u7ed3\u6784 (LeaseManager)", "body": "<li>  <strong>\u6700\u5c0f\u5806\u65f6\u95f4\u8f6e</strong>\uff1aetcd \u5185\u90e8\u4f7f\u7528 <code>LeaseManager</code> \u7edf\u4e00\u7ba1\u7406\u6240\u6709\u7684\u79df\u7ea6\uff08Lease\uff09\u3002\u4e3a\u5728 $O(1)$ \u65f6\u95f4\u590d\u6742\u5ea6\u5185\u611f\u77e5\u5230\u671f\u79df\u7ea6\uff0c\u5185\u90e8\u4f7f\u7528 <strong>\u6700\u5c0f\u5806 (Min-Heap) \u4f18\u5148\u961f\u5217</strong> \u6309\u7167\u79df\u7ea6\u7684\u7edd\u5bf9\u5230\u671f\u65f6\u95f4\uff08Expiration Time\uff09\u6392\u5e8f\u3002</li><li>  <strong>\u9ad8\u901f ID \u6620\u5c04</strong>\uff1a\u540c\u65f6\u7ef4\u62a4\u4e00\u4e2a\u4ee5 <code>Lease ID</code> \u4e3a Key \u7684\u54c8\u5e0c\u8868\uff0c\u63d0\u4f9b\u5bf9\u79df\u7ea6\u7eed\u7ea6\u4e0e\u5220\u9664\u7684\u5feb\u901f\u68c0\u7d22\u6620\u5c04\u3002</li>"}, {"id": 15, "relativeId": "M4.2", "module": "M4", "moduleName": "Lease\u79df\u7ea6\u4e0e\u751f\u5b58\u671f\u7ba1\u7406", "color": "#B58A7D", "title": "KeepAlive \u7eed\u7ea6\u4e0e gRPC \u53cc\u5411\u6d41 (Lease KeepAlive)", "body": "<li>  <strong>\u957f\u8fde\u63a5\u590d\u7528</strong>\uff1a\u5982\u679c\u5ba2\u6237\u7aef\u4e3a\u6bcf\u4e2a Key \u72ec\u7acb\u53d1\u9001 HTTP \u7eed\u7ea6\u5fc3\u8df3\uff0c\u4f1a\u5bfc\u81f4\u7f51\u7edc\u8fde\u7ed3\u548c CPU \u8d1f\u8377\u66b4\u589e\u3002etcd \u91c7\u7528 gRPC \u53cc\u5411\u6d41\uff08Bidirectional Stream\uff09\u590d\u7528\u6280\u672f\u3002</li><li>  <strong>\u7f51\u7edc\u6d41\u63a7\u4f18\u5316</strong>\uff1a\u5ba2\u6237\u7aef\u548c etcd \u4e4b\u95f4\u901a\u8fc7\u5355\u6761 gRPC \u957f\u8fde\u63a5\u4e0a\u7684\u53cc\u5411\u6d41\u53d1\u9001\u7eed\u7ea6\u5fc3\u8df3\uff08KeepAliveRequest/Response\uff09\uff0c\u5b9e\u73b0\u4e86\u4f4e\u5ef6\u8fdf\u3001\u4f4e\u5e26\u5bbd\u5360\u7528\u7684\u9ad8\u9891\u79df\u7ea6\u7ef4\u62a4\u3002</li>"}, {"id": 16, "relativeId": "M4.3", "module": "M4", "moduleName": "Lease\u79df\u7ea6\u4e0e\u751f\u5b58\u671f\u7ba1\u7406", "color": "#B58A7D", "title": "\u79df\u7ea6\u64a4\u9500\u4e0e\u952e\u8054\u7ea7\u6e05\u7406 (Lease Revocation)", "body": "<li>  <strong>\u5230\u671f\u7269\u7406\u9500\u6bc1</strong>\uff1aLease \u6700\u5c0f\u5806\u5230\u671f\u8f6e\u8be2\u7ebf\u7a0b\u68c0\u6d4b\u5230\u79df\u671f\u5230\u671f\uff08TTL <= 0\uff09\u65f6\uff0c\u4f1a\u89e6\u53d1\u6e05\u7406\u4e8b\u52a1\u3002</li><li>  <strong>\u8054\u7ea7\u5220\u9664 (Cascade Delete)</strong>\uff1a\u4ece\u79df\u7ea6\u7684\u5173\u8054\u952e\u5217\u8868\uff08Keys Associated\uff09\u4e2d\u63d0\u53d6\u51fa\u6240\u6709\u7ed1\u5b9a\u7684\u952e\u540d\uff0c\u751f\u6210\u5bf9\u5e94\u7684 Delete \u4e8b\u52a1\u5199\u5165 Raft \u590d\u5236\u72b6\u6001\u673a\uff0c\u5e76\u5728\u5e94\u7528\u5230\u72b6\u6001\u673a\u65f6\u4ece\u5185\u5b58 KeyIndex \u548c BoltDB \u4e2d\u7269\u7406\u6e05\u9664\u8fd9\u4e9b Key\uff0c\u5411\u6240\u6709 Watcher \u5e7f\u64ad\u5220\u9664\u4e8b\u4ef6\u3002</li>"}, {"id": 17, "relativeId": "M4.4", "module": "M4", "moduleName": "Lease\u79df\u7ea6\u4e0e\u751f\u5b58\u671f\u7ba1\u7406", "color": "#B58A7D", "title": "\u79df\u7ea6\u5171\u4eab\u4e0e\u53ef\u6269\u5c55\u6027\u8bbe\u8ba1 (Lease Sharing)", "body": "<li>  <strong>\u6d77\u91cf\u4e34\u65f6\u8282\u70b9\u6d88\u80c0</strong>\uff1a\u5728 K8s \u4e2d\uff0c\u53ef\u80fd\u6709\u6570\u4e07\u4e2a Pod \u9700\u8981\u7ed1\u5b9a\u751f\u5b58\u671f\u79df\u7ea6\u3002\u5982\u679c\u4e3a\u6bcf\u4e2a Pod \u72ec\u7acb\u7533\u8bf7 Lease\uff0c\u96c6\u7fa4\u5c06\u5145\u65a5\u7740\u5927\u91cf\u7684\u5fc3\u8df3\u3002</li><li>  <strong>\u5171\u4eab\u5fc3\u8df3\u6c60</strong>\uff1aetcd \u63a8\u8350\u91c7\u7528\u201c\u5171\u4eab\u79df\u7ea6\u201d\u8bbe\u8ba1\uff0c\u5373\u521b\u5efa\u4e00\u4e2a\u5168\u5c40\u7684\u79df\u7ea6\uff08\u5982 60s TTL\uff09\uff0c\u8ba9\u51e0\u5343\u4e2a\u4e0d\u540c\u7684\u4e34\u65f6 Key \u7ed1\u5b9a\u5230\u8fd9\u4e2a\u76f8\u540c\u7684 Lease ID\u3002\u5b83\u4eec\u5171\u4eab\u5355\u6b21\u7eed\u671f\u5fc3\u8df3\uff0c\u6781\u5927\u5730\u964d\u4f4e\u4e86\u7cfb\u7edf\u7ba1\u7406\u751f\u547d\u5468\u671f\u7684\u603b\u4f53\u5f00\u9500\u3002</li>"}, {"id": 18, "relativeId": "M4.5", "module": "M4", "moduleName": "Lease\u79df\u7ea6\u4e0e\u751f\u5b58\u671f\u7ba1\u7406", "color": "#B58A7D", "title": "\u57fa\u4e8e\u79df\u7ea6\u7684\u5206\u5e03\u5f0f\u9501 (Distributed Locks via Lease)", "body": "<li>  <strong>\u62a2\u5360\u4e0e\u4fdd\u6d3b\u5e76\u53d1</strong>\uff1a\u5229\u7528\u521b\u5efa Key \u7684\u539f\u5b50\u6027\uff08PUT Transaction\uff09\u914d\u5408 Lease \u5b9e\u73b0\u5206\u5e03\u5f0f\u9501\u3002\u9501\u7684\u6301\u6709\u8005\u901a\u8fc7\u521b\u5efa\u7ed1\u5b9a Lease \u7684\u4e34\u65f6 Key \u6765\u58f0\u660e\u9501\u7684\u7269\u7406\u5360\u7528\u3002</li><li>  <strong>\u5fc3\u8df3\u770b\u95e8\u72d7 (Watchdog)</strong>\uff1a\u9501\u6301\u6709\u8005\u5728\u540e\u53f0\u542f\u52a8\u5fc3\u8df3\u770b\u95e8\u72d7\u7ebf\u7a0b\uff0c\u5b9a\u671f\u901a\u8fc7 KeepAlive \u5237\u65b0 Lease \u65f6\u95f4\u3002\u4e00\u65e6\u6301\u6709\u8005\u8fdb\u7a0b\u53d1\u751f\u6b7b\u9501\u6216\u5b95\u673a\uff0cLease \u81ea\u52a8\u5230\u671f\uff0c\u9501 Key \u7ea7\u8054\u81ea\u52a8\u91ca\u653e\uff0c\u5b8c\u7f8e\u9632\u6b62\u96c6\u7fa4\u4ea7\u751f\u6b7b\u9501\u3002</li>"}, {"id": 19, "relativeId": "M5.1", "module": "M5", "moduleName": "Watch\u5f02\u6b65\u4e8b\u4ef6\u6d41", "color": "#5F7582", "title": "Watcher \u4e0e WatchStream \u8ba2\u9605\u7ba1\u9053 (Watcher & WatchStream)", "body": "<li>  <strong>\u4e8b\u4ef6\u5206\u53d1\u7ba1\u9053</strong>\uff1a\u5ba2\u6237\u7aef\u901a\u8fc7\u521b\u5efa <code>Watcher</code> \u76d1\u542c\u7279\u5b9a\u952e\u6216\u524d\u7f00\u3002\u8fd9\u4e9b\u76d1\u542c\u5668\u901a\u8fc7 gRPC \u591a\u8def\u590d\u7528\u805a\u5408\u5728\u540c\u4e00\u4e2a\u7f51\u7edc\u901a\u9053 <code>WatchStream</code> \u4e0a\uff0c\u5b9e\u73b0\u4f4e\u80fd\u8017\u4e8b\u4ef6\u6d41\u63a8\u9001\u3002</li><li>  <strong>\u54cd\u5e94\u8bed\u4e49</strong>\uff1a\u5f53 etcd \u72b6\u6001\u673a\u5e94\u7528\u5199\u4e8b\u52a1\u65f6\uff0c\u6240\u4ea7\u751f\u7684 KV \u53d8\u66f4\u8bb0\u5f55\uff08\u5305\u62ec Action\u3001Key\u3001Value\u3001PreKV\uff09\u90fd\u4f1a\u88ab\u8f6c\u6362\u4e3a Watch Event \u53d1\u9001\u7ed9\u76f8\u5e94\u7684 Stream\u3002</li>"}, {"id": 20, "relativeId": "M5.2", "module": "M5", "moduleName": "Watch\u5f02\u6b65\u4e8b\u4ef6\u6d41", "color": "#5F7582", "title": "WatchableStore \u540c\u6b65\u4e0e\u672a\u540c\u6b65\u961f\u5217 (WatchableStore)", "body": "<li>  <strong>\u53cc\u961f\u5217\u6d41\u91cf\u9632\u6296</strong>\uff1a<code>WatchableStore</code> \u662f Watch \u673a\u5236\u5728\u5185\u5b58\u4e2d\u7684\u6838\u5fc3\u5b9e\u73b0\u3002\u5185\u90e8\u7ba1\u7406\u7740\u4e24\u4e2a\u76d1\u542c\u5668\u961f\u5217\uff1a<code>synced</code>\uff08\u5df2\u540c\u6b65\u961f\u5217\uff0c\u5173\u6ce8\u6700\u65b0\u6570\u636e\u53d8\u5316\uff09\u4e0e <code>unsynced</code>\uff08\u672a\u540c\u6b65\u961f\u5217\uff0c\u6b63\u5728\u8ffd\u6eaf\u5386\u53f2 Revision \u6570\u636e\u7684\u76d1\u542c\u5668\uff09\u3002</li><li>  <strong>\u961f\u5217\u6eda\u52a8</strong>\uff1a\u5f53\u76d1\u542c\u5668\u8ffd\u8d76\u5b8c\u6240\u6709\u5386\u53f2 Revision \u540e\uff0c\u4f1a\u4ece <code>unsynced</code> \u81ea\u52a8\u6ed1\u5165 <code>synced</code> \u961f\u5217\uff0c\u52a0\u5165\u5171\u4eab\u5185\u5b58\u901a\u77e5\u8def\u5f84\u3002</li>"}, {"id": 21, "relativeId": "M5.3", "module": "M5", "moduleName": "Watch\u5f02\u6b65\u4e8b\u4ef6\u6d41", "color": "#5F7582", "title": "\u4e8b\u4ef6\u7f13\u51b2\u533a\u4e0e\u80cc\u538b\u6d41\u63a7 (Event Buffer & Flow Control)", "body": "<li>  <strong>\u5185\u5b58\u8017\u5c3d\u9632\u5fa1</strong>\uff1a\u5f53\u5ba2\u6237\u7aef\u7f51\u7edc\u8f83\u6162\u6216\u6d88\u8d39\u80fd\u529b\u4e0d\u8db3\u65f6\uff0c\u4e8b\u4ef6\u4f1a\u5728 etcd \u5185\u5b58\u4e2d\u79ef\u538b\u3002\u6bcf\u4e2a Watcher \u62e5\u6709\u56fa\u5b9a\u5927\u5c0f\u7684\u4e8b\u4ef6\u73af\u5f62\u7f13\u51b2\u533a\u3002</li><li>  <strong>\u80cc\u538b\u964d\u7ea7\u7b56\u7565</strong>\uff1a\u5982\u679c\u7f13\u51b2\u533a\u6ea2\u51fa\uff0cetcd \u4f1a\u5f3a\u884c\u5173\u95ed\u8be5 Watcher\uff0c\u5e76\u8fd4\u56de <code>errCompacted</code> \u72b6\u6001\uff0c\u89e6\u53d1\u6162\u6d88\u8d39\u8005\u964d\u7ea7\uff0c\u8981\u6c42\u5ba2\u6237\u7aef\u5728\u6062\u590d\u7f51\u7edc\u540e\u4e3b\u52a8\u53d1\u8d77\u91cd\u65b0\u76d1\u542c\u3002</li>"}, {"id": 22, "relativeId": "M5.4", "module": "M5", "moduleName": "Watch\u5f02\u6b65\u4e8b\u4ef6\u6d41", "color": "#5F7582", "title": "Watch \u4e8b\u4ef6\u5408\u5e76\u4e0e\u53bb\u91cd\u673a\u5236 (Event Consolidation)", "body": "<li>  <strong>\u7f51\u7edc\u541e\u5410\u7626\u8eab</strong>\uff1a\u5f53\u7cfb\u7edf\u5904\u4e8e\u6781\u9ad8\u5bc6\u5ea6\u7684\u5199\u538b\u529b\u4e0b\uff0c\u67d0\u4e2a\u952e\u5728\u51e0\u6beb\u79d2\u5185\u53ef\u80fd\u88ab\u66f4\u65b0\u6570\u5341\u6b21\u3002\u5982\u679c\u5c06\u6bcf\u6b21\u66f4\u65b0\u90fd\u5355\u72ec\u53d1\u9001\uff0c\u4f1a\u9020\u6210\u7f51\u7edc\u62e5\u5835\u3002</li><li>  <strong>\u53ea\u53d1\u6700\u65b0\u6001</strong>\uff1aetcd \u5728\u5904\u7406 WatchableStore \u63a8\u9001\u65f6\uff0c\u4f1a\u5c1d\u8bd5\u5728\u7f13\u5b58\u5c42\uff08Event Buffer\uff09\u5bf9\u540c\u4e00\u4e2a\u952e\u5728\u540c\u4e00\u4e2a\u4e8b\u52a1\uff08main Revision\uff09\u5185\u7684\u591a\u6b21\u4fee\u6539\u4e8b\u4ef6\u8fdb\u884c\u53bb\u91cd\u4e0e\u7269\u7406\u5408\u5e76\uff0c\u53ea\u63a8\u9001\u8be5\u4e8b\u52a1\u6700\u7ec8\u751f\u6548\u7684\u6700\u7ec8\u6001\uff0c\u6d88\u51cf\u4e8b\u4ef6\u7f51\u7edc\u98ce\u66b4\u3002</li>"}, {"id": 23, "relativeId": "M5.5", "module": "M5", "moduleName": "Watch\u5f02\u6b65\u4e8b\u4ef6\u6d41", "color": "#5F7582", "title": "\u57fa\u4e8e\u5386\u53f2 Revision \u7684\u65ad\u70b9\u7eed\u4f20 (Watch Resume)", "body": "<li>  <strong>\u9632\u6296\u91cd\u8fde\u80fd\u529b</strong>\uff1a\u7531\u4e8e\u7f51\u7edc\u6296\u52a8\u5bfc\u81f4 Watcher \u65ad\u5f00\u65f6\uff0c\u5ba2\u6237\u7aef\u53ef\u4ee5\u5728\u91cd\u65b0\u5efa\u7acb Watch \u65f6\u6307\u5b9a\u65ad\u5f00\u77ac\u95f4\u7684 <code>Revision</code>\uff08\u5982 <code>Watch(key, WithRev(last_received_rev + 1))</code>\uff09\u3002</li><li>  <strong>\u672a\u540c\u6b65\u6ed1\u884c</strong>\uff1aetcd \u63a5\u6536\u5230\u8be5\u8bf7\u6c42\u540e\uff0c\u4f1a\u5c06 Watcher \u6302\u5165 <code>unsynced</code> \u961f\u5217\uff0c\u4ece BoltDB \u7684\u5386\u53f2 Revision \u8bb0\u5f55\u4e2d\u626b\u63cf\u62c9\u53d6\u8be5 Rev \u4e4b\u540e\u7684\u6240\u6709\u53d8\u52a8\uff0c\u589e\u91cf\u8865\u53d1\u5b8c\u6bd5\u540e\u518d\u5e76\u5165 synced \u961f\u5217\uff0c\u786e\u4fdd\u6570\u636e\u6d41\u4e0d\u4e22\u5931\u3001\u4e0d\u91cd\u590d\u3002</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "\u96c6\u7fa4\u53d8\u66f4\u4e0e\u5f3a\u4e00\u81f4\u8bfb", "color": "#BFA88F", "title": "gRPC v3 \u5f3a\u534f\u8bae\u67b6\u6784\u8bbe\u8ba1 (gRPC Protocol v3)", "body": "<li>  <strong>\u534f\u8bae\u6808\u8dc3\u8fc1</strong>\uff1aetcd v3 \u5f7b\u5e95\u5e9f\u5f03\u4e86 v2 \u7e41\u5197\u7684 HTTP/1.x + JSON \u901a\u4fe1\u65b9\u5f0f\uff0c\u6539\u7528\u57fa\u4e8e HTTP/2 \u7684 <code>gRPC</code> + <code>Protocol Buffers</code> \u5f3a\u5951\u7ea6\u4ea4\u4e92\u3002</li><li>  <strong>\u7cfb\u7edf\u6536\u76ca</strong>\uff1a\u7f51\u7edc\u5c42\u501f\u7531 HTTP/2 \u7684\u591a\u8def\u590d\u7528\u5f7b\u5e95\u6d88\u9664\u4e86\u8fde\u63a5\u63e1\u624b\u5f00\u9500\uff1b\u53cd\u5e8f\u5217\u5316\u5c42\u5229\u7528\u4e8c\u8fdb\u5236 Protobuf \u51cf\u5c11\u4e86 CPU \u5f00\u9500\u4e0e\u5185\u5b58\u5206\u914d\uff0c\u6574\u4f53\u541e\u5410\u63d0\u5347\u6570\u500d\u3002</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "\u96c6\u7fa4\u53d8\u66f4\u4e0e\u5f3a\u4e00\u81f4\u8bfb", "color": "#BFA88F", "title": "Linearizable \u7ebf\u6027\u4e00\u81f4\u8bfb\u4e0e ReadIndex (Linearizable Read)", "body": "<li>  <strong>\u89c4\u907f\u72b6\u6001\u673a\u6b7b\u89d2</strong>\uff1a\u5982\u679c Follower \u76f4\u63a5\u54cd\u5e94\u8bfb\u8bf7\u6c42\uff0c\u53ef\u80fd\u56e0\u540c\u6b65\u5ef6\u8fdf\u5bfc\u81f4\u8bfb\u5230\u65e7\u6570\u636e\uff08\u810f\u8bfb\uff09\u3002\u7ebf\u6027\u4e00\u81f4\u8bfb\u8981\u6c42\u8bfb\u5230\u7684\u6570\u636e\u7edd\u5bf9\u662f\u5168\u5c40\u6700\u65b0\u7684\u3002</li><li>  <strong>ReadIndex \u673a\u5236</strong>\uff1aFollower \u6536\u5230\u8bfb\u8bf7\u6c42\u540e\uff0c\u5411 Leader \u7d22\u8981\u5f53\u524d\u6700\u65b0\u7684\u5df2\u63d0\u4ea4\u7d22\u5f15 <code>ReadIndex</code>\u3002Leader \u968f\u5373\u5411 Follower \u5e7f\u64ad\u4e00\u6b21\u5fc3\u8df3\uff0c\u786e\u8ba4\u81ea\u5df1\u4ecd\u662f\u5408\u6cd5 Leader\uff08Quorum \u540c\u610f\uff09\u3002\u968f\u540e Follower \u7b49\u5f85\u672c\u5730\u72b6\u6001\u673a\u5e94\u7528\u6307\u9488 <code>ApplyIndex</code> \u8ffd\u4e0a\u8be5 <code>ReadIndex</code>\uff0c\u4fbf\u53ef\u5b89\u5168\u5728\u672c\u5730\u8bfb\u53d6\u5e76\u8fd4\u56de\uff0c\u907f\u514d\u4e86\u6602\u8d35\u7684 Raft \u65e5\u5fd7\u5199\u76d8\u903b\u8f91\u3002</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "\u96c6\u7fa4\u53d8\u66f4\u4e0e\u5f3a\u4e00\u81f4\u8bfb", "color": "#BFA88F", "title": "LeaseRead \u79df\u7ea6\u5f3a\u4e00\u81f4\u8bfb\u4f18\u5316 (LeaseRead)", "body": "<li>  <strong>\u89c4\u907f\u7f51\u7edc\u5fc3\u8df3\u786e\u8ba4</strong>\uff1a\u867d\u7136 ReadIndex \u907f\u514d\u4e86\u8bfb\u8bf7\u6c42\u5199\u78c1\u76d8\uff0c\u4f46\u4f9d\u7136\u9700\u8981\u5728\u8282\u70b9\u95f4\u53d1\u9001\u4e00\u8f6e\u5fc3\u8df3\u786e\u8ba4 Leader \u8eab\u4efd\uff0c\u4ea7\u751f\u4e86\u4e00\u6b21\u7f51\u7edc\u5f80\u8fd4\u5ef6\u8fdf\uff08RTT\uff09\u3002</li><li>  <strong>\u65f6\u949f\u7f6e\u4fe1\u79df\u671f</strong>\uff1a<code>LeaseRead</code> \u5728\u7269\u7406\u65f6\u949f\u6f02\u79fb\u5728\u6781\u5c0f\u5b89\u5168\u9608\u503c\u5185\u7684\u524d\u63d0\u4e0b\uff0c\u5229\u7528 Leader \u7684 Raft \u79df\u7ea6\u6709\u6548\u671f\u8fdb\u884c\u5224\u65ad\u3002\u53ea\u8981 Leader \u786e\u4fe1\u81ea\u5df1\u672c\u5730\u7684\u79df\u7ea6\u6709\u6548\u671f\u4ecd\u672a\u8fc7\u671f\uff08\u5728\u6b64\u671f\u95f4\u4e0d\u53ef\u80fd\u4ea7\u751f\u65b0 Leader\uff09\uff0c\u5c31\u53ef\u4ee5\u76f4\u63a5\u8df3\u8fc7\u7f51\u7edc\u5e7f\u64ad\u786e\u8ba4\u6b65\u9aa4\uff0c\u672c\u5730\u76f4\u63a5\u8bfb\u53d6\u8fd4\u56de\uff0c\u5c06 RTT \u964d\u4e3a 0\u3002</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "\u96c6\u7fa4\u53d8\u66f4\u4e0e\u5f3a\u4e00\u81f4\u8bfb", "color": "#BFA88F", "title": "\u5ba2\u6237\u7aef\u667a\u80fd\u8d1f\u8f7d\u5747\u8861\u4e0e\u5bb9\u707e (Client Load Balancing)", "body": "<li>  <strong>\u53bb\u4e2d\u5fc3\u5316\u5bfb\u5740</strong>\uff1aetcd \u5ba2\u6237\u7aef\u96c6\u6210\u4e86\u96c6\u7fa4\u7aef\u70b9\u52a8\u6001\u53d1\u73b0\uff08Endpoints Discovery\uff09\u4e0e\u8f6e\u8be2\u91cd\u8bd5\u903b\u8f91\u3002</li><li>  <strong>\u81ea\u52a8\u6f02\u79fb</strong>\uff1a\u5ba2\u6237\u7aef\u521d\u59cb\u5316\u65f6\u53ea\u9700\u586b\u5165\u4e00\u4e2a Endpoint\uff0c\u4fbf\u4f1a\u81ea\u52a8\u8c03\u7528 <code>Cluster</code> \u63a5\u53e3\u83b7\u53d6\u6240\u6709\u8282\u70b9\u5217\u8868\u5e76\u7f13\u5b58\u5728\u5185\u5b58\u4e2d\u3002\u5f53\u5f53\u524d\u8fde\u63a5\u8282\u70b9\u53d1\u751f\u786c\u4ef6\u5b95\u673a\u6216\u65ad\u7f51\u65f6\uff0c\u5ba2\u6237\u7aef\u80fd\u591f\u79d2\u7ea7\u611f\u77e5\u5e76\u900f\u660e\u91cd\u8bd5\u6f02\u79fb\u5230\u5176\u4ed6\u53ef\u7528\u8282\u70b9\uff0c\u4fdd\u6301\u670d\u52a1\u9ad8\u53ef\u7528\u3002</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "\u96c6\u7fa4\u53d8\u66f4\u4e0e\u5f3a\u4e00\u81f4\u8bfb", "color": "#BFA88F", "title": "Etcd \u7f51\u5173\u4e0e\u4ee3\u7406\u8f6c\u53d1\u6a21\u5f0f (Etcd Gateway & L4 Proxy)", "body": "<li>  <strong>\u7269\u7406\u67b6\u6784\u89e3\u8026</strong>\uff1a\u5f53\u5ba2\u6237\u7aef\u8282\u70b9\u6210\u5343\u4e0a\u4e07\uff08\u5982\u6d77\u91cf\u8fb9\u7f18\u7269\u7406\u8282\u70b9\uff09\u65f6\uff0c\u76f4\u8fde etcd \u96c6\u7fa4\u4f1a\u5bfc\u81f4 etcd \u8282\u70b9\u4e0a\u7684 TCP \u7aef\u53e3\u8fde\u63a5\u6570\u66b4\u589e\uff0c\u8017\u5c3d\u7cfb\u7edf\u6587\u4ef6\u63cf\u8ff0\u7b26\uff08FD\uff09\u3002</li><li>  <strong>\u8fb9\u7f18\u6d41\u91cf\u4ee3\u7406</strong>\uff1a\u90e8\u7f72 <code>etcd gateway</code> \u6216 <code>etcd grpc-proxy</code> \u4f5c\u4e3a\u56db\u5c42\u65e0\u72b6\u6001\u53cd\u5411\u4ee3\u7406\u3002\u7f51\u5173\u6c47\u805a\u8fb9\u7f18\u5ba2\u6237\u7aef\u7684 gRPC \u8fde\u63a5\uff0c\u5e76\u901a\u8fc7\u5c11\u91cf\u3001\u590d\u7528\u7684\u957f\u8fde\u63a5\u4e0e\u6838\u5fc3 etcd \u96c6\u7fa4\u4ea4\u4e92\uff0c\u8d77\u5230\u4e86\u8fde\u63a5\u6570\u9632\u706b\u5899\u7684\u4f5c\u7528\u3002</li>"}];
+
+        function renderCards(filtered) {
+            const grid = document.getElementById('cardsGrid');
+            grid.innerHTML = '';
+            filtered.forEach(card => {
+                const el = document.createElement('div');
+                el.className = 'card';
+                el.style.setProperty('--theme-color', card.color);
+                el.style.setProperty('--theme-color-50', card.color + '33');
+                el.innerHTML = `
+                    <div class="card-header">
+                        <span class="module-tag">${card.moduleName}</span>
+                        <span class="relative-id">${card.relativeId}</span>
+                    </div>
+                    <div class="card-title">${card.title}</div>
+                    <div class="card-body">${card.body}</div>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        function filterModule(mod, btnEl) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            btnEl.classList.add('active');
+            
+            if (mod === 'all') {
+                renderCards(cardsData);
+            } else {
+                const filtered = cardsData.filter(c => c.module === mod);
+                renderCards(filtered);
+            }
+        }
+
+        // Initial render
+        renderCards(cardsData);
+    </script>
+</body>
+</html>

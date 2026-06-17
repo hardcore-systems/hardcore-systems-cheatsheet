@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux 内存子系统仿真实验室：伙伴页分配器与 SLUB 对象高速缓存回收器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b111e;
+            --panel-bg: #152035;
+            --border-color: #24355a;
+            --text-color: #e2e8f0;
+            --text-muted: #64748b;
+            --accent-color: #3b82f6;
+            --color-hit: #10b981;
+            --color-miss: #ef4444;
+            --color-boost: #f59e0b;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            line-height: 1.4;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .grid-labs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 1024px) {
+            .grid-labs {
+                grid-template-columns: 1fr;
+            }
+        }
+        .lab-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .lab-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: #60a5fa;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+        .lab-description {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .input-group label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .input-ctrl {
+            background-color: #0b111e;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.5rem 0.8rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn:hover {
+            background-color: #2563eb;
+        }
+        .btn-secondary {
+            background-color: #475569;
+        }
+        .btn-secondary:hover {
+            background-color: #334155;
+        }
+        
+        /* Buddy Visual Layout */
+        .buddy-visual-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .buddy-bar {
+            display: flex;
+            height: 60px;
+            background-color: #1e293b;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+        .buddy-block {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            border-right: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: bold;
+            position: relative;
+            cursor: pointer;
+        }
+        .buddy-block:last-child {
+            border-right: none;
+        }
+        .buddy-block.free {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+        .buddy-block.allocated {
+            background-color: rgba(59, 130, 246, 0.35);
+            color: #60a5fa;
+            border: 1px solid #3b82f6;
+        }
+        .buddy-block.slab-allocated {
+            background-color: rgba(239, 68, 68, 0.25);
+            color: #f87171;
+            border: 1px solid #ef4444;
+        }
+        .buddy-block .block-label {
+            font-size: 0.8rem;
+            margin-bottom: 0.1rem;
+        }
+        .buddy-block .block-info {
+            font-size: 0.65rem;
+            opacity: 0.8;
+        }
+        .buddy-block .block-action {
+            position: absolute;
+            bottom: 2px;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-size: 0.6rem;
+            display: none;
+        }
+        .buddy-block:hover .block-action {
+            display: block;
+        }
+
+        /* SLUB Visual Layout */
+        .slub-visual-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .slub-section {
+            border: 1px dashed rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 1rem;
+            background-color: rgba(255,255,255,0.02);
+        }
+        .slub-section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .slub-slab-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background-color: #152035;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+        .slub-slab-info {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            min-width: 140px;
+        }
+        .slub-objects {
+            display: flex;
+            gap: 0.35rem;
+            flex-grow: 1;
+            flex-wrap: wrap;
+        }
+        .slub-object {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .slub-object.free {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .slub-object.active {
+            background-color: rgba(245, 158, 11, 0.25);
+            color: #f59e0b;
+            border-color: #f59e0b;
+        }
+        .slub-object.allocated {
+            background-color: rgba(59, 130, 246, 0.25);
+            color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        
+        .log-terminal {
+            background-color: #05070f;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            height: 180px;
+            overflow-y: auto;
+            color: #a7f3d0;
+        }
+        .buddy-log {
+            color: #34d399;
+        }
+        .slub-log {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Linux 内存子系统物理分配与 SLUB 回收器仿真实验室</h1>
+        <p>实时演示伙伴分配系统页框分裂与伙伴块合并，以及 SLUB 分配器 kmem_cache_cpu 局部无锁对象高速缓存的分配逻辑</p>
+    </header>
+
+    <div class="grid-labs">
+        <!-- Lab 1: Buddy System -->
+        <div class="lab-panel">
+            <h2 class="lab-title">实验一：伙伴页分配系统 (Buddy System Allocator)</h2>
+            <p class="lab-description">
+                支持分配 16KB 至 512KB 大小的物理内存块。伙伴页分配器会自动向下拆分高阶空闲页块（递归二分对半分裂）。释放时会自动检查相邻的 Buddy 块，若均空闲则合并为更高阶页块。
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>分配页块大小</label>
+                    <select id="buddy-alloc-size" class="input-ctrl" style="width:140px">
+                        <option value="16">16 KB</option>
+                        <option value="32">32 KB</option>
+                        <option value="64" selected>64 KB</option>
+                        <option value="128">128 KB</option>
+                        <option value="256">256 KB</option>
+                        <option value="512">512 KB</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="triggerBuddyAlloc()">ALLOCATE</button>
+                <button class="btn btn-secondary" onclick="resetBuddyOnly()">RESET BUDDY</button>
+            </div>
+
+            <div class="buddy-visual-container">
+                <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">物理内存页地址映射大图 (1024KB)</h4>
+                <div class="buddy-bar" id="buddy-bar">
+                    <!-- Blocks dynamically rendered -->
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); font-family:monospace">
+                    <span>0x0000 (0KB)</span>
+                    <span>0x0100 (256KB)</span>
+                    <span>0x0200 (512KB)</span>
+                    <span>0x0300 (768KB)</span>
+                    <span>0x0400 (1024KB)</span>
+                </div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">伙伴分配系统 mm/page_alloc.c 追踪日志</h4>
+            <div class="log-terminal buddy-log" id="buddy-log-term">
+                -- Buddy allocator online. Total contiguous RAM: 1024KB (Order-6 page block). --
+            </div>
+        </div>
+
+        <!-- Lab 2: SLUB Cache Allocator -->
+        <div class="lab-panel">
+            <h2 class="lab-title">实验二：SLUB 对象高速缓存分配 (SLUB Allocator)</h2>
+            <p class="lab-description">
+                模拟 SLUB 缓存管理对象。分配 64 字节对象（如进程描述符 task_struct）。快速路径读取 cpu-local 活跃高速缓存；当活跃 slab 耗尽时，触发慢速路径：向伙伴系统（实验一）申请一个 64KB 页框并完成 active 重建。
+            </p>
+
+            <div class="controls-row">
+                <button class="btn" onclick="triggerSlubAlloc()">kmem_cache_alloc()</button>
+                <button class="btn btn-secondary" onclick="triggerSlubDeactivate()">Deactivate CPU Slab</button>
+                <button class="btn" onclick="resetAll()" style="background-color:#ef4444; margin-left:auto">RESET ALL</button>
+            </div>
+
+            <div class="slub-visual-container">
+                <!-- CPU active slab -->
+                <div class="slub-section" id="slub-cpu-section">
+                    <div class="slub-section-title">
+                        <span>CPU-Local Active Slab (kmem_cache_cpu)</span>
+                        <span id="slub-cpu-status" style="color:var(--color-hit)">ACTIVE</span>
+                    </div>
+                    <div id="slub-cpu-slab-container">
+                        <!-- CPU Active Slab dynamically rendered -->
+                    </div>
+                </div>
+
+                <!-- Node partial slabs -->
+                <div class="slub-section">
+                    <div class="slub-section-title">
+                        <span>Node-Local Partial Slabs (kmem_cache_node->partial)</span>
+                        <span id="slub-partial-count" style="color:var(--color-boost)">0 Slabs</span>
+                    </div>
+                    <div id="slub-partial-slabs-container" style="display:flex; flex-direction:column; gap:0.5rem">
+                        <!-- Partial slabs dynamically rendered -->
+                    </div>
+                </div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">SLUB 分配器 mm/slub.c 运行日志</h4>
+            <div class="log-terminal slub-log" id="slub-log-term">
+                -- SLUB subsystem initialized for task_struct (object_size: 64B). --
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables for Buddy Allocator
+        let blocks = [
+            { addr: 0, size: 1024, allocated: false, label: 'Free', isSlab: false, slabId: null }
+        ];
+        let pIdCounter = 1;
+
+        // Global variables for SLUB Allocator
+        let activeSlab = null; // kmem_cache_cpu -> active slab
+        let partialSlabs = []; // kmem_cache_node -> partial list
+        let fullSlabs = [];    // Full slabs
+        let nextSlabId = 1;
+        let slubAllocatedObjects = {}; // maps objId -> slabId
+
+        function logBuddy(msg) {
+            const term = document.getElementById('buddy-log-term');
+            term.innerHTML += `<br>[Buddy] ${msg}`;
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function logSlub(msg) {
+            const term = document.getElementById('slub-log-term');
+            term.innerHTML += `<br>[SLUB] ${msg}`;
+            term.scrollTop = term.scrollHeight;
+        }
+
+        // --- BUDDY IMPLEMENTATION ---
+        function renderBuddy() {
+            const bar = document.getElementById('buddy-bar');
+            bar.innerHTML = '';
+            blocks.forEach(b => {
+                const div = document.createElement('div');
+                let className = 'buddy-block free';
+                if (b.allocated) {
+                    className = b.isSlab ? 'buddy-block slab-allocated' : 'buddy-block allocated';
+                }
+                div.className = className;
+                
+                // Calculate width percentage relative to 1024KB
+                const widthPercent = (b.size / 1024) * 100;
+                div.style.width = `${widthPercent}%`;
+                
+                div.innerHTML = `
+                    <span class="block-label">${b.size}KB</span>
+                    <span class="block-info">0x${b.addr.toString(16).toUpperCase().padStart(4,'0')}</span>
+                    <span class="block-info">${b.label}</span>
+                    ${b.allocated && !b.isSlab ? `<span class="block-action" onclick="event.stopPropagation(); triggerBuddyFree(${b.addr})">释放</span>` : ''}
+                `;
+                bar.appendChild(div);
+            });
+        }
+
+        function allocateBuddy(size, label, isSlab = false, slabId = null) {
+            // Find power of 2 size
+            let targetSize = 16;
+            while (targetSize < size) {
+                targetSize *= 2;
+            }
+            
+            // Find best fit free block
+            let foundIdx = -1;
+            let minSize = 2048;
+            for (let i = 0; i < blocks.length; i++) {
+                if (!blocks[i].allocated && blocks[i].size >= targetSize && blocks[i].size < minSize) {
+                    minSize = blocks[i].size;
+                    foundIdx = i;
+                }
+            }
+            
+            if (foundIdx === -1) {
+                logBuddy(`buddy_alloc(${size}KB) -> 内存溢出！空闲块不足`);
+                return null;
+            }
+            
+            // Recursively split the block
+            while (blocks[foundIdx].size > targetSize) {
+                let b = blocks[foundIdx];
+                let half = b.size / 2;
+                logBuddy(`Split block [0x${b.addr.toString(16).toUpperCase().padStart(4,'0')}, ${b.size}KB] into buddies: [0x${b.addr.toString(16).toUpperCase().padStart(4,'0')}, ${half}KB] and [0x${(b.addr+half).toString(16).toUpperCase().padStart(4,'0')}, ${half}KB]`);
+                blocks.splice(foundIdx, 1, 
+                    { addr: b.addr, size: half, allocated: false, label: 'Free', isSlab: false, slabId: null },
+                    { addr: b.addr + half, size: half, allocated: false, label: 'Free', isSlab: false, slabId: null }
+                );
+            }
+            
+            blocks[foundIdx].allocated = true;
+            blocks[foundIdx].label = label;
+            blocks[foundIdx].isSlab = isSlab;
+            blocks[foundIdx].slabId = slabId;
+            
+            logBuddy(`buddy_alloc(${size}KB) -> 分配成功. Block 0x${blocks[foundIdx].addr.toString(16).toUpperCase().padStart(4,'0')} (${blocks[foundIdx].size}KB) allocated.`);
+            renderBuddy();
+            return blocks[foundIdx];
+        }
+
+        function freeBuddy(addr) {
+            let idx = blocks.findIndex(b => b.addr === addr);
+            if (idx === -1) return;
+            
+            blocks[idx].allocated = false;
+            blocks[idx].label = 'Free';
+            blocks[idx].isSlab = false;
+            blocks[idx].slabId = null;
+            
+            logBuddy(`buddy_free(0x${addr.toString(16).toUpperCase().padStart(4,'0')}) -> 块释放成功`);
+            
+            // Recurse merge
+            let merged = true;
+            while (merged) {
+                merged = false;
+                let i = blocks.findIndex(b => b.addr === addr);
+                if (i === -1) break;
+                
+                let current = blocks[i];
+                let size = current.size;
+                let buddyAddr = current.addr ^ size;
+                
+                let buddyIdx = blocks.findIndex(b => b.addr === buddyAddr && b.size === size && !b.allocated);
+                if (buddyIdx !== -1) {
+                    logBuddy(`Coalescing buddy blocks: 0x${current.addr.toString(16).toUpperCase().padStart(4,'0')} & 0x${buddyAddr.toString(16).toUpperCase().padStart(4,'0')} (each ${size}KB)`);
+                    let newAddr = Math.min(current.addr, buddyAddr);
+                    let newSize = size * 2;
+                    
+                    let firstIdx = Math.min(i, buddyIdx);
+                    blocks.splice(firstIdx, 2, { addr: newAddr, size: newSize, allocated: false, label: 'Free', isSlab: false, slabId: null });
+                    
+                    addr = newAddr;
+                    merged = true;
+                }
+            }
+            renderBuddy();
+        }
+
+        function triggerBuddyAlloc() {
+            const size = parseInt(document.getElementById('buddy-alloc-size').value);
+            const label = `Process P${pIdCounter++}`;
+            allocateBuddy(size, label, false, null);
+        }
+
+        function triggerBuddyFree(addr) {
+            freeBuddy(addr);
+        }
+
+        function resetBuddyOnly() {
+            blocks = [{ addr: 0, size: 1024, allocated: false, label: 'Free', isSlab: false, slabId: null }];
+            pIdCounter = 1;
+            document.getElementById('buddy-log-term').innerHTML = '-- Buddy allocator online. Contiguous RAM: 1024KB. --';
+            renderBuddy();
+        }
+
+
+        // --- SLUB IMPLEMENTATION ---
+        function createNewSlab() {
+            let slabId = nextSlabId++;
+            logSlub(`kmem_cache_create() -> SLUB Active cache requires Order-2 page frame from Buddy. Requesting 64KB block...`);
+            
+            // Allocate 64KB from Buddy
+            let block = allocateBuddy(64, `SLUB Slab #${slabId}`, true, slabId);
+            if (!block) {
+                logSlub(`ERROR: Out of Memory in Buddy Allocator. Cannot create slab!`);
+                return null;
+            }
+            
+            let slab = {
+                id: slabId,
+                pageAddr: block.addr,
+                objects: Array(8).fill(null), // 8 slots for 64B object size in 64KB virtual page
+                freelist: [0, 1, 2, 3, 4, 5, 6, 7]
+            };
+            logSlub(`Created Slab #${slabId} (Page Address: 0x${block.addr.toString(16).toUpperCase().padStart(4,'0')}). Objects freelist pre-populated.`);
+            return slab;
+        }
+
+        function renderSlub() {
+            // Render CPU active slab
+            const cpuContainer = document.getElementById('slub-cpu-slab-container');
+            cpuContainer.innerHTML = '';
+            
+            if (activeSlab) {
+                const row = document.createElement('div');
+                row.className = 'slub-slab-row';
+                
+                let objectsHtml = '';
+                for (let i = 0; i < 8; i++) {
+                    const obj = activeSlab.objects[i];
+                    let stateClass = 'free';
+                    let label = `o${i}`;
+                    if (obj) {
+                        stateClass = 'allocated';
+                        label = obj;
+                    } else if (activeSlab.freelist.includes(i)) {
+                        stateClass = 'free';
+                    } else {
+                        // Deactivated state or regular free
+                        stateClass = 'free';
+                    }
+                    
+                    objectsHtml += `
+                        <div class="slub-object ${stateClass}" 
+                             onclick="triggerObjectFree(${activeSlab.id}, ${i})"
+                             title="${obj ? `Click to free ${obj}` : 'Free'}">
+                            ${label}
+                        </div>
+                    `;
+                }
+                
+                row.innerHTML = `
+                    <div class="slub-slab-info">
+                        <strong>Slab #${activeSlab.id}</strong><br>
+                        Address: 0x${activeSlab.pageAddr.toString(16).toUpperCase().padStart(4,'0')}<br>
+                        Free: ${activeSlab.freelist.length}/8
+                    </div>
+                    <div class="slub-objects">
+                        ${objectsHtml}
+                    </div>
+                `;
+                cpuContainer.appendChild(row);
+                document.getElementById('slub-cpu-status').innerText = 'ACTIVE';
+                document.getElementById('slub-cpu-status').style.color = 'var(--color-hit)';
+            } else {
+                cpuContainer.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem">无当前活跃 CPU Slab，请点击分配创建。</div>`;
+                document.getElementById('slub-cpu-status').innerText = 'INACTIVE';
+                document.getElementById('slub-cpu-status').style.color = 'var(--text-muted)';
+            }
+
+            // Render Partial Slabs
+            const partialContainer = document.getElementById('slub-partial-slabs-container');
+            partialContainer.innerHTML = '';
+            document.getElementById('slub-partial-count').innerText = `${partialSlabs.length} Slabs`;
+            
+            if (partialSlabs.length === 0) {
+                partialContainer.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem">Node-local 链表中无半空闲 Slab</div>`;
+            } else {
+                partialSlabs.forEach(slab => {
+                    const row = document.createElement('div');
+                    row.className = 'slub-slab-row';
+                    
+                    let objectsHtml = '';
+                    for (let i = 0; i < 8; i++) {
+                        const obj = slab.objects[i];
+                        let stateClass = 'free';
+                        let label = `o${i}`;
+                        if (obj) {
+                            stateClass = 'allocated';
+                            label = obj;
+                        }
+                        objectsHtml += `
+                            <div class="slub-object ${stateClass}" 
+                                 onclick="triggerObjectFree(${slab.id}, ${i})"
+                                 title="${obj ? `Click to free ${obj}` : 'Free'}">
+                                ${label}
+                            </div>
+                        `;
+                    }
+                    
+                    row.innerHTML = `
+                        <div class="slub-slab-info">
+                            <strong>Slab #${slab.id} (Partial)</strong><br>
+                            Address: 0x${slab.pageAddr.toString(16).toUpperCase().padStart(4,'0')}<br>
+                            Free: ${slab.freelist.length}/8
+                        </div>
+                        <div class="slub-objects">
+                            ${objectsHtml}
+                        </div>
+                    `;
+                    partialContainer.appendChild(row);
+                });
+            }
+        }
+
+        let objIdCounter = 100;
+        function triggerSlubAlloc() {
+            let objName = `obj_${objIdCounter++}`;
+            logSlub(`kmem_cache_alloc() -> Allocating object '${objName}'...`);
+            
+            // 1. Check active CPU slab (FAST PATH - Lockless)
+            if (activeSlab && activeSlab.freelist.length > 0) {
+                let objIdx = activeSlab.freelist.shift(); // Get next free slot index
+                activeSlab.objects[objIdx] = objName;
+                slubAllocatedObjects[`${activeSlab.id}_${objIdx}`] = objName;
+                logSlub(`💥 [FAST PATH] Allocated from CPU-Local active Slab #${activeSlab.id} at slot [${objIdx}].`);
+                renderSlub();
+                return;
+            }
+            
+            logSlub(`⚠️ [SLOW PATH] CPU active slab is full or empty. Intercepting lockless fast-path...`);
+
+            // 2. CPU active slab is full or null. Deactivate it if full.
+            if (activeSlab) {
+                logSlub(`Deactivating full CPU Slab #${activeSlab.id}. Moving to kmem_cache_node full list.`);
+                fullSlabs.push(activeSlab);
+                activeSlab = null;
+            }
+
+            // 3. Search Node partial list (SLOW PATH - Locking)
+            if (partialSlabs.length > 0) {
+                logSlub(`Found partial slab in Node local list. Promoting Slab #${partialSlabs[0].id} to CPU-Local active slab.`);
+                activeSlab = partialSlabs.shift();
+                
+                let objIdx = activeSlab.freelist.shift();
+                activeSlab.objects[objIdx] = objName;
+                slubAllocatedObjects[`${activeSlab.id}_${objIdx}`] = objName;
+                
+                logSlub(`Allocated from promoted Slab #${activeSlab.id} at slot [${objIdx}].`);
+                renderSlub();
+                return;
+            }
+
+            // 4. Node partial is empty. Allocate new slab page from Buddy!
+            logSlub(`Node local partial list is empty. Requesting new page slab...`);
+            let newSlab = createNewSlab();
+            if (!newSlab) {
+                logSlub(`CRITICAL: kmem_cache_alloc failed. Out of system memory!`);
+                return;
+            }
+            
+            activeSlab = newSlab;
+            let objIdx = activeSlab.freelist.shift();
+            activeSlab.objects[objIdx] = objName;
+            slubAllocatedObjects[`${activeSlab.id}_${objIdx}`] = objName;
+            
+            logSlub(`Allocated from new active Slab #${activeSlab.id} at slot [${objIdx}].`);
+            renderSlub();
+        }
+
+        function triggerObjectFree(slabId, objIdx) {
+            let searchKey = `${slabId}_${objIdx}`;
+            let objName = slubAllocatedObjects[searchKey];
+            if (!objName) {
+                return; // Nothing to free or already free
+            }
+            
+            logSlub(`kmem_cache_free(Slab: #${slabId}, Object: '${objName}') -> Freeing...`);
+            
+            // Find which slab it belongs to
+            let targetSlab = null;
+            let targetType = ''; // 'active', 'partial', 'full'
+            
+            if (activeSlab && activeSlab.id === slabId) {
+                targetSlab = activeSlab;
+                targetType = 'active';
+            } else {
+                let pIdx = partialSlabs.findIndex(s => s.id === slabId);
+                if (pIdx !== -1) {
+                    targetSlab = partialSlabs[pIdx];
+                    targetType = 'partial';
+                } else {
+                    let fIdx = fullSlabs.findIndex(s => s.id === slabId);
+                    if (fIdx !== -1) {
+                        targetSlab = fullSlabs[fIdx];
+                        targetType = 'full';
+                        // Remove from full list since it will have free space
+                        fullSlabs.splice(fIdx, 1);
+                    }
+                }
+            }
+            
+            if (!targetSlab) {
+                logSlub(`ERROR: Slab #${slabId} containing object not found!`);
+                return;
+            }
+            
+            // Free the object
+            targetSlab.objects[objIdx] = null;
+            targetSlab.freelist.push(objIdx);
+            delete slubAllocatedObjects[searchKey];
+            
+            logSlub(`Freed slot [${objIdx}] in Slab #${slabId}.`);
+            
+            // SLUB State Transitions
+            if (targetType === 'full') {
+                // Moved from full to partial
+                logSlub(`Slab #${slabId} is no longer full. Moving it to kmem_cache_node partial list.`);
+                partialSlabs.push(targetSlab);
+            }
+            
+            // If the slab is completely empty (all 8 slots free) and it is NOT active, return it to Buddy!
+            if (targetSlab.freelist.length === 8 && targetType !== 'active') {
+                logSlub(`Slab #${slabId} is completely empty. Returning page frame to Buddy System...`);
+                // Remove from partial list
+                let pIdx = partialSlabs.findIndex(s => s.id === slabId);
+                if (pIdx !== -1) {
+                    partialSlabs.splice(pIdx, 1);
+                }
+                // Free page in Buddy
+                freeBuddy(targetSlab.pageAddr);
+                logSlub(`Slab #${slabId} page frame recycled.`);
+            }
+            
+            renderSlub();
+        }
+
+        function triggerSlubDeactivate() {
+            if (!activeSlab) {
+                logSlub(`No active CPU slab to deactivate.`);
+                return;
+            }
+            
+            logSlub(`kmem_cache_deactivate() -> Deactivating active CPU Slab #${activeSlab.id}.`);
+            if (activeSlab.freelist.length === 8) {
+                // Completely empty, free immediately
+                logSlub(`Active slab #${activeSlab.id} is completely empty. Returning directly to Buddy.`);
+                freeBuddy(activeSlab.pageAddr);
+            } else if (activeSlab.freelist.length > 0) {
+                // Partial, move to node partial list
+                logSlub(`Active slab #${activeSlab.id} has allocated objects. Saving to Node partial list.`);
+                partialSlabs.push(activeSlab);
+            } else {
+                // Full, move to full list
+                logSlub(`Active slab #${activeSlab.id} is completely full. Saving to Node full list.`);
+                fullSlabs.push(activeSlab);
+            }
+            
+            activeSlab = null;
+            renderSlub();
+        }
+
+        function resetAll() {
+            // Reset buddy
+            resetBuddyOnly();
+            
+            // Reset slub
+            activeSlab = null;
+            partialSlabs = [];
+            fullSlabs = [];
+            nextSlabId = 1;
+            slubAllocatedObjects = {};
+            objIdCounter = 100;
+            
+            document.getElementById('slub-log-term').innerHTML = '-- SLUB subsystem initialized for task_struct (object_size: 64B). --';
+            renderSlub();
+        }
+
+        // Initialize renders
+        renderBuddy();
+        renderSlub();
+    </script>
+</body>
+</html>

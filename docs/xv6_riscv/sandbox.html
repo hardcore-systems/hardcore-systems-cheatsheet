@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xv6-riscv 核心子系统仿真实验室：SV39 虚存翻译与 UNIX 管道同步</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b111e;
+            --panel-bg: #152035;
+            --border-color: #24355a;
+            --text-color: #e2e8f0;
+            --text-muted: #64748b;
+            --accent-color: #3b82f6;
+            --color-hit: #10b981;
+            --color-miss: #ef4444;
+            --color-boost: #f59e0b;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            line-height: 1.4;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .grid-labs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 1024px) {
+            .grid-labs {
+                grid-template-columns: 1fr;
+            }
+        }
+        .lab-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .lab-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: #60a5fa;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+        .lab-description {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .input-group label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .input-ctrl {
+            background-color: #0b111e;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.5rem 0.8rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn:hover {
+            background-color: #2563eb;
+        }
+        
+        /* Address translation blocks */
+        .address-box {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            background-color: #0b111e;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .addr-segment {
+            text-align: center;
+            flex: 1;
+            padding: 0.5rem;
+            background-color: #152035;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+        .addr-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+        .addr-bits {
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+        }
+        .tlb-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+        .tlb-table th, .tlb-table td {
+            border: 1px solid var(--border-color);
+            padding: 0.6rem;
+            text-align: center;
+        }
+        .tlb-table th {
+            background-color: #1e293b;
+            color: #94a3b8;
+        }
+        .tlb-table tr.highlight {
+            background-color: rgba(16, 185, 129, 0.15);
+            border-color: var(--color-hit);
+        }
+
+        /* Pipe Visual Layout */
+        .pipe-visual-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .pipe-ring {
+            display: flex;
+            gap: 0.35rem;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        .pipe-cell {
+            flex: 1;
+            height: 45px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .pipe-cell.empty {
+            background-color: rgba(255,255,255,0.02);
+            color: var(--text-muted);
+        }
+        .pipe-cell.occupied {
+            background-color: rgba(59, 130, 246, 0.25);
+            color: #3b82f6;
+            border-color: #3b82f6;
+            font-weight: bold;
+        }
+        .pipe-pointer {
+            position: absolute;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 0.1rem 0.25rem;
+            border-radius: 2px;
+            bottom: -15px;
+        }
+        .pipe-pointer.read {
+            background-color: #ef4444;
+            color: white;
+            left: 0;
+        }
+        .pipe-pointer.write {
+            background-color: #10b981;
+            color: white;
+            right: 0;
+        }
+
+        .process-status-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .proc-box {
+            background-color: #1e2d4a;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+        .proc-box.running {
+            border-color: var(--color-hit);
+        }
+        .proc-box.sleeping {
+            border-color: var(--color-boost);
+        }
+        .proc-status-lbl {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .log-terminal {
+            background-color: #05070f;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            height: 180px;
+            overflow-y: auto;
+            color: #a7f3d0;
+        }
+        .mmu-log {
+            color: #34d399;
+        }
+        .pipe-log {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>xv6-riscv 核心内核子系统仿真实验室</h1>
+        <p>图形化展示 RISC-V SV39 三级页表 Page Walk 遍历翻译机制，以及 UNIX 管道读写唤醒等待（sleep / wakeup）原子同步原理</p>
+    </header>
+
+    <div class="grid-labs">
+        <!-- Lab 1: SV39 Walk -->
+        <div class="lab-panel">
+            <h2 class="lab-title">实验一：SV39 三级页表翻译与 TLB 缓存 (SV39 MMU Walk)</h2>
+            <p class="lab-description">
+                输入十六进制虚拟物理地址（例如 `0x800203D0`），模拟 CPU MMU 查找过程。MMU 首先查询 TLB 高速缓存；若未命中，将执行三级页表跳转查询（L2 ➜ L1 ➜ L0），返回最终物理帧号（PFN）。
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>Virtual Address (Hex)</label>
+                    <input type="text" id="mmu-va" class="input-ctrl" value="0x800210A0" style="width:160px">
+                </div>
+                <button class="btn" onclick="triggerMmuWalk()">WALK ADDRESS</button>
+                <button class="btn btn-secondary" onclick="resetTLB()">RESET TLB</button>
+            </div>
+
+            <!-- Virtual Address Binary Slicing -->
+            <div class="address-box" id="address-slicing">
+                <div class="addr-segment">
+                    <span class="addr-label">VPN[2] (L2 Index)</span>
+                    <span class="addr-bits" id="bit-vpn2">--</span>
+                </div>
+                <div class="addr-segment">
+                    <span class="addr-label">VPN[1] (L1 Index)</span>
+                    <span class="addr-bits" id="bit-vpn1">--</span>
+                </div>
+                <div class="addr-segment">
+                    <span class="addr-label">VPN[0] (L0 Index)</span>
+                    <span class="addr-bits" id="bit-vpn0">--</span>
+                </div>
+                <div class="addr-segment">
+                    <span class="addr-label">Offset (12 bits)</span>
+                    <span class="addr-bits" id="bit-offset">--</span>
+                </div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">Translation Lookaside Buffer (TLB):</h4>
+            <table class="tlb-table">
+                <thead>
+                    <tr>
+                        <th>Entry</th>
+                        <th>VPN (27-bit Virtual Page)</th>
+                        <th>PFN (Physical Frame Number)</th>
+                        <th>Valid Bit</th>
+                    </tr>
+                </thead>
+                <tbody id="tlb-body">
+                    <!-- Rendered dynamically -->
+                </tbody>
+            </table>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">MMU 硬件地址翻译运行日志</h4>
+            <div class="log-terminal mmu-log" id="mmu-log-term">
+                -- MMU Online. SV39 Translation ready. --
+            </div>
+        </div>
+
+        <!-- Lab 2: Pipe Sync -->
+        <div class="lab-panel">
+            <h2 class="lab-title">实验二：UNIX 管道读写同步控制 (UNIX Pipe Sync)</h2>
+            <p class="lab-description">
+                模拟 16 字节环形管道缓冲区。当 Writer 写入数据占满缓冲区时，立即挂起并进入 SLEEPING 状态，挂在等待通道 `&nread` 上；直到 Reader 读取数据腾出空位，调用 `wakeup(&nwrite)` 将其唤醒为 RUNNABLE。
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>写入数据（字符串）</label>
+                    <input type="text" id="pipe-write-input" class="input-ctrl" value="HELLO" style="width:130px">
+                </div>
+                <button class="btn" onclick="triggerPipeWrite()">pipewrite()</button>
+                
+                <div class="input-group" style="margin-left: 1rem">
+                    <label>读取大小（字节）</label>
+                    <input type="number" id="pipe-read-count" class="input-ctrl" value="3" min="1" max="16" style="width:70px">
+                </div>
+                <button class="btn" onclick="triggerPipeRead()" style="background-color: var(--color-hit)">piperead()</button>
+                
+                <button class="btn btn-secondary" onclick="resetPipe()" style="margin-left:auto">RESET PIPE</button>
+            </div>
+
+            <!-- Pipe Ring Buffer Visualization -->
+            <div class="pipe-visual-container">
+                <h4 style="font-size: 0.85rem; margin-bottom: 0.75rem; color:#94a3b8">管道环形缓冲区大图 (16 Bytes)</h4>
+                <div class="pipe-ring" id="pipe-ring-container">
+                    <!-- Blocks dynamically rendered -->
+                </div>
+            </div>
+
+            <!-- Process Thread States -->
+            <div class="process-status-row">
+                <div class="proc-box" id="proc-writer-box">
+                    <span class="proc-status-lbl">Process: Writer</span>
+                    <div>State: <span id="writer-state" style="color:var(--color-hit); font-weight:bold">RUNNING</span></div>
+                    <div>Wait Channel: <span id="writer-chan">--</span></div>
+                </div>
+                <div class="proc-box" id="proc-reader-box">
+                    <span class="proc-status-lbl">Process: Reader</span>
+                    <div>State: <span id="reader-state" style="color:var(--color-hit); font-weight:bold">RUNNING</span></div>
+                    <div>Wait Channel: <span id="reader-chan">--</span></div>
+                </div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">管道同步与调度等待运行日志</h4>
+            <div class="log-terminal pipe-log" id="pipe-log-term">
+                -- Pipe initialized (Buffer capacity: 16 bytes). Sleep channels ready. --
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- MMU / SV39 DATA & LOGIC ---
+        let tlb = [
+            { entry: 0, vpn: 0x80020, pfn: 0x90000, valid: true },
+            { entry: 1, vpn: 0x80021, pfn: 0x90100, valid: true },
+            { entry: 2, vpn: 0, pfn: 0, valid: false },
+            { entry: 3, vpn: 0, pfn: 0, valid: false }
+        ];
+
+        // Mock SV39 Page Table
+        // L2 Directory points to L1 Directory
+        // L1 Directory points to L0 Page Table
+        // L0 Page Table points to PFN
+        let l2Directory = { 2: 0x50000 };
+        let l1Directory = {
+            0x50000: { 0: 0x60000 }
+        };
+        let l0PageTable = {
+            0x60000: {
+                0x10: 0x90000, // VPN = (2 << 18) | (0 << 9) | 0x10 = 0x80010
+                0x21: 0x90200  // VPN = (2 << 18) | (0 << 9) | 0x21 = 0x80021
+            }
+        };
+
+        function logMmu(msg) {
+            const term = document.getElementById('mmu-log-term');
+            term.innerHTML += `<br>[MMU] ${msg}`;
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function renderTLB() {
+            const tbody = document.getElementById('tlb-body');
+            tbody.innerHTML = '';
+            tlb.forEach(e => {
+                const tr = document.createElement('tr');
+                tr.id = `tlb-row-${e.entry}`;
+                tr.innerHTML = `
+                    <td>${e.entry}</td>
+                    <td>${e.valid ? '0x' + e.vpn.toString(16).toUpperCase() : '--'}</td>
+                    <td>${e.valid ? '0x' + e.pfn.toString(16).toUpperCase() : '--'}</td>
+                    <td style="color:${e.valid ? 'var(--color-hit)' : 'var(--text-muted)'}">${e.valid ? 'Y' : 'N'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function resetTLB() {
+            tlb.forEach(e => {
+                e.valid = false;
+                e.vpn = 0;
+                e.pfn = 0;
+            });
+            renderTLB();
+            logMmu("TLB cache flushed successfully.");
+        }
+
+        function triggerMmuWalk() {
+            let vaStr = document.getElementById('mmu-va').value.trim();
+            if (!vaStr.startsWith('0x')) {
+                vaStr = '0x' + vaStr;
+            }
+            let va = parseInt(vaStr, 16);
+            if (isNaN(va)) {
+                alert("Please input a valid hexadecimal address (e.g. 0x800210A0)");
+                return;
+            }
+
+            // SV39 Virtual Address slicing:
+            // VPN[2] (bits 38-30, 9 bits)
+            // VPN[1] (bits 29-21, 9 bits)
+            // VPN[0] (bits 20-12, 9 bits)
+            // Offset (bits 11-0, 12 bits)
+            let vpn2 = (va >> 30) & 0x1FF;
+            let vpn1 = (va >> 21) & 0x1FF;
+            let vpn0 = (va >> 12) & 0x1FF;
+            let offset = va & 0xFFF;
+            let vpn = (va >> 12) & 0x7FFFFFF; // 27-bit Virtual Page Number
+
+            document.getElementById('bit-vpn2').innerText = `0x${vpn2.toString(16).toUpperCase()} (${vpn2})`;
+            document.getElementById('bit-vpn1').innerText = `0x${vpn1.toString(16).toUpperCase()} (${vpn1})`;
+            document.getElementById('bit-vpn0').innerText = `0x${vpn0.toString(16).toUpperCase()} (${vpn0})`;
+            document.getElementById('bit-offset').innerText = `0x${offset.toString(16).toUpperCase()} (${offset})`;
+
+            logMmu(`Resolving virtual address: 0x${va.toString(16).toUpperCase()}`);
+            logMmu(`Sliced VPN: 0x${vpn.toString(16).toUpperCase()} (L2 idx: ${vpn2}, L1 idx: ${vpn1}, L0 idx: ${vpn0})`);
+
+            // 1. Check TLB
+            let hitIdx = tlb.findIndex(e => e.valid && e.vpn === vpn);
+            if (hitIdx !== -1) {
+                let pfn = tlb[hitIdx].pfn;
+                let pa = (pfn << 12) | offset;
+                renderTLB();
+                document.getElementById(`tlb-row-${hitIdx}`).className = 'highlight';
+                logMmu(`💥 [TLB HIT] Mapping found in cache entry #${hitIdx}. PFN: 0x${pfn.toString(16).toUpperCase()}`);
+                logMmu(`Physical Address translation direct output: 0x${pa.toString(16).toUpperCase()}`);
+                return;
+            }
+
+            logMmu(`⚠️ [TLB MISS] Querying SV39 three-level page tables...`);
+
+            // 2. Page Table Walk
+            // Level 2 (Root)
+            let l1TableBase = l2Directory[vpn2];
+            if (l1TableBase === undefined) {
+                logMmu(`❌ [PAGE FAULT] L2 Entry not marked Present. Segmentation Fault!`);
+                return;
+            }
+            logMmu(`L2 Descriptor hit! PDE[L2] points to L1 table base PFN: 0x${l1TableBase.toString(16).toUpperCase()}`);
+
+            // Level 1
+            let l0TableBase = (l1Directory[l1TableBase] || {})[vpn1];
+            if (l0TableBase === undefined) {
+                logMmu(`❌ [PAGE FAULT] L1 Entry not marked Present. Segmentation Fault!`);
+                return;
+            }
+            logMmu(`L1 Descriptor hit! PDE[L1] points to L0 table base PFN: 0x${l0TableBase.toString(16).toUpperCase()}`);
+
+            // Level 0
+            let pfn = (l0PageTable[l0TableBase] || {})[vpn0];
+            if (pfn === undefined) {
+                logMmu(`❌ [PAGE FAULT] L0 Entry not marked Present. Page Fault (Not present in memory).`);
+                return;
+            }
+            
+            let pa = (pfn << 12) | offset;
+            logMmu(`L0 PTE hit! Maps VPN to PFN: 0x${pfn.toString(16).toUpperCase()}`);
+            logMmu(`Translation Success! Physical Address: 0x${pa.toString(16).toUpperCase()}`);
+
+            // Insert to TLB (FIFO/Random)
+            let evictIdx = Math.floor(Math.random() * tlb.length);
+            tlb[evictIdx] = { entry: evictIdx, vpn: vpn, pfn: pfn, valid: true };
+            renderTLB();
+            document.getElementById(`tlb-row-${evictIdx}`).className = 'highlight';
+            logMmu(`TLB cache line #${evictIdx} updated with translation: VPN:0x${vpn.toString(16).toUpperCase()} ➜ PFN:0x${pfn.toString(16).toUpperCase()}`);
+        }
+
+
+        // --- UNIX PIPE SYNC DATA & LOGIC ---
+        let pipeBuffer = Array(16).fill(null); // Capacity: 16 bytes
+        let nread = 0; // Read offset pointer
+        let nwrite = 0; // Write offset pointer
+        
+        let writerState = 'RUNNING'; // RUNNING or SLEEPING
+        let readerState = 'RUNNING'; // RUNNING or SLEEPING
+
+        let writerPendingData = []; // Queue of characters writer wants to write
+
+        function logPipe(msg) {
+            const term = document.getElementById('pipe-log-term');
+            term.innerHTML += `<br>[Pipe] ${msg}`;
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function getOccupiedCount() {
+            let count = 0;
+            pipeBuffer.forEach(b => { if(b !== null) count++; });
+            return count;
+        }
+
+        function renderPipe() {
+            const container = document.getElementById('pipe-ring-container');
+            container.innerHTML = '';
+
+            for (let i = 0; i < 16; i++) {
+                const cell = document.createElement('div');
+                let className = 'pipe-cell ';
+                if (pipeBuffer[i] === null) {
+                    className += 'empty';
+                } else {
+                    className += 'occupied';
+                }
+                cell.className = className;
+                cell.innerText = pipeBuffer[i] || '';
+
+                // Add pointer indicators
+                let pointerText = '';
+                if (i === nread % 16) {
+                    pointerText += `<span class="pipe-pointer read">RD</span>`;
+                }
+                if (i === nwrite % 16) {
+                    pointerText += `<span class="pipe-pointer write">WR</span>`;
+                }
+                cell.innerHTML += pointerText;
+                
+                container.appendChild(cell);
+            }
+
+            // Update process panels
+            document.getElementById('writer-state').innerText = writerState;
+            document.getElementById('writer-state').style.color = writerState === 'RUNNING' ? 'var(--color-hit)' : 'var(--color-boost)';
+            document.getElementById('writer-chan').innerText = writerState === 'SLEEPING' ? '&pipe->nread' : '--';
+            document.getElementById('proc-writer-box').className = `proc-box ${writerState.toLowerCase()}`;
+
+            document.getElementById('reader-state').innerText = readerState;
+            document.getElementById('reader-state').style.color = readerState === 'RUNNING' ? 'var(--color-hit)' : 'var(--color-boost)';
+            document.getElementById('reader-chan').innerText = readerState === 'SLEEPING' ? '&pipe->nwrite' : '--';
+            document.getElementById('proc-reader-box').className = `proc-box ${readerState.toLowerCase()}`;
+        }
+
+        function triggerPipeWrite() {
+            if (writerState === 'SLEEPING') {
+                logPipe(`[Syscall Bypass] Writer is currently SLEEPING on lock. Operation rejected.`);
+                return;
+            }
+
+            const val = document.getElementById('pipe-write-input').value.trim();
+            if (!val) return;
+            
+            // Queue characters to write
+            for (let char of val) {
+                writerPendingData.push(char);
+            }
+            logPipe(`pipewrite(data: "${val}") requested. Queueing characters into write registers...`);
+
+            processPipeWrites();
+        }
+
+        function processPipeWrites() {
+            let occupied = getOccupiedCount();
+            
+            while (writerPendingData.length > 0) {
+                if (occupied === 16) {
+                    // Ring buffer is FULL
+                    writerState = 'SLEEPING';
+                    logPipe(`⚠️ [BUFFER FULL] Pipe capacity reached 16B. pipewrite() yields CPU.`);
+                    logPipe(`sys_sleep(&pipe->nread, &pipe->lock) ➜ Process: Writer transitioning to SLEEPING state.`);
+                    renderPipe();
+                    return;
+                }
+
+                let nextChar = writerPendingData.shift();
+                let writeIdx = nwrite % 16;
+                pipeBuffer[writeIdx] = nextChar;
+                nwrite++;
+                occupied++;
+                logPipe(`Wrote char '${nextChar}' to index [${writeIdx}]. (nwrite offset: ${nwrite})`);
+            }
+
+            // Wake up reader if it was sleeping
+            if (readerState === 'SLEEPING') {
+                logPipe(`Pipe has new data. Calling wakeup(&pipe->nwrite) to wake reader...`);
+                readerState = 'RUNNING';
+                logPipe(`Process: Reader woke up. Transitioning to RUNNING state.`);
+            }
+
+            renderPipe();
+        }
+
+        function triggerPipeRead() {
+            if (readerState === 'SLEEPING') {
+                logPipe(`[Syscall Bypass] Reader is currently SLEEPING on lock. Operation rejected.`);
+                return;
+            }
+
+            const count = parseInt(document.getElementById('pipe-read-count').value);
+            if (isNaN(count) || count <= 0) return;
+
+            logPipe(`piperead(count: ${count} bytes) requested.`);
+            let occupied = getOccupiedCount();
+
+            if (occupied === 0) {
+                // Buffer is EMPTY
+                readerState = 'SLEEPING';
+                logPipe(`⚠️ [BUFFER EMPTY] Pipe has no data. piperead() yields CPU.`);
+                logPipe(`sys_sleep(&pipe->nwrite, &pipe->lock) ➜ Process: Reader transitioning to SLEEPING state.`);
+                renderPipe();
+                return;
+            }
+
+            let readBytes = [];
+            let readCount = Math.min(count, occupied);
+
+            for (let i = 0; i < readCount; i++) {
+                let readIdx = nread % 16;
+                readBytes.push(pipeBuffer[readIdx]);
+                pipeBuffer[readIdx] = null;
+                nread++;
+            }
+
+            logPipe(`💥 Success! Read ${readCount} bytes: "${readBytes.join('')}" (nread offset: ${nread})`);
+
+            // Wake up writer if it was sleeping
+            if (writerState === 'SLEEPING') {
+                logPipe(`Pipe buffer space freed. Calling wakeup(&pipe->nread) to wake writer...`);
+                writerState = 'RUNNING';
+                logPipe(`Process: Writer woke up. Transitioning to RUNNING state.`);
+                // Resume writing pending characters
+                processPipeWrites();
+            }
+
+            renderPipe();
+        }
+
+        function resetPipe() {
+            pipeBuffer = Array(16).fill(null);
+            nread = 0;
+            nwrite = 0;
+            writerState = 'RUNNING';
+            readerState = 'RUNNING';
+            writerPendingData = [];
+            document.getElementById('pipe-log-term').innerHTML = '-- Pipe initialized (Buffer capacity: 16 bytes). Sleep channels ready. --';
+            renderPipe();
+        }
+
+        // Initialize renders
+        renderTLB();
+        renderPipe();
+    </script>
+</body>
+</html>

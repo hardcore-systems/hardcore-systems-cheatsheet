@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang= + map_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content= + map_desc + >
+    <title>h2o / quic-http3 High-Performance HTTP/3 & QUIC Protocol Stack Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        .header-title h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-title p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 2rem;
+        }
+        .stat-item {
+            text-align: right;
+        }
+        .stat-val {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #3b82f6;
+            line-height: 1.2;
+        }
+        .stat-lbl {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .filter-btn:hover {
+            border-color: var(--accent-color);
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, border-color 0.2s;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: #3b82f6;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .card-id {
+            font-family: monospace;
+            font-size: 0.8rem;
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            color: white;
+        }
+        .card-module {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            line-height: 1.3;
+            margin-bottom: 1rem;
+        }
+        .card-body {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.75rem;
+        }
+        .card-body li {
+            margin-left: 1rem;
+            margin-bottom: 0.4rem;
+            list-style-type: disc;
+        }
+        .card-body code {
+            font-family: monospace;
+            background-color: #0b0f19;
+            color: #f43f5e;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+        }
+        .card-body strong {
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <h1>h2o / quic-http3 Knowledge Map</h1>
+            <p>Custom event loop, quicly transport integration, TLS 1.3 handshake, QPACK compression, HTTP/2 priority tree, and zero-copy I/O memory slices</p>
+        </div>
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-val">28</div>
+                <div class="stat-lbl">Core Cards</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val">6</div>
+                <div class="stat-lbl">Category Modules</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="filter-controls">
+        <button class="filter-btn active" onclick="filterCards('ALL')">ALL MODULES</button>
+        <button class="filter-btn" onclick="filterCards('M1')">M1: Event Loop</button>
+        <button class="filter-btn" onclick="filterCards('M2')">M2: QUIC Transport</button>
+        <button class="filter-btn" onclick="filterCards('M3')">M3: HTTP/3 & QPACK</button>
+        <button class="filter-btn" onclick="filterCards('M4')">M4: H2 Scheduler</button>
+        <button class="filter-btn" onclick="filterCards('M5')">M5: Zero-Copy I/O</button>
+        <button class="filter-btn" onclick="filterCards('M6')">M6: Resiliency</button>
+    </div>
+
+    <div class="cards-grid" id="cards-container">
+        <!-- Dynamic Cards Injection -->
+    </div>
+
+    <script>
+        const cardsData = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "Custom Event Loop (h2o_evloop)", "color": "#7A8B99", "title": "h2o_evloop_t Structure & Multi-Backend Abstraction", "body": "<li>  <strong>Mechanism</strong>: The custom <code>h2o_evloop_t</code> structure avoids third-party networking library dependencies. It features a lightweight multi-backend abstraction layer that dynamically binds to native kernel APIs (<code>epoll</code> on Linux, <code>kqueue</code> on BSD/macOS, <code>select</code> on Windows) at compile time.</li><li>  <strong>Strategy</strong>: Automatically leverage native platform multiplexers to maximize I/O throughput and avoid translation wrappers.</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "Custom Event Loop (h2o_evloop)", "color": "#7A8B99", "title": "Deferred Statechanged List `_statechanged` & Merged Updates", "body": "<li>  <strong>Mechanism</strong>: Socket read/write state changes do not trigger immediate <code>epoll_ctl</code> syscalls. Instead, affected <code>h2o_socket_t</code> instances are linked to the <code>_statechanged</code> queue. At the beginning of the next loop iteration, these changes are batch-processed, minimizing user-to-kernel context switching.</li><li>  <strong>Strategy</strong>: Highly effective for proxy environments with high packet rates, significantly reducing the host CPU overhead.</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "Custom Event Loop (h2o_evloop)", "color": "#7A8B99", "title": "h2o_timerwheel_t Cascaded Timer Wheel Operations", "body": "<li>  <strong>Mechanism</strong>: The <code>h2o_timerwheel_t</code> manages timers using cascaded buckets aligned with common keep-alive durations. Timeout additions and deletions occur in constant $O(1)$ time by placing timers in slots relative to expiration offsets, avoiding red-black tree search degradations.</li><li>  <strong>Strategy</strong>: Tune keep-alive configurations knowing that the timer wheel efficiently reclaims idle connections with negligible CPU impact.</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "Custom Event Loop (h2o_evloop)", "color": "#7A8B99", "title": "Multi-Worker Threading & SO_REUSEPORT Socket Load Balancing", "body": "<li>  <strong>Mechanism</strong>: H2O runs a multi-worker model where each worker thread runs an independent <code>h2o_evloop_t</code>. Rather than sharing a single socket or using listener locks, workers bind to the same port using <code>SO_REUSEPORT</code>, letting the kernel distribute incoming connections lock-free via hashing.</li><li>  <strong>Strategy</strong>: Spawn worker threads matching the physical CPU core count (<code>num-threads</code>) to achieve symmetric, independent core scaling.</li>"}, {"id": 5, "relativeId": "M2.1", "module": "M2", "moduleName": "QUIC Transport & quicly", "color": "#7D8F7B", "title": "quicly_conn_t & quicly_stream_t Dual State Machine Control", "body": "<li>  <strong>Mechanism</strong>: H2O delegates QUIC handling to the <code>quicly</code> library. The <code>quicly_conn_t</code> structure maintains connection-level transport contexts, congestion control state, and encryption handshakes, while individual <code>quicly_stream_t</code> structures coordinate data frames and stream-level retransmissions.</li><li>  <strong>Strategy</strong>: Treat connection-level and stream-level states as distinct metrics to properly diagnose packet loss vs congestion behaviors.</li>"}, {"id": 6, "relativeId": "M2.2", "module": "M2", "moduleName": "QUIC Transport & quicly", "color": "#7D8F7B", "title": "picotls (TLS 1.3) Integration & 0-RTT Session Resumption", "body": "<li>  <strong>Mechanism</strong>: <code>quicly</code> relies on the lightweight <code>picotls</code> library. TLS 1.3 handshakes are parsed directly in memory to generate key materials. The 0-RTT session token is decoded, allowing clients to send encrypted application data in their first packet, eliminating handshake round-trips.</li><li>  <strong>Strategy</strong>: Enable session ticket caching on clients to trigger 0-RTT resumption, drastically reducing initial page load delays.</li>"}, {"id": 7, "relativeId": "M2.3", "module": "M2", "moduleName": "QUIC Transport & quicly", "color": "#7D8F7B", "title": "First Byte Routing & Connection ID Packet Dispatch", "body": "<li>  <strong>Mechanism</strong>: In <code>h2o_http3_handle_packet</code>, H2O inspects the first byte of incoming UDP packets to categorize them. Regular data packets yield their Destination Connection ID (DCID), which is searched in a lock-free hash table to locate the <code>quicly_conn_t</code> context, avoiding payload parsing.</li><li>  <strong>Strategy</strong>: Keep routing operations minimal on the packet receive path to sustain high UDP packet-per-second thresholds.</li>"}, {"id": 8, "relativeId": "M2.4", "module": "M2", "moduleName": "QUIC Transport & quicly", "color": "#7D8F7B", "title": "Connection Migration & Dual-Path Validation", "body": "<li>  <strong>Mechanism</strong>: If a client moves from Wi-Fi to cellular, modifying its IP/Port, the server keeps the connection alive using the unique Connection ID. To prevent spoofing, the server issues a random 64-bit <code>PATH_CHALLENGE</code> frame to the new destination and validates it via the client's <code>PATH_RESPONSE</code> before migrating.</li><li>  <strong>Strategy</strong>: Implement path validation to secure connection migration against amplification and reflection attacks.</li>"}, {"id": 9, "relativeId": "M2.5", "module": "M2", "moduleName": "QUIC Transport & quicly", "color": "#7D8F7B", "title": "AES-GCM Fusion Speedup Engine & Zero-Copy Packet Encryption", "body": "<li>  <strong>Mechanism</strong>: QUIC encrypts both the header and payload of every UDP packet. The integrated <code>fusion</code> engine in <code>picotls</code> utilizes AVX2/AVX512 registers to merge AES-NI and PCLMULQDQ instructions, encrypting memory slices and performing data copies in a single pass.</li><li>  <strong>Strategy</strong>: Build H2O with appropriate SIMD compiler flags to halve the encryption overhead on modern server CPUs.</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "HTTP/3 & QPACK", "color": "#9E828A", "title": "h2o_http3_conn_t Context & Control Stream Orchestration", "body": "<li>  <strong>Mechanism</strong>: The <code>h2o_http3_conn_t</code> context acts as the L7 translation layer above <code>quicly</code>. It establishes unidirectional Control Streams to negotiate settings (e.g., QPACK table capacity, concurrent stream limits) and manages connection-level HTTP/3 frame parsing.</li><li>  <strong>Strategy</strong>: Align connection settings to ensure smooth control stream frame exchanges and prevent sudden connection closes.</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "HTTP/3 & QPACK", "color": "#9E828A", "title": "QPACK Static & Dynamic Table Compression Engine", "body": "<li>  <strong>Mechanism</strong>: QPACK compresses headers using a 99-entry read-only static table and a dynamic table. Frequently used header key-value pairs (e.g., User-Agent, Cookie) are indexed in the dynamic table, translating strings into compact indices.</li><li>  <strong>Strategy</strong>: Adjust dynamic table capacities (<code>hpack-capacity</code>) to balance memory footprints against header compression ratios.</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "HTTP/3 & QPACK", "color": "#9E828A", "title": "QPACK Encoder & Decoder Streams Synchronization", "body": "<li>  <strong>Mechanism</strong>: To maintain dynamic table consistency, H2O opens dedicated Encoder and Decoder Streams. When new table entries are created, the encoder notifies the receiver. Unfinished streams referencing these new entries are blocked until the decoder confirms synchronization.</li><li>  <strong>Strategy</strong>: Limit concurrent unresolved requests to prevent stream stalling during periods of high latency.</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "HTTP/3 & QPACK", "color": "#9E828A", "title": "HTTP/3 Out-of-Order Delivery & HOLB Elimination", "body": "<li>  <strong>Mechanism</strong>: Unlike TCP, HTTP/3 allows UDP packets of different streams to arrive and process out of order. If a stream awaits QPACK dynamic table updates, its parsing is suspended while other completed streams are processed immediately, eliminating head-of-line blocking.</li><li>  <strong>Strategy</strong>: Leverage out-of-order execution to maintain page response speeds over lossy wireless links.</li>"}, {"id": 14, "relativeId": "M4.1", "module": "M4", "moduleName": "HTTP/2 Scheduler Tree", "color": "#B58A7D", "title": "h2o_http2_scheduler_node_t Dependency Tree Topologies", "body": "<li>  <strong>Mechanism</strong>: The HTTP/2 scheduler in <code>lib/http2/scheduler.c</code> structures active streams into a dependency tree using <code>h2o_http2_scheduler_node_t</code> structs. Child nodes divide their parent's bandwidth allocations based on assigned weights.</li><li>  <strong>Strategy</strong>: Support runtime tree updates via <code>PRIORITY</code> frames to dynamically align resource delivery with browser rendering states.</li>"}, {"id": 15, "relativeId": "M4.2", "module": "M4", "moduleName": "HTTP/2 Scheduler Tree", "color": "#B58A7D", "title": "h2o_http2_scheduler_run & Weighted Deficit Round Robin (WDRR)", "body": "<li>  <strong>Mechanism</strong>: Instead of sorting or traversing deep trees (which degrades under high stream counts), H2O implements WDRR. It tracks byte deficits for active scheduler branches, scanning nodes in $O(1)$ complexity to allocate write credits fairly.</li><li>  <strong>Strategy</strong>: Use WDRR to handle thousands of concurrent streams per connection without causing CPU scheduling bottlenecks.</li>"}, {"id": 16, "relativeId": "M4.3", "module": "M4", "moduleName": "HTTP/2 Scheduler Tree", "color": "#B58A7D", "title": "16KB Chunking Limits & Buffer Multiplexing Balance", "body": "<li>  <strong>Mechanism</strong>: To prevent large response streams from monopolizing socket write buffers, H2O limits single write calls to 16KB. Once a 16KB chunk is written, the scheduler is re-run, interleaving bytes from different streams.</li><li>  <strong>Strategy</strong>: Interleave data in 16KB slices to optimize time-to-first-byte (TTFB) metrics for critical page assets.</li>"}, {"id": 17, "relativeId": "M4.4", "module": "M4", "moduleName": "HTTP/2 Scheduler Tree", "color": "#B58A7D", "title": "Heuristic Client Scheduler Adaptations", "body": "<li>  <strong>Mechanism</strong>: Certain web clients build suboptimal flat priority trees. H2O detects flat dependencies and applies heuristic corrections, boosting weights for critical HTML/CSS files above image assets to speed up page rendering.</li><li>  <strong>Strategy</strong>: Retain default heuristic tunings to improve user-perceived page loads without changing client code.</li>"}, {"id": 18, "relativeId": "M4.5", "module": "M4", "moduleName": "HTTP/2 Scheduler Tree", "color": "#B58A7D", "title": "Concurrent Stream Constraints & Sliding Window Flow Control", "body": "<li>  <strong>Mechanism</strong>: H2O enforces maximum concurrent stream boundaries (default: 100). Both streams and connections monitor flow control windows (<code>WINDOW_UPDATE</code> frames). Writes are suspended when windows are exhausted, avoiding buffer bloat.</li><li>  <strong>Strategy</strong>: Align window sizes with high Bandwidth-Delay Product (BDP) paths to prevent flow control bottlenecks.</li>"}, {"id": 19, "relativeId": "M5.1", "module": "M5", "moduleName": "Zero-Copy & I/O Buffers", "color": "#5F7582", "title": "h2o_iovec_t Memory Slices & Non-Owning Pointer Offsets", "body": "<li>  <strong>Mechanism</strong>: H2O uses the <code>h2o_iovec_t</code> struct (a <code>base</code> pointer and a <code>len</code>) to represent memory slices. It allows slicing and parsing headers or body payloads without allocating new blocks or copying data, ensuring memory safety.</li><li>  <strong>Strategy</strong>: Avoid accessing data behind <code>h2o_iovec_t</code> slices outside their lifetime scopes during asynchronous callbacks.</li>"}, {"id": 20, "relativeId": "M5.2", "module": "M5", "moduleName": "Zero-Copy & I/O Buffers", "color": "#5F7582", "title": "h2o_buffer_t Mempool Allocation & Dynamic Slicing", "body": "<li>  <strong>Mechanism</strong>: The <code>h2o_buffer_t</code> structure dynamically grows buffer chains. Payloads below threshold limits (e.g., 64KB) utilize worker thread mempools, whereas larger payloads spill to temporary files, preventing excessive memory usage.</li><li>  <strong>Strategy</strong>: Tune payload thresholds (<code>max-request-entity-size</code>) to protect memory limits during bulk upload surges.</li>"}, {"id": 21, "relativeId": "M5.3", "module": "M5", "moduleName": "Zero-Copy & I/O Buffers", "color": "#5F7582", "title": "TCP sendfile Zero-Copy Kernel Bypass", "body": "<li>  <strong>Mechanism</strong>: For static files, H2O bypasses standard user-space read/write cycles by passing the file descriptor to the socket layer, invoking the <code>sendfile()</code> syscall to transfer data directly from page caches to TCP buffers.</li><li>  <strong>Strategy</strong>: Combine sendfile with OS page cache tuning to achieve near line-rate delivery for static files.</li>"}, {"id": 22, "relativeId": "M5.4", "module": "M5", "moduleName": "Zero-Copy & I/O Buffers", "color": "#5F7582", "title": "UDP GSO Offloading & sendmmsg Bulk Syscalls", "body": "<li>  <strong>Mechanism</strong>: UDP packet writes are computationally expensive. H2O supports Generic Segmentation Offload (GSO). It constructs large aggregated buffers and transmits them via a single <code>sendmmsg</code> syscall using <code>UDP_SEGMENT</code> options, letting the NIC partition them.</li><li>  <strong>Strategy</strong>: Deploy H2O on GSO-supporting Linux kernels (4.18+) to optimize HTTP/3 network stack CPU efficiency.</li>"}, {"id": 23, "relativeId": "M5.5", "module": "M5", "moduleName": "Zero-Copy & I/O Buffers", "color": "#5F7582", "title": "Write Backpressure Management & Socket Wait Queueing", "body": "<li>  <strong>Mechanism</strong>: When network bottlenecks trigger socket <code>EAGAIN</code> write errors, H2O buffers pending <code>h2o_iovec_t</code> slices, unsubscribes write notifications from the event loop, and resumes writes once the socket is ready (<code>EPOLLOUT</code>).</li><li>  <strong>Strategy</strong>: Trust backpressure mechanisms to isolate slow clients and prevent unbounded buffer consumption.</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "Resiliency & Advanced Features", "color": "#BFA88F", "title": "103 Early Hints Flow & Static Asset Preloading", "body": "<li>  <strong>Mechanism</strong>: Before the backend generates a final response, H2O can emit a 103 Early Hints response containing Link headers. This lets clients resolve DNS and download CSS/JS assets while the server processes slow backend database queries.</li><li>  <strong>Strategy</strong>: Implement 103 Early Hints for critical static resources to reduce perceived page rendering times.</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "Resiliency & Advanced Features", "color": "#BFA88F", "title": "Distributed Session Ticket Key Synchronization", "body": "<li>  <strong>Mechanism</strong>: H2O supports reloading TLS session ticket keys dynamically from external key files (monitored via inotify). This ensures multiple independent instances behind a load balancer share the same ticket decryption keys.</li><li>  <strong>Strategy</strong>: Set up cron processes to rotate ticket key files across H2O clusters, maintaining session resumption and forward secrecy.</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "Resiliency & Advanced Features", "color": "#BFA88F", "title": "Pluggable Congestion Control Interfaces (cc-cubic)", "body": "<li>  <strong>Mechanism</strong>: <code>quicly</code> features a pluggable congestion control interface (<code>quicly_cc_type_t</code>). It supports CUBIC and Reno, feeding ACKs and packet loss signals back to state machines to adjust congestion windows.</li><li>  <strong>Strategy</strong>: Choose CUBIC for standard WAN deployments to maximize throughput across varying network paths.</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "Resiliency & Advanced Features", "color": "#BFA88F", "title": "Connection Draining & Graceful Server Shutdowns", "body": "<li>  <strong>Mechanism</strong>: Upon receiving a exit signal, H2O closes listener sockets, issues <code>GOAWAY</code> frames to HTTP/2 clients, and puts HTTP/3 connections into a Draining state, allowing active transactions to complete within timeouts before exiting.</li><li>  <strong>Strategy</strong>: Configure grace periods to match maximum backend transaction times to ensure zero-downtime rolling updates.</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "Resiliency & Advanced Features", "color": "#BFA88F", "title": "Anti-Flood Safeguards & HTTP/2 Stream Controls", "body": "<li>  <strong>Mechanism</strong>: H2O mitigates DoS threats (e.g., rapid stream resets, header flooding) by restricting maximum HEADERS frame counts and limiting the rate of incoming RST_STREAM frames, tearing down offending connections.</li><li>  <strong>Strategy</strong>: Apply strict stream resets limits to protect servers from malicious resource exhaustion attacks.</li>"}];
+
+        function renderCards(filter) {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+            
+            cardsData.forEach(card => {
+                if (filter !== 'ALL' && card.module !== filter) return;
+                
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                cardEl.style.borderTop = `4px solid ${card.color}`;
+                
+                cardEl.innerHTML = `
+                    <div class="card-header">
+                        <span class="card-module">${card.moduleName}</span>
+                        <span class="card-id" style="background-color:${card.color}">${card.relativeId}</span>
+                    </div>
+                    <div class="card-title">${card.title}</div>
+                    <div class="card-body">${card.body}</div>
+                `;
+                container.appendChild(cardEl);
+            });
+        }
+
+        function filterCards(mod) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // Match active button by onclick argument
+            event.target.classList.add('active');
+            renderCards(mod);
+        }
+
+        // Init
+        renderCards('ALL');
+    </script>
+</body>
+</html>

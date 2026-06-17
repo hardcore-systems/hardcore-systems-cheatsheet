@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenSSL 密码学与 TLS 安全通信知识图谱</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --m1-color: #4B5F7A;
+            --m2-color: #6B8272;
+            --m3-color: #9C6666;
+            --m4-color: #7A7A7A;
+            --m5-color: #9A825A;
+            --m6-color: #755B77;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            font-size: 1rem;
+            color: #94a3b8;
+        }
+
+        .ladder-section {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            background: rgba(21, 29, 48, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .ladder-section h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #3b82f6;
+        }
+
+        .ladder-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .ladder-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .ladder-item {
+            background: #111827;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .ladder-item.l2 {
+            grid-column: 1 / -1;
+            border-left-color: #8b5cf6;
+        }
+
+        .ladder-item h3 {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+        }
+
+        .ladder-item p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .ladder-item code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #a855f7;
+        }
+
+        .controls {
+            max-width: 1400px;
+            margin: 0 auto 1.5rem auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-input {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            width: 300px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            background: #1e293b;
+            color: #94a3b8;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: none;
+        }
+
+        .filter-btn.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .cards-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.2rem;
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--module-color);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            background-color: var(--module-color);
+            color: white;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-body {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>OpenSSL 密码安全与 TLS 协议原理大图</h1>
+        <p>EVP 统一接口、对称 AEAD 加解密、ECDHE 密钥交换、X.509 证书校验、TLS 1.3 状态机、安全内存零化与硬件加速 28张核心卡片</p>
+    </header>
+
+    <div class="ladder-section">
+        <h2>📂 L0 一句话本质</h2>
+        <div class="ladder-grid">
+            <div class="ladder-item">
+                <h3>L0 一句话本质</h3>
+                <p><strong>密码学安全通信的本质是通过对称/非对称算法在不安全信道上建立机密性、完整性、真实性与不可否认性保证的安全信道，其工程实现核心为 TLS 握手状态机、密码算法硬加速与随机数熵源维护。</strong></p>
+            </div>
+            <div class="ladder-item">
+                <h3>L1 四句话逻辑</h3>
+                <p>1. **协商与身份鉴权**: Client 与 Server 在不安全网络中通过 TLS 1.3 握手单往返（1-RTT）协商密码套件，利用 X.509 证书链验证实体真实身份。<br>    2. **抗监听密钥交换**: 借助 ECDHE 椭圆曲线 Diffie-Hellman 算法动态交换密钥份额，派生出具备前向安全（Forward Secrecy）的共享对称密钥。<br>    3. **认证加密保护**: 在记录协议中采用 AEAD 双效算法（如 AES-GCM），为传输的明文数据提供高强度对称加密与抗篡改的完整性 MAC 校验。<br>    4. **算法硬件加速**: 通过 EVP 抽象层自动重定向，利用 CPU 的 AES-NI 指令或独立 QAT 加速卡，消除海量吞吐下的对称加解密和非对称签名计算瓶颈。</p>
+            </div>
+            <div class="ladder-item l2">
+                <h3>L2 核心数据流转</h3>
+                <p><code>`ClientHello` ➜ (协商套件与共享密钥份额) ➜ `ServerHello & Cert` ➜ (ECDHE 密钥提取) ➜ `HKDF 密钥派生` ➜ `对称密钥建立` ➜ `AEAD 记录协议对称流加密` ➜ `Encrypted Application Data`</code></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <input type="text" class="search-input" id="searchInput" placeholder="搜索卡片关键字...">
+        <div class="filter-buttons" id="filterButtons">
+            <button class="filter-btn active" data-module="all">全部模块</button>
+            <button class="filter-btn" data-module="M1">M1: 密码学基础与 EVP 接口</button> <button class="filter-btn" data-module="M2">M2: 对称加密与消息认证码</button> <button class="filter-btn" data-module="M3">M3: 非对称加密与公钥证书</button> <button class="filter-btn" data-module="M4">M4: TLS 握手状态机与密钥派生</button> <button class="filter-btn" data-module="M5">M5: 内存安全与侧信道防护</button> <button class="filter-btn" data-module="M6">M6: 硬件密码加速与 Provider</button>
+        </div>
+    </div>
+
+    <main class="cards-grid" id="cardsGrid"></main>
+
+    <script>
+        const cardsData = [{'num': 1, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': '随机数熵源与 DRBG 安全边界', 'body': '*   **核心定义**: 密码学强度的基础在于不可预测的随机数发生器（DRBG），这需要高熵源保障。\n*   **底层机理**: OpenSSL 通过操作系统接口收集物理熵（如 CPU RdRand 硬件熵源、内核 `/dev/urandom` 中断噪声）。在用户态利用 NIST SP800-90A 标准 DRBG 进行混合派生，阻断任何基于计算复杂度的状态逆推，为密钥生成和 IV 初始化提供安全保障。'}, {'num': 2, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'EVP 统一密码高层抽象接口', 'body': '*   **核心定义**: EVP 接口是 OpenSSL 提供的高度抽象的密码学引擎操作总线。\n*   **底层机理**: EVP 将复杂的算法底层实现进行多态封装，暴露统一的抽象上下文。例如，`EVP_EncryptInit_ex` 传入 `EVP_aes_256_gcm()` 作为多态结构，实现了应用代码与物理算法细节（如 AES、DES 等）的解耦，为 Provider 的动态替换奠定了架构基础。'}, {'num': 3, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': '对称分组密码模式与明文填充', 'body': '*   **核心定义**: 对称分组密码（如 AES）在对非块大小整数倍的数据加密时，需要物理明文填充。\n*   **底层机理**: 传统 CBC 模式基于前一分组密文与当前明文异或。填充采用 PKCS'}, {'num': 4, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'AEAD 认证加密与完整性保护', 'body': '*   **核心定义**: AEAD（Authenticated Encryption with Associated Data）实现了加密与完整性校验的一步式结合。\n*   **底层机理**: AES-GCM 将 Galois 域乘法（GMAC）与 CTR 计数器加密融合。加密后输出密文并计算出一串 128-bit 验证标签（Tag）。解密时硬件必须首先通过 AAD 校验 Tag 的一致性。任何对比特流的篡改都会触发认证失败并抛出异常，彻底杜绝了密文伪造攻击。'}, {'num': 5, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': '消息摘要与 HMAC 防伪造签名', 'body': '*   **核心定义**: HMAC（Hash-based Message Authentication Code）是结合密钥和 Hash 算法的消息完整性机制。\n*   **底层机理**: HMAC 采用双重哈希嵌套结构：$HMAC_K(M) = H((K^+ \\oplus opad) \\parallel H((K^+ \\oplus ipad) \\parallel M))$。这种结构在数学上完全阻断了哈希函数的长度扩展攻击（Length Extension Attack），是传输参数验证防篡改的核心利器。'}, {'num': 6, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'Diffie-Hellman 与前向安全密钥交换', 'body': '*   **核心定义**: Diffie-Hellman（DH）允许通信双方在完全公开的信道中协商出唯一的会话共享密钥。\n*   **底层机理**: 采用临时椭圆曲线（ECDHE）。双方各自生成一个临时私钥 $d$ 并计算公钥 $Q = d \\cdot G$ 发射。最终双方通过 $S = d_{client} \\cdot Q_{server} = d_{client} d_{server} G$ 计算出相同点。由于私钥单次会话即毁，攻击者即便事后破解主私钥也无法解密过往报文，保障了前向安全。'}, {'num': 7, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'RSA 非对称密码与填充安全', 'body': '*   **核心定义**: RSA 依赖于大数质因数分解的数学难题，加密需要安全的填充。\n*   **底层机理**: 传统 RSA-PKCS1_v1.5 填充易受 Bleichenbacher 攻击。现代 OpenSSL 默认强制使用 RSA-OAEP 填充，即利用 Mask Generation Function（MGF）对明文先进行伪随机掩码混淆再执行模幂运算：$C = M^e \\pmod N$。这在数学上达到了自适应选择密文攻击（IND-CCA2）的安全级别。'}, {'num': 8, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'ECC 椭圆曲线与 ECDSA 签名验证', 'body': '*   **核心定义**: ECC 是基于椭圆曲线离散对数难题的公钥加密体系，以较短的密钥提供极高的安全性。\n*   **底层机理**: ECDSA 签名生成在生成签名 $r$ 与 $s$ 时，必须依赖一个高强度的随机数 $k$。如果该随机数被重用，攻击者通过简单的算术即可逆推出私钥。OpenSSL 通过 RFC 6979 方案，使 $k$ 的生成与私钥 and 消息哈希强制绑定，从根本上防止了该漏洞。'}, {'num': 9, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'ASN.1 规范与 DER/PEM 序列化', 'body': '*   **核心定义**: ASN.1 是用来描述密码学数据结构（证书、密钥对）的抽象描述规范。\n*   **底层机理**: DER 是 ASN.1 的二进制紧凑编码标准，以 Tag-Length-Value（TLV）形式存储。PEM 则是将二进制 DER 数据执行 Base64 编码，并在其头部加上 `-----BEGIN CERTIFICATE-----` 等人类可读标签，方便网络传输与保存。'}, {'num': 10, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'X.509 证书格式与数字证书验证', 'body': '*   **核心定义**: X.509 是公钥证书的全球标准格式，用于绑定实体身份与对应公钥。\n*   **底层机理**: 验证体系通过签名信任链树状回溯。客户端载入内置根证书 CA。当收到服务器证书时，逐级校验中间 CA 对该证书的数字签名。签名生成计算公式为 $S = Sign_{CA}(Hash(CertificateBody))$。这确保了证书公钥不被中间人假冒。'}, {'num': 11, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'TLS 1.2 握手协商与 RTT 延迟', 'body': '*   **核心定义**: TLS 1.2 握手需要经历两个网络往返周期（2-RTT）完成加密协商。\n*   **底层机理**: 阶段包含：1. `ClientHello` / `ServerHello`（套件协商）；2. `Certificate` / `ServerKeyExchange`（密钥交换与鉴权）；3. `ClientKeyExchange`（客户端完成密钥共享并计算对称密钥）；4. `ChangeCipherSpec` / `Finished`。这产生了较大的网络往返时延限制。'}, {'num': 12, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'TLS 1.3 单往返 (1-RTT) 握手机制', 'body': '*   **核心定义**: TLS 1.3 革命性地将握手开销缩减至单次往返（1-RTT）。\n*   **底层机理**: 客户端不再等待服务端回应，而是在 `ClientHello` 中直接乐观地发送常见曲线（如 X25519）的密钥共享份额（Key Share）。服务端收到后就地完成 ECDHE 交换，并在 `ServerHello` 中直接返回对应 Key Share 及证书。双方一次交互即建立对称通信，网络延迟减半。'}, {'num': 13, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'HKDF 密码级密钥派生算法', 'body': '*   **核心定义**: HKDF（HMAC-based Extract-and-Expand Key Derivation Function）用于从共享秘密中生成多层级会话密钥。\n*   **底层机理**: 步骤包含：1. **Extract**: $PRK = HMAC\\_Hash(salt, IKM)$，将原始 ECDHE 秘密提取为均匀分布的伪随机密钥；2. **Expand**: $OKM = HKDF\\_Expand(PRK, info, L)$，基于哈希循环迭代，派生出独立的 Client Write Key、Server Write Key 及 IV。'}, {'num': 14, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'Session Ticket 会话恢复与 0-RTT', 'body': '*   **核心定义**: 会话恢复机制允许二次连接免去完整握手过程，0-RTT 允许首包直接发送加密数据。\n*   **底层机理**: 服务端将握手生成的会话状态使用专属主密钥加密，封装为 Session Ticket 发给客户端。二次握手时客户端发送该 Ticket。服务端解密成功即复用密钥。然而，0-RTT 报文缺乏时序防护，极易被黑客截获后原样向服务器重放（Replay Attack），通常需限制仅幂等 GET 请求使用。'}, {'num': 15, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'TLS 记录协议 (Record Protocol) 帧封装', 'body': '*   **核心定义**: TLS 记录协议主要负责数据的切片、压缩及 AEAD 对称加密包装。\n*   **底层机理**: 明文数据流被切分为不超过 16KB 的帧片。每一帧添加头部类型（Content Type）、版本及长度，然后将数据附带隐式单调递增的序列号（Sequence Number）压入 AEAD 执行加密。解密端基于序列号硬校验，能杜绝网络包被窃听者截获并执行乱序重放攻击。'}, {'num': 16, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'OPENSSL_malloc 安全内存管理', 'body': '*   **核心定义**: OpenSSL 专用的堆内存管理抽象，旨在防范物理内存被窃密。\n*   **底层机理**: 调用底层操作系统接口（如 `mlock`）锁定物理堆内存页，严格禁止该内存页被交换（Swap Out）到本地磁盘上留下明文痕迹。当分配失败或内存被越界踩踏时，立即触发致命 Panic 以中断程序，防止敏感密钥泄露。'}, {'num': 17, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': '时序攻击 (Timing Attack) 与常数时间规约', 'body': '*   **核心定义**: 时序攻击是指黑客通过测量不同密文解密耗时长短差异，间接逆推出密钥的值。\n*   **底层机理**: 如果代码编写中存在 `if (key_bit == 1)` 分支逻辑，执行时间会有微小不同。OpenSSL 底层库在处理关键加解密逻辑时，强制使用无分支的常数时间算法。例如使用位掩码 `val & mask` 代替 `if-else` 分支判定，确保处理耗时在物理层面完全恒定。'}, {'num': 18, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': '内存零化 (Zeroization) 与数据残留', 'body': '*   **核心定义**: 内存零化是密码学芯片的一级合规要求，要求任何敏感密钥使用完毕后必须立即擦除。\n*   **底层机理**: 传统 C 语言调用 `memset(key, 0, len)` 释放内存时，高级编译器会因为死代码消除（Dead-code elimination）优化而将其抹除，导致密钥仍然残留在物理内存中。OpenSSL 采用 `OPENSSL_cleanse` 接口，内嵌强制写屏障和非内联清理指针，防止编译器优化，保障擦除的物理执行。'}, {'num': 19, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': '心脏出血 (Heartbleed) 漏洞根本原因', 'body': '*   **核心定义**: Heartbleed（CVE-2014-0160）是 OpenSSL 历史上最著名的内存越界读取安全漏洞。\n*   **底层机理**: 在 TLS 心跳包处理函数中，客户端上报心跳请求，自报数据包有效载荷长度。但 OpenSSL 在分配响应内存时，未校验自报长度与实际物理数据包长度是否相符。结果，程序以超大虚报长度为界，直接执行了 `memcpy`，将大段越界堆内存（包含邻近的其他连接密钥与用户数据）传回了黑客。'}, {'num': 20, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': '侧信道缓存攻击与盲化技术 (Blinding)', 'body': "*   **核心定义**: 侧信道攻击通过窥探 CPU 的 L1/L2 缓存命中的时间差，逆向判定 RSA 密钥的指数位。\n*   **底层机理**: OpenSSL 在 RSA 模幂运算前执行盲化（Blinding）：生成一个随机数 $r$，计算 $M' = M \\cdot r^e \\pmod N$ 后执行幂运算，解密后再乘以 $r^{-1}$ 消除盲化。这使得处理的指数和基数变得毫无规律，使黑客测量缓存差也无法获取任何有效指数特征。"}, {'num': 21, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'EVP_PKEY 统一非对称操作抽象', 'body': '*   **核心定义**: EVP_PKEY 是高层统一处理非对称加密、签名与密钥协商的抽象接口。\n*   **底层机理**: 将 RSA、ECC、DSA 等底层非对称结构（如 `RSA *`、`EC_KEY *`）打包为统一 of `EVP_PKEY` 指针类型。在进行密钥导出或数字签名时，使用 `EVP_PKEY_sign_init` 与 `EVP_PKEY_sign` 控制。这使上层业务逻辑不受非对称算法更新的影响。'}, {'num': 22, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'SSL_CTX 会话上下文管理机制', 'body': '*   **核心定义**: SSL_CTX 是管理全局 TLS 配置、密码套件选择及会话缓存的核心上下文结构。\n*   **底层机理**: 会话上下文对象被设计为单例多路复用。它负责一次性从磁盘载入根证书、吊销证书链、配置允许的密码套件（如强制仅使用 TLS_AES_256_GCM_SHA384）。基于此创建的每个具体 socket `SSL *` 对象都会继承全局配置参数。'}, {'num': 23, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'BIO 抽象 I/O 管道机制', 'body': '*   **核心定义**: BIO 是 OpenSSL 将各种 I/O 物理介质（内存、文件、网络 socket、管道）进行多态流化封装的管道框架。\n*   **底层机理**: 开发者可以通过 BIO 过滤链（BIO Filter Chains）将物理套接字封装起来：`BIO_new_ssl` ➜ `BIO_push` ➜ `BIO_new_socket`。写入数据流时，数据在 BIO 管道中依次完成 TLS 加密和 Socket 发送，实现了应用代码与传输层协议的解耦。'}, {'num': 24, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'OpenSSL Engine 引擎体系架构 (v1.1.1)', 'body': '*   **核心定义**: Engine 架构是 OpenSSL v1.1.1 之前挂载外部硬件密码卡的标准接口。\n*   **底层机理**: 通过特定的 API 导出全局回调虚表。硬件加速卡厂商提供动态链接库实现这些虚表，并在初始化时通过 `ENGINE_set_RSA` 等将非对称计算逻辑重新挂载到加速卡上。这使上层软件能透明利用外部 ASIC 计算力。'}, {'num': 25, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'OpenSSL 3.0 Provider 模块化架构', 'body': '*   **核心定义**: OpenSSL 3.0 全新推出的 Provider 插槽提供者架构，彻底取代了旧版 Engine。\n*   **底层机理**: Provider 采用更加严格的三层动态映射总线。密码算法彻底模块化：分为 default（默认实现）、fips（安全合规提供者）与 legacy（老旧弱密码提供者）。底层算法以字符串注册（如 `"AES-256-GCM"`），彻底拆除老旧头文件编译依赖，使得 Provider 的运行时插拔无比平滑。'}, {'num': 26, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'Intel QAT 硬件密码卡异步驱动', 'body': '*   **核心定义**: Intel QuickAssist Technology (QAT) 硬件加速驱动，用于高并发高通吞吐网络中卸载密码计算。\n*   **底层机理**: QAT Provider 接管 OpenSSL 底层的非对称和对称加解密计算。将任务包装为 QAT 请求队列，推入 QAT 硬件 PCIe 环形缓冲队列。当硬件 ASIC 芯片完成计算后，通过异步中断回调通知 OpenSSL BIO，使 CPU 免受计算之苦。'}, {'num': 27, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': '硬件指令集优化 (AES-NI / CLMUL)', 'body': '*   **核心定义**: 利用 CPU 原生的密码学优化汇编指令，在硅片指令层面加速核心运算。\n*   **底层机理**: OpenSSL 通过自动探测 CPU 特征标志位。若支持 `AES-NI`（如 Intel AESENC / AESDEC 指令）以及 `PCLMULQDQ` 指令（硬件加速 GCM 的 Galois 域乘法计算），则直接在 EVP 层用汇编重定向执行。该加速使得 AES-GCM 的解密吞吐率提升数十倍，消除了软件计算损耗。'}, {'num': 28, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': '弱加密套件检测与安全合规性审计', 'body': '*   **核心定义**: 在企业和政府安全合规审计中，必须严格检测并禁用过时且不安全的弱密码套件。\n*   **底层机理**: 审计要求必须禁用 RC4（易受偏差攻击）、3DES（运行速度慢且密钥长度过短）以及 MD5（存在严重的碰撞攻击风险）。通过 SSL_CTX 运行时配置 `CipherList` 实施白名单强制（例如 `DEFAULT:!RC4:!3DES:!MD5`），防范协议降级攻击。'}];
+        const cardsGrid = document.getElementById('cardsGrid');
+        const searchInput = document.getElementById('searchInput');
+        const filterButtons = document.getElementById('filterButtons');
+
+        let activeFilter = 'all';
+        let searchQuery = '';
+
+        function render() {
+            cardsGrid.innerHTML = '';
+            const filtered = cardsData.filter(c => {
+                const matchesF = activeFilter === 'all' || c.moduleId === activeFilter;
+                const matchesS = c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.body.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesF && matchesS;
+            });
+
+            filtered.forEach(c => {
+                const el = document.createElement('div');
+                el.className = 'card';
+                el.style.setProperty('--module-color', c.moduleColor);
+                el.innerHTML = `
+                    <div class="card-header">
+                        <span style="font-size:0.75rem; color:#94a3b8;">${c.moduleId}</span>
+                        <span class="card-num">Card ${c.num}</span>
+                    </div>
+                    <h3 class="card-title">${c.title}</h3>
+                    <p class="card-body">${c.body.replace(/
+/g, '<br>')}</p>
+                `;
+                cardsGrid.appendChild(el);
+            });
+        }
+
+        searchInput.addEventListener('input', e => { searchQuery = e.target.value; render(); });
+        filterButtons.addEventListener('click', e => {
+            if (e.target.classList.contains('filter-btn')) {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                activeFilter = e.target.dataset.module;
+                render();
+            }
+        });
+        render();
+    </script>
+</body>
+</html>

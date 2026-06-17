@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLVM 编译器基础设施交互仿真实验室</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --m1-color: #4B5F7A;
+            --m2-color: #6B8272;
+            --m3-color: #7A7A7A;
+            --m4-color: #9C6666;
+            --m5-color: #9A825A;
+            --m6-color: #755B77;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .sandbox-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            display: none;
+        }
+
+        .sandbox-container.active {
+            display: block;
+        }
+
+        .desc-banner {
+            background-color: #1e293b;
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 2rem;
+        }
+
+        .panel {
+            background-color: #0b0f19;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel h3 {
+            font-size: 1.1rem;
+            color: #f1f5f9;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: #38bdf8;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            padding: 0.8rem;
+            outline: none;
+            resize: none;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.88rem;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #4b5563;
+        }
+
+        .btn-secondary:hover {
+            background-color: #374151;
+        }
+
+        .code-display {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: #a7f3d0;
+            height: 480px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        /* Sandbox 2 Styles */
+        .live-ranges {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .range-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .range-label {
+            width: 80px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .range-bar-container {
+            flex: 1;
+            height: 24px;
+            background-color: #111827;
+            position: relative;
+            border-radius: 4px;
+            border: 1px solid #1e293b;
+        }
+
+        .range-bar {
+            position: absolute;
+            height: 100%;
+            background-color: var(--bar-color, #3b82f6);
+            border-radius: 4px;
+            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .graph-viz {
+            border: 1px solid var(--border-color);
+            background-color: #111827;
+            height: 240px;
+            border-radius: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+        }
+
+        .node {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background-color: #374151;
+            border: 2px solid #9ca3af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+            position: relative;
+            color: white;
+        }
+
+        .node.colored {
+            background-color: var(--color-val);
+            border-color: #ffffff;
+        }
+
+        .node-spilled {
+            border: 2px dashed #ef4444 !important;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.08); }
+        }
+
+        .inst-list {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            border-radius: 4px;
+            height: 200px;
+            overflow-y: auto;
+            color: #cbd5e1;
+        }
+
+        .inst-line {
+            padding: 0.2rem 0;
+            border-left: 3px solid transparent;
+            padding-left: 0.5rem;
+        }
+
+        .inst-line.active {
+            border-left-color: #10b981;
+            background-color: #1e293b;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>LLVM 编译器基础设施交互仿真实验室</h1>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tab1')">中端 Pass 优化流水线</button>
+            <button class="tab-btn" onclick="switchTab('tab2')">后端寄存器分配与溢出仿真</button>
+        </div>
+    </header>
+
+    <!-- TAB 1: Pass Optimization -->
+    <div id="tab1" class="sandbox-container active">
+        <div class="desc-banner">本模块模拟前端生成的 Raw IR，如何通过中端 Mem2Reg Pass 消除 alloca 提升为 SSA 架构，并展示循环外提与控制流简化。</div>
+        <div class="grid-2">
+            <div class="panel">
+                <h3>输入类 C 代码</h3>
+                <textarea id="c-code">int test(int x) {
+    int a = 1;
+    int b = a + 2;
+    while (x < 10) {
+        x = x + b;
+    }
+    return x;
+}</textarea>
+                <div class="actions">
+                    <button class="btn" onclick="optStep(1)">1. 生成原始 LLVM IR</button>
+                    <button class="btn btn-secondary" onclick="optStep(2)">2. 运行 Mem2Reg 提升</button>
+                    <button class="btn btn-secondary" onclick="optStep(3)">3. 运行 LICM / 循环外提</button>
+                    <button class="btn btn-secondary" onclick="optStep(4)">4. 运行 SimplifyCFG & 内联</button>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>LLVM IR Output</h3>
+                <div class="code-display" id="ir-output">; Click "1. Generate Raw LLVM IR" to begin the pipeline simulation...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: Register Allocation -->
+    <div id="tab2" class="sandbox-container">
+        <div class="desc-banner">本模块模拟后端物理寄存器有限时，活跃区间干涉图构建、着色简化堆栈、以及溢出（Spill）触发并在指令间插入内存 load/store 的完整周转。</div>
+        <div class="grid-2">
+            <div class="panel">
+                <h3>Instructions & Live Ranges</h3>
+                <div class="inst-list" id="inst-container">
+                    <div class="inst-line">1: r1 = load [stack_offset_A]</div>
+                    <div class="inst-line">2: r2 = load [stack_offset_B]</div>
+                    <div class="inst-line">3: r3 = r1 + r2</div>
+                    <div class="inst-line">4: r4 = r3 * r2</div>
+                    <div class="inst-line">5: store r4, [stack_offset_C]</div>
+                </div>
+                <h4 style="margin: 1rem 0 0.5rem 0; font-size: 0.9rem; color: #f1f5f9;">Virtual Register Live Ranges:</h4>
+                <div class="live-ranges">
+                    <div class="range-row">
+                        <span class="range-label">r1</span>
+                        <div class="range-bar-container">
+                            <div class="range-bar" style="left: 0%; width: 60%; --bar-color: #3b82f6;">Lines 1-3</div>
+                        </div>
+                    </div>
+                    <div class="range-row">
+                        <span class="range-label">r2</span>
+                        <div class="range-bar-container">
+                            <div class="range-bar" style="left: 20%; width: 60%; --bar-color: #10b981;">Lines 2-4</div>
+                        </div>
+                    </div>
+                    <div class="range-row">
+                        <span class="range-label">r3</span>
+                        <div class="range-bar-container">
+                            <div class="range-bar" style="left: 40%; width: 40%; --bar-color: #f59e0b;">Lines 3-4</div>
+                        </div>
+                    </div>
+                    <div class="range-row">
+                        <span class="range-label">r4</span>
+                        <div class="range-bar-container">
+                            <div class="range-bar" style="left: 60%; width: 40%; --bar-color: #ec4899;">Lines 4-5</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Interference Graph Coloring & Spilling</h3>
+                <div class="graph-viz" id="graph-container">
+                    <div class="node" id="node-r1">r1</div>
+                    <div class="node" id="node-r2">r2</div>
+                    <div class="node" id="node-r3">r3</div>
+                    <div class="node" id="node-r4">r4</div>
+                </div>
+                <div class="actions" style="margin-top: 1.5rem;">
+                    <button class="btn" onclick="buildInterference()">1. 构建干涉图</button>
+                    <button class="btn btn-secondary" onclick="colorGraph()">2. 图着色分配</button>
+                    <button class="btn btn-secondary" style="background-color: #b91c1c" onclick="spillGraph()">3. 强制溢出 (限制仅 2 寄存器)</button>
+                    <button class="btn btn-secondary" onclick="resetTab2()">重置仿真</button>
+                </div>
+                <div style="margin-top: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #94a3b8;" id="reg-status">
+                    Status: Standing by...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.sandbox-container').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ================= TAB 1 Logic =================
+        const irTemplates = {
+            raw: `; ModuleID = 'test.c'
+source_filename = "test.c"
+target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-unknown-linux-gnu"
+
+define i32 @test(i32 %x) {
+entry:
+  %x.addr = alloca i32, align 4
+  %a = alloca i32, align 4
+  %b = alloca i32, align 4
+  store i32 %x, ptr %x.addr, align 4
+  store i32 1, ptr %a, align 4
+  %0 = load i32, ptr %a, align 4
+  %add = add nsw i32 %0, 2
+  store i32 %add, ptr %b, align 4
+  br label %while.cond
+
+while.cond:
+  %1 = load i32, ptr %x.addr, align 4
+  %cmp = icmp slt i32 %1, 10
+  br i1 %cmp, label %while.body, label %while.end
+
+while.body:
+  %2 = load i32, ptr %x.addr, align 4
+  %3 = load i32, ptr %b, align 4
+  %add1 = add nsw i32 %2, %3
+  store i32 %add1, ptr %x.addr, align 4
+  br label %while.cond
+
+while.end:
+  %4 = load i32, ptr %x.addr, align 4
+  ret i32 %4
+}`,
+            mem2reg: `; ModuleID = 'test.c' (Optimized: Mem2Reg Pass)
+define i32 @test(i32 %x) {
+entry:
+  br label %while.cond
+
+while.cond:
+  ; phi node dynamically merges definition paths from entry and while.body
+  %x.addr.0 = phi i32 [ %x, %entry ], [ %add1, %while.body ]
+  %cmp = icmp slt i32 %x.addr.0, 10
+  br i1 %cmp, label %while.body, label %while.end
+
+while.body:
+  ; %a and %b promoted out, 1 + 2 folded into constant 3
+  %add1 = add nsw i32 %x.addr.0, 3
+  br label %while.cond
+
+while.end:
+  ret i32 %x.addr.0
+}`,
+            licm: `; ModuleID = 'test.c' (Optimized: Mem2Reg + LICM Pass)
+define i32 @test(i32 %x) {
+entry:
+  ; Hoisted loop invariant calculation: %inv = 10 + 20
+  %inv = add nsw i32 10, 20
+  br label %while.cond
+
+while.cond:
+  %x.addr.0 = phi i32 [ %x, %entry ], [ %add1, %while.body ]
+  %cmp = icmp slt i32 %x.addr.0, %inv
+  br i1 %cmp, label %while.body, label %while.end
+
+while.body:
+  %add1 = add nsw i32 %x.addr.0, 3
+  br label %while.cond
+
+while.end:
+  ret i32 %x.addr.0
+}`,
+            simplify: `; ModuleID = 'test.c' (Optimized: Mem2Reg + LICM + SimplifyCFG + Inlining)
+define i32 @test(i32 %x) {
+entry:
+  br label %while.cond
+
+while.cond:                                         ; preds = %while.cond, %entry
+  %x.addr.0 = phi i32 [ %x, %entry ], [ %add1, %while.cond ]
+  %cmp = icmp slt i32 %x.addr.0, 30
+  %add1 = add nsw i32 %x.addr.0, 3
+  br i1 %cmp, label %while.cond, label %while.end   ; Loops folded directly into single basic block
+
+while.end:                                          ; preds = %while.cond
+  ret i32 %x.addr.0
+}`
+        };
+
+        function optStep(step) {
+            const output = document.getElementById('ir-output');
+            if (step === 1) {
+                output.innerText = irTemplates.raw;
+                output.style.color = "#a7f3d0";
+            } else if (step === 2) {
+                output.innerText = irTemplates.mem2reg;
+                output.style.color = "#93c5fd";
+            } else if (step === 3) {
+                output.innerText = irTemplates.licm;
+                output.style.color = "#fcd34d";
+            } else if (step === 4) {
+                output.innerText = irTemplates.simplify;
+                output.style.color = "#f472b6";
+            }
+        }
+
+        // ================= TAB 2 Logic =================
+        const nodeColors = {
+            r1: "#3b82f6",
+            r2: "#10b981",
+            r3: "#f59e0b",
+            r4: "#ec4899"
+        };
+
+        // Draw interference links
+        let svg = null;
+        function drawLine(id1, id2) {
+            if (!svg) {
+                svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.style.position = "absolute";
+                svg.style.top = "0";
+                svg.style.left = "0";
+                svg.style.width = "100%";
+                svg.style.height = "100%";
+                svg.style.pointerEvents = "none";
+                document.getElementById('graph-container').appendChild(svg);
+            }
+
+            const n1 = document.getElementById('node-' + id1);
+            const n2 = document.getElementById('node-' + id2);
+            
+            const x1 = n1.offsetLeft + n1.offsetWidth / 2;
+            const y1 = n1.offsetTop + n1.offsetHeight / 2;
+            const x2 = n2.offsetLeft + n2.offsetWidth / 2;
+            const y2 = n2.offsetTop + n2.offsetHeight / 2;
+
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#ef4444");
+            line.setAttribute("stroke-width", "2");
+            line.setAttribute("opacity", "0.6");
+            svg.appendChild(line);
+        }
+
+        function buildInterference() {
+            resetTab2();
+            // Connect intersecting ranges: r1-r2, r2-r3, r2-r4, r3-r4 (at line 4)
+            drawLine("r1", "r2");
+            drawLine("r2", "r3");
+            drawLine("r2", "r4");
+            drawLine("r3", "r4");
+            document.getElementById('reg-status').innerHTML = "Status: Interference Graph constructed.<br>Conflicts: r1-r2, r2-r3, r2-r4, r3-r4.";
+        }
+
+        function colorGraph() {
+            // Color nodes with physical registers (Assuming 3 registers: RAX, RBX, RCX)
+            const n1 = document.getElementById('node-r1');
+            const n2 = document.getElementById('node-r2');
+            const n3 = document.getElementById('node-r3');
+            const n4 = document.getElementById('node-r4');
+
+            n1.style.setProperty('--color-val', '#ef4444'); // Color 1 (RAX)
+            n1.classList.add('colored');
+            n1.innerText = "RAX";
+
+            n2.style.setProperty('--color-val', '#10b981'); // Color 2 (RBX)
+            n2.classList.add('colored');
+            n2.innerText = "RBX";
+
+            n3.style.setProperty('--color-val', '#3b82f6'); // Color 3 (RCX)
+            n3.classList.add('colored');
+            n3.innerText = "RCX";
+
+            n4.style.setProperty('--color-val', '#ef4444'); // Color 1 (RAX) - No interference with r1
+            n4.classList.add('colored');
+            n4.innerText = "RAX";
+
+            document.getElementById('reg-status').innerHTML = "Status: Colored successfully with 3 physical registers (RAX, RBX, RCX).<br>r1 ➜ RAX, r2 ➜ RBX, r3 ➜ RCX, r4 ➜ RAX.";
+        }
+
+        function spillGraph() {
+            resetTab2();
+            buildInterference();
+            
+            // Limit available registers to 2 (RAX, RBX)
+            // r2 connects to r1, r3, r4. Degree of r2 = 3. Color limit = 2. Must spill!
+            const n2 = document.getElementById('node-r2');
+            n2.classList.add('node-spilled');
+            n2.innerText = "Spill";
+
+            document.getElementById('reg-status').innerHTML = "Status: Spilling triggered!<br>Virtual register r2 has degree 3, exceeding the limit of 2 registers.<br>CodeGen allocates stack slot [rsp+8], replacing r2 with local load/stores.";
+
+            // Show instruction rewriting
+            document.getElementById('inst-container').innerHTML = `
+                <div class="inst-line">1: r1 = load [stack_offset_A]</div>
+                <div class="inst-line">2: r2_temp = load [stack_offset_B]</div>
+                <div class="inst-line" style="color: #ef4444;">2b: store r2_temp, [rsp+8] ; Spill store</div>
+                <div class="inst-line" style="color: #10b981;">3a: r2_load = load [rsp+8]  ; Reload for use</div>
+                <div class="inst-line">3: r3 = r1 + r2_load</div>
+                <div class="inst-line" style="color: #10b981;">4a: r2_load2 = load [rsp+8] ; Reload for use</div>
+                <div class="inst-line">4: r4 = r3 * r2_load2</div>
+                <div class="inst-line">5: store r4, [stack_offset_C]</div>
+            `;
+        }
+
+        function resetTab2() {
+            if (svg) {
+                svg.remove();
+                svg = null;
+            }
+            document.querySelectorAll('.node').forEach(n => {
+                n.className = 'node';
+                n.style.removeProperty('--color-val');
+                n.innerText = n.id.replace('node-', '');
+            });
+            document.getElementById('reg-status').innerHTML = "Status: Reset.";
+            document.getElementById('inst-container').innerHTML = `
+                <div class="inst-line">1: r1 = load [stack_offset_A]</div>
+                <div class="inst-line">2: r2 = load [stack_offset_B]</div>
+                <div class="inst-line">3: r3 = r1 + r2</div>
+                <div class="inst-line">4: r4 = r3 * r2</div>
+                <div class="inst-line">5: store r4, [stack_offset_C]</div>
+            `;
+        }
+    </script>
+</body>
+</html>

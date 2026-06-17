@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickHouse Internals Interactive Simulation Sandbox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #141c2f;
+            --border-color: #263554;
+            --accent-color: #10b981;
+            --text-color: #e2e8f0;
+            --text-muted: #6b7280;
+            --color-live: #10b981;
+            --color-dead: #ef4444;
+            --color-frozen: #f59e0b;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+        }
+        header {
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #34d399, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        header p {
+            color: #94a3b8;
+            font-weight: 300;
+        }
+        .grid-labs {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2.5rem;
+        }
+        .lab-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .lab-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: white;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 0.75rem;
+        }
+        .lab-description {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        /* Controls Row */
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .input-group label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .input-ctrl {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: #0b0f19;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn:hover {
+            background-color: #059669;
+        }
+        
+        /* Sparse Index Design */
+        .sparse-idx-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            background-color: #0f172a;
+            margin-top: 1rem;
+        }
+        .table-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        .marks-row {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .mark-block {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            min-width: 140px;
+            text-align: center;
+        }
+        .mark-block.highlight {
+            border-color: #34d399;
+            background-color: rgba(52, 211, 153, 0.1);
+        }
+        .granule-boxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.75rem;
+        }
+        .granule-card {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.75rem;
+            background-color: #1e293b;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+        .granule-card.scanned {
+            background-color: rgba(52, 211, 153, 0.15);
+            border-color: #34d399;
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.2);
+        }
+        .granule-card.skipped {
+            opacity: 0.3;
+        }
+        .tag-skipped {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            display: block;
+            margin-top: 0.25rem;
+        }
+        .tag-scanned {
+            color: #34d399;
+            font-size: 0.7rem;
+            display: block;
+            margin-top: 0.25rem;
+            font-weight: bold;
+        }
+
+        /* SIMD Chart Design */
+        .chart-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            background-color: #0f172a;
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        .chart-panel {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .speedup-gauge {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #34d399;
+            margin: 1.5rem 0;
+            text-shadow: 0 0 15px rgba(52, 211, 153, 0.4);
+        }
+        .simd-bar {
+            height: 20px;
+            background-color: #1e293b;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+        .simd-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #34d399, #10b981);
+            width: 0;
+            transition: width 1s ease;
+        }
+        .row-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #b91c1c);
+            width: 0;
+            transition: width 1s ease;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>ClickHouse Internals Sandbox</h1>
+        <p>Simulate MergeTree Sparse Index Mark mapping and CPU SIMD Vectorized Execution aggregates vs row-oriented engines</p>
+    </header>
+
+    <div class="grid-labs">
+        <!-- Lab 1 -->
+        <div class="lab-panel">
+            <h2 class="lab-title">Lab 1: MergeTree Sparse Index & Granule Scan</h2>
+            <p class="lab-description">
+                Define a search condition on the primary key (ordered ID). The index uses index_granularity=8192 to map marks. Click 'Search' to visualize how the sparse index identifies marks and skips irrelevant granules.
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>Where ID Between</label>
+                    <div style="display:flex; gap:0.5rem; align-items:center">
+                        <input type="number" id="id-start" class="input-ctrl" value="18000" style="width:100px">
+                        <span>and</span>
+                        <input type="number" id="id-end" class="input-ctrl" value="35000" style="width:100px">
+                    </div>
+                </div>
+                <button class="btn" onclick="executeSparseSearch()">SEARCH GRANULES</button>
+            </div>
+
+            <div class="sparse-idx-container">
+                <div class="table-meta">
+                    <span>Sparse Primary Index (index_granularity = 8192)</span>
+                    <span id="sparse-info">Marks count = 8 | Scanned granules = 0 | Read rows = 0 / 65536</span>
+                </div>
+                
+                <h4 style="font-size:0.85rem; color:#94a3b8; margin-bottom:0.5rem">primary.idx Mark Marks (常驻内存):</h4>
+                <div class="marks-row" id="marks-row">
+                    <!-- Marks will render here -->
+                </div>
+
+                <h4 style="font-size:0.85rem; color:#94a3b8; margin-bottom:0.5rem">Physical Granules on Disk (8192 rows each):</h4>
+                <div class="granule-boxes" id="granules-grid">
+                    <!-- Granule boxes will render here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Lab 2 -->
+        <div class="lab-panel">
+            <h2 class="lab-title">Lab 2: CPU SIMD Vectorized Aggregation Simulator</h2>
+            <p class="lab-description">
+                Simulate row-by-row Volcano execution (MySQL style, with virtual method calls per row) vs. ClickHouse's SIMD-aligned vectorized loop execution on ColumnVector chunks (batch size 65536). View throughput scaling.
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>Rows to Process</label>
+                    <select id="simd-rows" class="input-ctrl">
+                        <option value="10000000">10,000,000 Rows</option>
+                        <option value="50000000">50,000,000 Rows</option>
+                        <option value="100000000">100,000,000 Rows</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="runSIMDSimulator()">START BENCHMARK</button>
+            </div>
+
+            <div class="chart-container">
+                <!-- Row-oriented -->
+                <div class="chart-panel">
+                    <h4 style="color:#ef4444">Row-oriented (Volcano)</h4>
+                    <p style="color:#94a3b8; font-size:0.85rem">Iterates row-by-row, heavy branch mispredictions</p>
+                    <div class="speedup-gauge" id="row-throughput" style="color:#ef4444">--</div>
+                    <div style="font-size:0.8rem; color:#94a3b8">Throughput (M rows/sec)</div>
+                    <div class="simd-bar">
+                        <div class="row-bar-fill" id="row-fill"></div>
+                    </div>
+                </div>
+
+                <!-- Column-vectorized SIMD -->
+                <div class="chart-panel">
+                    <h4 style="color:#34d399">Vectorized SIMD Columnar</h4>
+                    <p style="color:#94a3b8; font-size:0.85rem">Contiguous memory, compiled AVX2 aggregate loops</p>
+                    <div class="speedup-gauge" id="simd-throughput" style="color:#34d399">--</div>
+                    <div style="font-size:0.8rem; color:#94a3b8">Throughput (M rows/sec)</div>
+                    <div class="simd-bar">
+                        <div class="simd-bar-fill" id="simd-fill"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top:1.5rem; padding:1rem; background-color:#0f172a; border:1px solid var(--border-color); border-radius:6px; text-align:center">
+                <span id="speedup-result" style="font-size:1.1rem; font-weight:700; color:#34d399"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Lab 1 Logic
+        const granularity = 8192;
+        const totalMarks = 8;
+        const tableData = [];
+
+        for(let i=0; i<totalMarks; i++) {
+            tableData.push({
+                mark: i,
+                rangeStart: i * granularity,
+                rangeEnd: (i + 1) * granularity - 1
+            });
+        }
+
+        function initLab1() {
+            const marksRow = document.getElementById('marks-row');
+            const granulesGrid = document.getElementById('granules-grid');
+            marksRow.innerHTML = '';
+            granulesGrid.innerHTML = '';
+
+            tableData.forEach(d => {
+                // Render Marks
+                const m = document.createElement('div');
+                m.className = 'mark-block';
+                m.id = `mark-${d.mark}`;
+                m.innerHTML = `<strong>Mark ${d.mark}</strong><br>MinVal: ${d.rangeStart}`;
+                marksRow.appendChild(m);
+
+                // Render Granules
+                const g = document.createElement('div');
+                g.className = 'granule-card';
+                g.id = `granule-${d.mark}`;
+                g.innerHTML = `
+                    <strong>Granule ${d.mark}</strong><br>
+                    Rows: ${d.rangeStart} - ${d.rangeEnd}<br>
+                    Size: 64 KB<br>
+                    <span id="status-tag-${d.mark}" class="tag-skipped">Skipped</span>
+                `;
+                granulesGrid.appendChild(g);
+            });
+        }
+
+        function executeSparseSearch() {
+            const start = parseInt(document.getElementById('id-start').value);
+            const end = parseInt(document.getElementById('id-end').value);
+
+            if(isNaN(start) || isNaN(end) || start > end) {
+                return alert("Please enter valid range bounds.");
+            }
+
+            // Clean previous styles
+            document.querySelectorAll('.mark-block').forEach(el => el.classList.remove('highlight'));
+            document.querySelectorAll('.granule-card').forEach(el => {
+                el.className = 'granule-card';
+            });
+
+            let scannedCount = 0;
+
+            tableData.forEach(d => {
+                const markEl = document.getElementById(`mark-${d.mark}`);
+                const granuleEl = document.getElementById(`granule-${d.mark}`);
+                const statusTag = document.getElementById(`status-tag-${d.mark}`);
+
+                // Check overlap
+                const overlaps = (start <= d.rangeEnd && end >= d.rangeStart);
+
+                if(overlaps) {
+                    markEl.classList.add('highlight');
+                    granuleEl.classList.add('scanned');
+                    statusTag.className = 'tag-scanned';
+                    statusTag.innerText = 'Scanned';
+                    scannedCount++;
+                } else {
+                    granuleEl.classList.add('skipped');
+                    statusTag.className = 'tag-skipped';
+                    statusTag.innerText = 'Skipped';
+                }
+            });
+
+            const readRows = scannedCount * granularity;
+            const totalRows = totalMarks * granularity;
+            document.getElementById('sparse-info').innerText = `Marks count = 8 | Scanned granules = ${scannedCount} | Read rows = ${readRows} / ${totalRows}`;
+        }
+
+        // Lab 2 Logic
+        function runSIMDSimulator() {
+            const rows = parseInt(document.getElementById('simd-rows').value);
+            
+            // Set simulator states to "Benchmarking"
+            document.getElementById('row-throughput').innerText = "...";
+            document.getElementById('simd-throughput').innerText = "...";
+            document.getElementById('row-fill').style.width = '0%';
+            document.getElementById('simd-fill').style.width = '0%';
+            document.getElementById('speedup-result').innerText = "Running loop processing benchmark...";
+
+            setTimeout(() => {
+                // Row-by-row volcano throughput typically runs at 15M - 35M rows/sec due to pointer hop/vcall
+                // Vectorized SIMD loop typically runs at 400M - 1200M rows/sec
+                const rowThroughput = Math.round(15 + Math.random() * 10);
+                const simdThroughput = Math.round(600 + Math.random() * 300);
+
+                document.getElementById('row-throughput').innerText = rowThroughput;
+                document.getElementById('simd-throughput').innerText = simdThroughput;
+
+                // Scale bar fills (capped at 1000 M rows/sec for visual representation)
+                const rowPercent = Math.min((rowThroughput / 1000) * 100, 100);
+                const simdPercent = Math.min((simdThroughput / 1000) * 100, 100);
+
+                document.getElementById('row-fill').style.width = `${rowPercent}%`;
+                document.getElementById('simd-fill').style.width = `${simdPercent}%`;
+
+                const ratio = (simdThroughput / rowThroughput).toFixed(1);
+                document.getElementById('speedup-result').innerText = `ClickHouse Vectorized SIMD aggregate throughput is ${ratio}x FASTER than Row-oriented engine!`;
+            }, 1000);
+        }
+
+        window.onload = function() {
+            initLab1();
+        }
+    </script>
+</body>
+</html>

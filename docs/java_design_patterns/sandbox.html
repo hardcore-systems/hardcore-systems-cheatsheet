@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>AQS 双向队列状态机与 Synchronized 锁膨胀升级仿真沙盒</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 16px;
+        }
+        .btn {
+            background-color: #9C6666;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 180px;
+            overflow-y: auto;
+            margin-top: 15px;
+            white-space: pre-wrap;
+        }
+        .aqs-visual {
+            background-color: #151D30;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 10px;
+            min-height: 80px;
+            font-size: 12px;
+        }
+        .badge {
+            display: inline-block;
+            background-color: #4B5F7A;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AQS 双向队列状态机与 Synchronized 锁膨胀升级仿真沙盒</h1>
+        <div class="grid">
+            <!-- Sandbox 1: AQS Simulator -->
+            <div class="card">
+                <h2>AQS 独占锁双向队列等待模拟器</h2>
+                <button class="btn" style="width:48%; display:inline-block;" onclick="enqueueAQS()">线程竞争锁（入队）</button>
+                <button class="btn" style="width:48%; display:inline-block; background-color:#6B8272;" onclick="releaseAQS()">释放锁并唤醒头部线程</button>
+                <div class="aqs-visual" id="aqs-state-box">
+                    State: 0 (Free) | Owner: None
+                </div>
+                <div class="aqs-visual" id="aqs-queue-box">
+                    CLH Queue: Head [Dummy] -> Tail
+                </div>
+                <div class="console" id="aqs-console" style="height: 100px;">
+                    [AQS Monitor] State initialized. Queue is empty.
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Lock Inflation -->
+            <div class="card">
+                <h2>Synchronized Mark Word 锁膨胀升级演示</h2>
+                <button class="btn" onclick="contendLock()">加重冲突升级锁状态</button>
+                <div class="aqs-visual" id="lock-state-box" style="background-color: #242A38;">
+                    Object Mark Word: 001 (Biased to Thread-1) | Status: Biased Lock
+                </div>
+                <div class="console" id="lock-console">
+                    [Synchronized Monitor] Idle. Content lock to trigger thread contention levels.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // AQS Queue Simulation
+        let aqsState = 0;
+        let owner = "None";
+        let queue = [];
+        let threadCounter = 0;
+
+        function updateAQSVisual() {
+            document.getElementById('aqs-state-box').innerHTML = `
+                <strong>State:</strong> ${aqsState} | <strong>Lock Owner:</strong> \${owner}
+            `;
+            let qStr = "<strong>CLH Queue:</strong> Head [Dummy]";
+            queue.forEach(t => {
+                qStr += ` ➜ <span class="badge">\${t} (Parked)</span>`;
+            });
+            document.getElementById('aqs-queue-box').innerHTML = qStr;
+        }
+
+        function enqueueAQS() {
+            threadCounter++;
+            const tName = "Thread-" + String.fromCharCode(64 + threadCounter);
+            const consoleBox = document.getElementById('aqs-console');
+
+            consoleBox.innerHTML = `[AQS Acquire] \${tName} attempting to acquire lock via CAS...\n`;
+            if (aqsState === 0) {
+                aqsState = 1;
+                owner = tName;
+                consoleBox.innerHTML += ` -> SUCCESS! CAS set state to 1. \${tName} owns the lock.\n`;
+            } else {
+                queue.push(tName);
+                consoleBox.innerHTML += ` -> FAILED. Lock held by \${owner}.\n`;
+                consoleBox.innerHTML += ` -> Node added to queue tail using CAS. Executing LockSupport.park(\${tName}).\n`;
+            }
+            updateAQSVisual();
+        }
+
+        function releaseAQS() {
+            const consoleBox = document.getElementById('aqs-console');
+            if (aqsState === 0) {
+                consoleBox.innerHTML = `[AQS Release] Lock is already free. No action.\n`;
+                return;
+            }
+
+            consoleBox.innerHTML = `[AQS Release] \${owner} releasing lock, setting state to 0...\n`;
+            if (queue.length > 0) {
+                let next = queue.shift();
+                aqsState = 1;
+                owner = next;
+                consoleBox.innerHTML += ` -> Unparked next thread: \${next} at queue head.\n`;
+                consoleBox.innerHTML += ` -> \${next} acquired lock. State set to 1.\n`;
+            } else {
+                aqsState = 0;
+                owner = "None";
+                consoleBox.innerHTML += ` -> Queue is empty. Lock is now free.\n`;
+            }
+            updateAQSVisual();
+        }
+
+        // Lock Inflation Simulation
+        let contentionLevel = 0;
+        function contendLock() {
+            contentionLevel++;
+            const stateBox = document.getElementById('lock-state-box');
+            const consoleBox = document.getElementById('lock-console');
+
+            consoleBox.innerHTML = `[Synchronized Contention Level \${contentionLevel}]\n`;
+            if (contentionLevel === 1) {
+                stateBox.innerHTML = `Object Mark Word: 101 (Biased to Thread-1) | Status: Biased Lock`;
+                consoleBox.innerHTML += `Single thread accessing block. Mark word stores thread identity. Context switches: 0.`;
+            } else if (contentionLevel === 2) {
+                stateBox.innerHTML = `Object Mark Word: 000 (Displaced ptr: 0x7ffd01b) | Status: Lightweight Lock`;
+                consoleBox.innerHTML += `Biased lock revoked. Threads CASing object header, creating Lock Records on thread stack. Spinnings: active.`;
+            } else {
+                stateBox.innerHTML = `Object Mark Word: 010 (Monitor ptr: 0x00bc71a) | Status: Heavyweight Lock`;
+                consoleBox.innerHTML += `Severe contention. Lightweight spin timeout. Inflated to heavyweight monitor. Threads parked at OS mutex wait queue. Context switches: high.`;
+                contentionLevel = 0; // reset loop
+            }
+        }
+    </script>
+</body>
+</html>

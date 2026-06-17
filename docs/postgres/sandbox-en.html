@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL Internals Interactive Simulation Sandbox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #141c2f;
+            --border-color: #263554;
+            --accent-color: #3b82f6;
+            --text-color: #e2e8f0;
+            --text-muted: #6b7280;
+            --color-live: #10b981;
+            --color-dead: #ef4444;
+            --color-frozen: #f59e0b;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+        }
+        header {
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        header p {
+            color: #94a3b8;
+            font-weight: 300;
+        }
+        .grid-labs {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2.5rem;
+        }
+        .lab-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .lab-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: white;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 0.75rem;
+        }
+        .lab-description {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        /* Lab 1 Styling */
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .input-group label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .input-ctrl {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn:hover {
+            background-color: #2563eb;
+        }
+        .btn-secondary {
+            background-color: #334155;
+        }
+        .btn-secondary:hover {
+            background-color: #475569;
+        }
+        .heap-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            background-color: #0f172a;
+            margin-top: 1rem;
+        }
+        .heap-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        .page-slots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .slot-badge {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .tuples-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+        .tuple-box {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            background-color: #1e293b;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .tuple-box.live {
+            border-left: 5px solid var(--color-live);
+        }
+        .tuple-box.dead {
+            border-left: 5px solid var(--color-dead);
+            opacity: 0.5;
+        }
+        .tuple-box.frozen {
+            border-left: 5px solid var(--color-frozen);
+        }
+        .tuple-tag {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+        .tuple-tag.live { background-color: rgba(16, 185, 129, 0.2); color: var(--color-live); }
+        .tuple-tag.dead { background-color: rgba(239, 68, 68, 0.2); color: var(--color-dead); }
+        .tuple-tag.frozen { background-color: rgba(245, 158, 11, 0.2); color: var(--color-frozen); }
+        
+        .tuple-details {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        .tuple-val {
+            font-weight: 700;
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Lab 2 Styling */
+        .ssi-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 1.5rem;
+        }
+        .ssi-actions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 350px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            border-radius: 6px;
+            background-color: #0f172a;
+        }
+        .ssi-action-item {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.6rem;
+            background-color: #1e293b;
+            border-left: 3px solid var(--accent-color);
+            border-radius: 4px;
+        }
+        .graph-area {
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            height: 350px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .svg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .tx-node {
+            position: absolute;
+            background-color: #1e293b;
+            border: 2px solid var(--accent-color);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            z-index: 10;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .tx-node.aborted {
+            border-color: var(--color-dead);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+        .ssi-alert-box {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 6px;
+            background-color: rgba(239, 68, 68, 0.15);
+            border: 1px solid var(--color-dead);
+            display: none;
+            color: #fca5a5;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>PostgreSQL Internals Sandbox</h1>
+        <p>Simulate Heap Page MVCC visibility, Auto-vacuum page sweeping, XID freezing, and SSI predicate lock dependency cycle detection</p>
+    </header>
+
+    <div class="grid-labs">
+        <!-- Lab 1 -->
+        <div class="lab-panel">
+            <h2 class="lab-title">Lab 1: Heap Page MVCC & Auto-Vacuum</h2>
+            <p class="lab-description">
+                Add new records to the Heap page. When updating, the engine deletes the old version and inserts a new version. Read snapshots select tuples based on current XID visibility. Run Auto-vacuum to erase dead versions and freeze old transactions.
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>Current Tx ID</label>
+                    <input type="number" id="cur-xid" class="input-ctrl" value="100" style="width:80px">
+                </div>
+                <div class="input-group">
+                    <label>Insert Key/Val</label>
+                    <input type="text" id="insert-val" class="input-ctrl" placeholder="id,name (e.g. 1,Alice)" style="width:180px">
+                </div>
+                <button class="btn" onclick="insertTuple()">INSERT</button>
+                
+                <div class="input-group" style="margin-left: 1rem">
+                    <label>Update key's Val</label>
+                    <input type="text" id="update-val" class="input-ctrl" placeholder="id,new_name (e.g. 1,Bob)" style="width:180px">
+                </div>
+                <button class="btn btn-secondary" onclick="updateTuple()">UPDATE</button>
+
+                <button class="btn" onclick="runVacuum()" style="background-color: var(--color-frozen); margin-left: auto">RUN AUTO-VACUUM</button>
+            </div>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>Read Snapshot XID</label>
+                    <input type="number" id="read-snapshot" class="input-ctrl" value="100" style="width:80px" oninput="applySnapshotVisibility()">
+                </div>
+                <span id="snapshot-info" style="font-size: 0.9rem; color: #94a3b8"></span>
+            </div>
+
+            <div class="heap-container">
+                <div class="heap-header">
+                    <span>HEAP PAGE (8KB block boundary)</span>
+                    <span id="heap-meta">Page Header: Free Space = 8092 Bytes | Visibility Map = [All visible: No]</span>
+                </div>
+                <div class="page-slots" id="item-pointers">
+                    <!-- Page pointers will render here -->
+                </div>
+                <div class="tuples-list" id="heap-tuples">
+                    <!-- Tuples will render here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Lab 2 -->
+        <div class="lab-panel">
+            <h2 class="lab-title">Lab 2: SSI Serializable Anti-Dependency Cycle Detector</h2>
+            <p class="lab-description">
+                Serializable Snapshot Isolation (SSI) tracks read-write anti-dependencies (where transaction A reads data that transaction B subsequently writes). If a cycle of anti-dependencies is detected (e.g., T1 -> T2 -> T3 -> T1), a transaction must abort to prevent write skew.
+            </p>
+
+            <div class="controls-row">
+                <button class="btn" onclick="addTx()">Create Transaction (T_n)</button>
+                
+                <div class="input-group" style="margin-left:1rem">
+                    <label>Tx Source</label>
+                    <select id="ssi-source" class="input-ctrl"></select>
+                </div>
+                <div class="input-group">
+                    <label>Action Type</label>
+                    <select id="ssi-type" class="input-ctrl">
+                        <option value="READ">READS data on</option>
+                        <option value="WRITE">WRITES data on</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Target Object</label>
+                    <input type="text" id="ssi-obj" class="input-ctrl" value="TableA" style="width:100px">
+                </div>
+                <button class="btn btn-secondary" onclick="addAction()">Execute Operation</button>
+                <button class="btn" onclick="resetSSI()" style="background-color: var(--color-dead); margin-left: auto">RESET ALL</button>
+            </div>
+
+            <div class="ssi-alert-box" id="ssi-alert"></div>
+
+            <div class="ssi-container">
+                <div>
+                    <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; color: #94a3b8">Active Operations Stream:</h4>
+                    <div class="ssi-actions-list" id="ssi-actions">
+                        <!-- Actions will render here -->
+                    </div>
+                </div>
+                <div>
+                    <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; color: #94a3b8">SSI Virtual Dependency Graph:</h4>
+                    <div class="graph-area" id="ssi-graph">
+                        <svg class="svg-canvas" id="svg-canvas"></svg>
+                        <!-- Node elements will render here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Lab 1 Data
+        let tuples = [];
+        let curXidInput = document.getElementById('cur-xid');
+        let oldestXid = 50; // for vacuum purge limit
+
+        function insertTuple() {
+            let val = document.getElementById('insert-val').value;
+            if(!val) return alert("Please input: id,val");
+            let parts = val.split(',');
+            if(parts.length < 2) return alert("Format: id,val (e.g. 1,Alice)");
+            let id = parts[0].trim();
+            let value = parts[1].trim();
+            
+            let xmin = parseInt(curXidInput.value);
+            tuples.push({
+                idx: tuples.length,
+                id: id,
+                val: value,
+                xmin: xmin,
+                xmax: 0,
+                status: 'live' // live, dead, frozen
+            });
+            updateHeapUI();
+        }
+
+        function updateTuple() {
+            let val = document.getElementById('update-val').value;
+            if(!val) return alert("Please input: id,val");
+            let parts = val.split(',');
+            if(parts.length < 2) return alert("Format: id,new_val (e.g. 1,Bob)");
+            let id = parts[0].trim();
+            let newVal = parts[1].trim();
+            
+            let curXid = parseInt(curXidInput.value);
+            
+            // Find current live tuple with this ID
+            let found = false;
+            for(let i = 0; i < tuples.length; i++) {
+                if(tuples[i].id === id && tuples[i].xmax === 0 && tuples[i].status !== 'dead') {
+                    // Mark old tuple as deleted by curXid
+                    tuples[i].xmax = curXid;
+                    found = true;
+                    break;
+                }
+            }
+            
+            if(!found) {
+                alert("No active tuple found with ID " + id);
+                return;
+            }
+
+            // Insert new version
+            tuples.push({
+                idx: tuples.length,
+                id: id,
+                val: newVal,
+                xmin: curXid,
+                xmax: 0,
+                status: 'live'
+            });
+            updateHeapUI();
+        }
+
+        function runVacuum() {
+            let curXid = parseInt(curXidInput.value);
+            let limit = curXid - 10; // purge dead versions older than curXid - 10
+            let freezeLimit = limit - 50; // freeze version older than curXid - 50
+
+            let deletedCount = 0;
+            let frozenCount = 0;
+
+            tuples.forEach(t => {
+                // If it is deleted and the transaction that deleted it has committed (xmax < limit)
+                if(t.xmax > 0 && t.xmax < limit && t.status !== 'dead') {
+                    t.status = 'dead';
+                    deletedCount++;
+                }
+                // If it is live (xmax=0) and the inserting transaction is very old (xmin < freezeLimit)
+                if(t.xmax === 0 && t.xmin < freezeLimit && t.status === 'live') {
+                    t.xmin = 2; // Frozen
+                    t.status = 'frozen';
+                    frozenCount++;
+                }
+            });
+
+            updateHeapUI();
+            alert(`Auto-vacuum Completed!\n- Reclaimed Dead Tuples: ${deletedCount}\n- Frozen Transactions: ${frozenCount}`);
+        }
+
+        function applySnapshotVisibility() {
+            let snapshotXid = parseInt(document.getElementById('read-snapshot').value);
+            document.getElementById('snapshot-info').innerText = `Snapshot read at XID = ${snapshotXid}`;
+            
+            let boxes = document.querySelectorAll('.tuple-box');
+            boxes.forEach(box => {
+                let idx = parseInt(box.getAttribute('data-idx'));
+                let t = tuples[idx];
+                
+                // MVCC Visibility rules:
+                // 1. Invisible if inserting transaction is future (xmin > snapshotXid)
+                // 2. Visible if inserting transaction is past (xmin <= snapshotXid) AND (xmax is 0 OR deleting transaction is future/xmax > snapshotXid)
+                // 3. Invisible if deleted in the past (xmax > 0 && xmax <= snapshotXid)
+                let isVisible = false;
+                if (t.xmin <= snapshotXid) {
+                    if (t.xmax === 0 || t.xmax > snapshotXid) {
+                        isVisible = true;
+                    }
+                }
+                
+                if(t.status === 'dead') {
+                    isVisible = false;
+                }
+
+                if(isVisible) {
+                    box.style.border = "2px solid #3b82f6";
+                    box.style.opacity = "1";
+                } else {
+                    box.style.border = "1px solid var(--border-color)";
+                    box.style.opacity = "0.2";
+                }
+            });
+        }
+
+        function updateHeapUI() {
+            const list = document.getElementById('heap-tuples');
+            const slots = document.getElementById('item-pointers');
+            list.innerHTML = '';
+            slots.innerHTML = '';
+
+            let freeSpace = 8092 - (tuples.length * 4) - (tuples.filter(t=>t.status!=='dead').length * 40);
+            document.getElementById('heap-meta').innerText = `Page Header: Free Space = ${freeSpace} Bytes | Item Count = ${tuples.length}`;
+
+            tuples.forEach((t, i) => {
+                // Item pointer slot
+                const slot = document.createElement('div');
+                slot.className = 'slot-badge';
+                slot.innerText = `Ptr[${i}]`;
+                slot.style.borderColor = t.status === 'dead' ? 'var(--color-dead)' : (t.status === 'frozen' ? 'var(--color-frozen)' : 'var(--color-live)');
+                slots.appendChild(slot);
+
+                // Tuple payload box
+                const box = document.createElement('div');
+                box.className = `tuple-box ${t.status}`;
+                box.setAttribute('data-idx', i);
+                box.innerHTML = `
+                    <div class="tuple-tag ${t.status}">${t.status}</div>
+                    <div class="tuple-val">(${t.id}, '${t.val}')</div>
+                    <div class="tuple-details">
+                        xmin: ${t.xmin === 2 ? '2 (Frozen)' : t.xmin}<br>
+                        xmax: ${t.xmax === 0 ? '0 (active)' : t.xmax}<br>
+                        Physical Offset: Page_End - ${(i+1)*40}B
+                    </div>
+                `;
+                list.appendChild(box);
+            });
+
+            applySnapshotVisibility();
+        }
+
+        // Lab 2 SSI Data
+        let transactions = [];
+        let actions = [];
+        let ssiCounter = 1;
+
+        function addTx() {
+            let name = `T${ssiCounter++}`;
+            transactions.push({ name: name, status: 'active' });
+            updateSSIDropdowns();
+            drawSSIGraph();
+        }
+
+        function updateSSIDropdowns() {
+            let select = document.getElementById('ssi-source');
+            select.innerHTML = '';
+            transactions.forEach(t => {
+                if(t.status === 'active') {
+                    let opt = document.createElement('option');
+                    opt.value = t.name;
+                    opt.innerText = t.name;
+                    select.appendChild(opt);
+                }
+            });
+        }
+
+        function addAction() {
+            let tx = document.getElementById('ssi-source').value;
+            let type = document.getElementById('ssi-type').value;
+            let obj = document.getElementById('ssi-obj').value.trim();
+            if(!tx || !obj) return alert("Select Transaction and target object first.");
+
+            actions.push({ tx: tx, type: type, obj: obj });
+            
+            const list = document.getElementById('ssi-actions');
+            const item = document.createElement('div');
+            item.className = 'ssi-action-item';
+            item.innerText = `${tx}: ${type} ${obj}`;
+            list.appendChild(item);
+
+            checkSSICycle();
+            drawSSIGraph();
+        }
+
+        function checkSSICycle() {
+            // Under SSI, read-write anti-dependency (rw-antidependency) T1 -> T2
+            // occurs if T1 reads an object, and T2 subsequently writes to it.
+            // Let's extract all active edges in our graph
+            let edges = []; // {from: Tx1, to: Tx2}
+
+            for(let i = 0; i < actions.length; i++) {
+                let a1 = actions[i];
+                if(a1.type === 'READ') {
+                    // Check if there is any write on the same object by a DIFFERENT active transaction
+                    for(let j = 0; j < actions.length; j++) {
+                        let a2 = actions[j];
+                        if(a2.tx !== a1.tx && a2.type === 'WRITE' && a2.obj === a1.obj) {
+                            // Found rw-antidependency edge: a1.tx -> a2.tx
+                            if(!edges.some(e => e.from === a1.tx && e.to === a2.tx)) {
+                                edges.push({ from: a1.tx, to: a2.tx });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Cycle detection (DFS)
+            let adj = {};
+            transactions.forEach(t => { if(t.status === 'active') adj[t.name] = []; });
+            edges.forEach(e => {
+                if(adj[e.from] && adj[e.to]) {
+                    adj[e.from].push(e.to);
+                }
+            });
+
+            let visited = {};
+            let recStack = {};
+            let cycleNodes = [];
+
+            function dfs(node) {
+                visited[node] = true;
+                recStack[node] = true;
+                for(let neighbor of (adj[node] || [])) {
+                    if(!visited[neighbor]) {
+                        if(dfs(neighbor)) return true;
+                    } else if(recStack[neighbor]) {
+                        cycleNodes.push(neighbor);
+                        cycleNodes.push(node);
+                        return true;
+                    }
+                }
+                recStack[node] = false;
+                return false;
+            }
+
+            let hasCycle = false;
+            for(let t of Object.keys(adj)) {
+                if(!visited[t]) {
+                    if(dfs(t)) {
+                        hasCycle = true;
+                        break;
+                    }
+                }
+            }
+
+            const alertBox = document.getElementById('ssi-alert');
+            if(hasCycle) {
+                // SSI anomaly detected, abort the active committing transaction (the one triggering the cycle)
+                let abortTx = actions[actions.length - 1].tx;
+                let txIdx = transactions.findIndex(t => t.name === abortTx);
+                if(txIdx !== -1) {
+                    transactions[txIdx].status = 'aborted';
+                }
+                
+                alertBox.style.display = 'block';
+                alertBox.innerHTML = `<strong>⚠️ SSI Serialization Anomaly Detected!</strong><br>
+                                      Read-Write anti-dependency cycle found involving: ${cycleNodes.join(' ➜ ')}.<br>
+                                      Transaction <strong>${abortTx}</strong> has been aborted to preserve serializability!`;
+                updateSSIDropdowns();
+            } else {
+                alertBox.style.display = 'none';
+            }
+        }
+
+        function drawSSIGraph() {
+            const canvas = document.getElementById('svg-canvas');
+            const container = document.getElementById('ssi-graph');
+            canvas.innerHTML = '';
+
+            // Render active and aborted transaction nodes in a circle
+            const activeTxs = transactions;
+            const count = activeTxs.length;
+            const r = 100;
+            const cx = container.clientWidth / 2;
+            const cy = container.clientHeight / 2;
+
+            // Remove old nodes from container
+            document.querySelectorAll('.tx-node').forEach(n => n.remove());
+
+            let nodePositions = {};
+
+            activeTxs.forEach((t, i) => {
+                const angle = (2 * Math.PI / count) * i - Math.PI/2;
+                const nx = cx + r * Math.cos(angle);
+                const ny = cy + r * Math.sin(angle);
+
+                nodePositions[t.name] = { x: nx, y: ny };
+
+                const nodeEl = document.createElement('div');
+                nodeEl.className = `tx-node ${t.status}`;
+                nodeEl.style.left = `${nx - 30}px`;
+                nodeEl.style.top = `${ny - 30}px`;
+                nodeEl.innerText = t.name;
+                container.appendChild(nodeEl);
+            });
+
+            // Re-render SVG edges
+            let edges = [];
+            for(let i = 0; i < actions.length; i++) {
+                let a1 = actions[i];
+                if(a1.type === 'READ') {
+                    for(let j = 0; j < actions.length; j++) {
+                        let a2 = actions[j];
+                        if(a2.tx !== a1.tx && a2.type === 'WRITE' && a2.obj === a1.obj) {
+                            if(!edges.some(e => e.from === a1.tx && e.to === a2.tx)) {
+                                edges.push({ from: a1.tx, to: a2.tx });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Add SVG markers for arrow heads
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            defs.innerHTML = `
+                <marker id="arrow" viewBox="0 0 10 10" refX="25" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6"/>
+                </marker>
+            `;
+            canvas.appendChild(defs);
+
+            edges.forEach(e => {
+                const p1 = nodePositions[e.from];
+                const p2 = nodePositions[e.to];
+                if(p1 && p2) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', p1.x);
+                    line.setAttribute('y1', p1.y);
+                    line.setAttribute('x2', p2.x);
+                    line.setAttribute('y2', p2.y);
+                    line.setAttribute('stroke', '#3b82f6');
+                    line.setAttribute('stroke-width', '2');
+                    line.setAttribute('marker-end', 'url(#arrow)');
+                    canvas.appendChild(line);
+                }
+            });
+        }
+
+        function resetSSI() {
+            transactions = [];
+            actions = [];
+            ssiCounter = 1;
+            document.getElementById('ssi-actions').innerHTML = '';
+            document.getElementById('ssi-alert').style.display = 'none';
+            addTx(); // Add default transaction
+        }
+
+        window.onload = function() {
+            updateHeapUI();
+            resetSSI();
+        }
+    </script>
+</body>
+</html>

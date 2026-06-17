@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang= + map_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content= + map_desc + >
+    <title>checkcheckzz / awesome-scalability High-Availability & Scalability Architecture Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        .header-title h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #7A8B99, #BFA88F);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-title p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 2rem;
+        }
+        .stat-item {
+            text-align: right;
+        }
+        .stat-val {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #60a5fa;
+            line-height: 1.2;
+        }
+        .stat-lbl {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .filter-btn:hover {
+            border-color: var(--accent-color);
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, border-color 0.2s;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: #3b82f6;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .card-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            color: white;
+        }
+        .card-module {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            line-height: 1.3;
+            margin-bottom: 1rem;
+        }
+        .card-body {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.75rem;
+        }
+        .card-body li {
+            margin-left: 1rem;
+            margin-bottom: 0.4rem;
+            list-style-type: disc;
+        }
+        .card-body code {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #0b0f19;
+            color: #f43f5e;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <h1>checkcheckzz / awesome-scalability Knowledge Map</h1>
+            <p>Scalability principles, stateless services, sharding, replication, CQRS, event sourcing, messaging queues, rate limiting, and big tech case studies.</p>
+        </div>
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-val">28</div>
+                <div class="stat-lbl">Core Cards</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val">6</div>
+                <div class="stat-lbl">Category Modules</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val">L0-L2</div>
+                <div class="stat-lbl">3-Level Knowledge</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="filter-controls">
+        <button class="filter-btn active" data-mod="all">All Cards</button>
+        <button class="filter-btn" data-mod="M1" style="border-left: 4px solid var(--slate-blue)">M1: Principles</button>
+        <button class="filter-btn" data-mod="M2" style="border-left: 4px solid var(--moss-green)">M2: Partitioning</button>
+        <button class="filter-btn" data-mod="M3" style="border-left: 4px solid var(--plum-rose)">M3: CQRS</button>
+        <button class="filter-btn" data-mod="M4" style="border-left: 4px solid var(--terracotta)">M4: Messaging</button>
+        <button class="filter-btn" data-mod="M5" style="border-left: 4px solid var(--indigo)">M5: Resilience</button>
+        <button class="filter-btn" data-mod="M6" style="border-left: 4px solid var(--antique-gold)">M6: Cases</button>
+    </div>
+
+    <main class="cards-grid">
+
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.1</span>
+                <span class="card-module">Scalability Principles & Patterns</span>
+            </div>
+            <h3 class="card-title">Vertical Scaling (Scale-up) vs. Horizontal Scaling (Scale-out) Physical Limits</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Scale-up upgrades single-server hardware (e.g., 128-core CPU, 2TB RAM) to increase throughput, bound by Moore's Law and bus bandwidth limits with non-linear costs. Scale-out builds shared-nothing clusters using commodity servers, distributing traffic via consistent hashing or hash slots.</li><li>  <strong>Application Strategy</strong>: Use scale-up in early stages for quick optimization, and transition to scale-out shared-nothing architectures when database write limit or high availability requirements hit threshold.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.2</span>
+                <span class="card-module">Scalability Principles & Patterns</span>
+            </div>
+            <h3 class="card-title">Stateless Services Shared-nothing Design and Session Externalization</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Application nodes are forced to store no client context (e.g., HTTP Session). Session state is offloaded to Redis clusters or database, and clients carry self-contained JWT tokens. L7 load balancers (Nginx/LVS) route requests round-robin, allowing arbitrary node scaling.</li><li>  <strong>Application Strategy</strong>: Decoupling compute logic from data state is the fundamental prerequisite for microservices to perform sub-second Horizontal Pod Autoscaling (HPA).</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.3</span>
+                <span class="card-module">Scalability Principles & Patterns</span>
+            </div>
+            <h3 class="card-title">Shared-Nothing Architecture Isolation and Scalability in Distributed Compute</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: In a Shared-Nothing architecture, each node possesses its own CPU, memory, and disk. Nodes communicate solely through high-speed networks, eliminating global locking bottlenecks and single points of contention.</li><li>  <strong>Application Strategy</strong>: Modern distributed databases (e.g., Cassandra, ClickHouse Cluster) apply this model to achieve near-linear throughput scaling curves.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.4</span>
+                <span class="card-module">Scalability Principles & Patterns</span>
+            </div>
+            <h3 class="card-title">Edge Computing & CDN Dynamic/Static Content Geolocation Routing</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Static resources (HTML, CSS, images) are cached at edge nodes, using Anycast IP and GeoDNS to route requests to the nearest edge. For dynamic data, edge compute workers (e.g., Cloudflare Workers) intercept requests for pre-auth and cache checking.</li><li>  <strong>Application Strategy</strong>: At least 80% of read-only requests should be served at the edge layer under global high-traffic scenarios to protect the primary data center.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.1</span>
+                <span class="card-module">Database Partitioning & Routing</span>
+            </div>
+            <h3 class="card-title">Read/Write Separation Replication Lag and "Read-Your-Own-Writes" Strategy</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Write transactions execute on Master while reads are routed to Slaves using binary log replication. Under high write loads, replication lag can reach seconds, causing clients to read stale data on Slaves immediately after a write.</li><li>  <strong>Application Strategy</strong>: Enforce master routing for critical operations (e.g., reading order details right after checkout), or tag writes with timestamps (TSO) to delay Slave reads until Slave catches up.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.2</span>
+                <span class="card-module">Database Partitioning & Routing</span>
+            </div>
+            <h3 class="card-title">Horizontal Sharding and Shard Key Selection Pitfalls</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Sharding splits a table horizontally across multiple databases. The Shard Key determines routing. A poor Shard Key (e.g., partitioning by tenant ID when one tenant owns 90% of data) causes severe data skew and hot spot nodes.</li><li>  <strong>Application Strategy</strong>: Choose shard keys with high cardinality and even distribution (e.g., <code>user_id</code>), and implement virtual buckets to distribute extreme peaks.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.3</span>
+                <span class="card-module">Database Partitioning & Routing</span>
+            </div>
+            <h3 class="card-title">Eliminating Distributed Cross-Shard JOINs: Denormalization vs. Application-level Joins</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: JOIN operations across physical databases are impossible post-sharding. Resolution paths: 1) Denormalization: store redundant usernames directly in order table; 2) Application-level joins: middleware queries sub-tables and merges results via Hash Join in RAM.</li><li>  <strong>Application Strategy</strong>: Prohibit cross-database JOINs in core OLTP databases, offloading complex multi-dimensional search to Elasticsearch.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.4</span>
+                <span class="card-module">Database Partitioning & Routing</span>
+            </div>
+            <h3 class="card-title">Distributed Global Primary Key: Snowflake Clock Drift Resolution</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Snowflake generates 64-bit unique IDs (Timestamp + Machine ID + Sequence). Since it relies on system time, NTP clock rollback causes ID collision.</li><li>  <strong>Application Strategy</strong>: Capture time offsets. In case of minor drifts, spin-wait; for major rollbacks, reject writes or fallback to a backup machine ID or Raft-backed coordinator.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.5</span>
+                <span class="card-module">Database Partitioning & Routing</span>
+            </div>
+            <h3 class="card-title">Multi-Region Active-Active Database Replication and Conflict Resolution</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Under active-active multi-region writes, dual-replication suffers from network latency, causing conflicts. Resolution algorithms: Last-Write-Wins (LWW, synchronized clocks), Vector Clocks (causal history tracking), or CRDTs.</li><li>  <strong>Application Strategy</strong>: Minimize concurrent modifications on the same entity. Route transactions cell-based (Cell-based Routing) so that a user's write is locked to a single data center.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.1</span>
+                <span class="card-module">Event-Driven & CQRS</span>
+            </div>
+            <h3 class="card-title">CQRS Read/Write Model Physical Isolation and Eventual Consistency Window</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: The Command side enforces transactions and validation rules; the Query side is customized for page views. They use separate databases, with Commands writing to Event Store, which publishes domain events to asynchronously project read-optimized structures.</li><li>  <strong>Application Strategy</strong>: Ideal for systems with highly skewed read-to-write ratios (e.g., 100:1) and dynamic read views, accepting a brief eventual consistency delay.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.2</span>
+                <span class="card-module">Event-Driven & CQRS</span>
+            </div>
+            <h3 class="card-title">Event Sourcing Log-Structured Append-only Event Streams and State Rebuild Replays</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: State changes are persisted as an append-only stream of event logs. Current state is reconstructed by replaying all historical events from baseline. Snapshots are taken periodically to optimize initialization time.</li><li>  <strong>Application Strategy</strong>: Provides built-in audit trails and time-travel debugging, matching the requirements of financial transactions and DDD.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.3</span>
+                <span class="card-module">Event-Driven & CQRS</span>
+            </div>
+            <h3 class="card-title">Event-Driven Architecture (EDA) Publish-Subscribe Model and Microservice Decoupling</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Microservices interact asynchronously via Event Bus rather than blocking HTTP/RPC calls. Upstream publishers broadcast events without knowledge of consumers; downstream services subscribe independently.</li><li>  <strong>Application Strategy</strong>: Reduces compile-time and runtime topology dependencies, preventing single-service outages from propagating, thus maximizing system scalability.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.4</span>
+                <span class="card-module">Event-Driven & CQRS</span>
+            </div>
+            <h3 class="card-title">Domain-Driven Design (DDD) Bounded Context Boundaries and Event Storming</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Subdivides complex systems into autonomous Bounded Contexts where domain models remain consistent. Bounded contexts are identified during "Event Storming" workshops, mapping commands and domain events to microservice boundaries.</li><li>  <strong>Application Strategy</strong>: Prevents microservices from devolving into a "distributed monolith" caused by split-by-table schemas, ensuring high cohesion.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.1</span>
+                <span class="card-module">Asynchronous Messaging & Queues</span>
+            </div>
+            <h3 class="card-title">Message Queues Peak Shaving and Traffic Shaping in High-concurrency Bursts</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Sudden spikes of incoming requests are transformed into events at the gateway layer and written directly to high-throughput message queue partitions (e.g., Kafka). Downstream consumers pull events at a steady, manageable rate, protecting databases.</li><li>  <strong>Application Strategy</strong>: Traded instantaneous response times for system durability by buffer-storing peak traffic.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.2</span>
+                <span class="card-module">Asynchronous Messaging & Queues</span>
+            </div>
+            <h3 class="card-title">At-most-once, At-least-once, and Exactly-once Semantics and Transactional Messaging</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: At-most-once (no retries, loss allowed); At-least-once (retries and ACKs, no loss but duplicates allowed); Exactly-once (At-least-once + idempotent consumers or two-phase transactional message commits).</li><li>  <strong>Application Strategy</strong>: Standardize on At-least-once delivery due to lower performance overhead, relying on consumer-side idempotency to simulate exactly-once.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.3</span>
+                <span class="card-module">Asynchronous Messaging & Queues</span>
+            </div>
+            <h3 class="card-title">Consumer Idempotency: Unique Message IDs, Redis SETNX, and DB Constraints</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: The publisher attaches a unique <code>message_id</code> to each message. The consumer acquires a lock in Redis via <code>SETNX</code> or inserts the ID into a de-duplication table before executing business logic. If it fails, the message is ignored and ACKed.</li><li>  <strong>Application Strategy</strong>: Critical safety guard for payment processing, billing, and inventory reduction to prevent double-charging due to network retries.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.4</span>
+                <span class="card-module">Asynchronous Messaging & Queues</span>
+            </div>
+            <h3 class="card-title">Queue Congestion Backpressure and Dynamic Producer Velocity Control</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: When downstream consumer latency rises, queue managers throttle TCP receive windows or issue pause commands to upstream producers, blocking write calls or throwing overflow exceptions.</li><li>  <strong>Application Strategy</strong>: Avoids out-of-memory crashes on queue brokers during consumer blockages by pushing pressure back to ingestion points.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.5</span>
+                <span class="card-module">Asynchronous Messaging & Queues</span>
+            </div>
+            <h3 class="card-title">Dead Letter Queue (DLQ) Message Redelivery Thresholds and Fault Isolation</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: When a message repeatedly fails processing or hits retry thresholds (e.g., 16 retries), it is automatically redirected to a Dead Letter Queue (DLQ) to prevent malformed payloads from blocking the partition processing pipeline.</li><li>  <strong>Application Strategy</strong>: Set high-priority alerts on DLQ size; an increasing DLQ intake rate typically reveals upstream schema contract violations.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.1</span>
+                <span class="card-module">Resilience & Service Mesh</span>
+            </div>
+            <h3 class="card-title">Circuit Breaker Three-state State Machine, Sliding Windows, and Cool-down</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Tracks downstream invocation error rate.</li><li>  <strong>Closed</strong>: Normal routing.</li><li>  <strong>Open</strong>: Triggers if failure rate exceeds threshold, instantly intercepting requests with local fallback.</li><li>  <strong>Half-Open</strong>: Activates after a cool-down delay, routing probe traffic. Reverts to Closed on success, or Open on failure.</li><li>  <strong>Application Strategy</strong>: Essential fault-isolation mechanism. Enable circuit breakers for non-critical downstream dependencies (e.g., user recommendations) to fail fast.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.2</span>
+                <span class="card-module">Resilience & Service Mesh</span>
+            </div>
+            <h3 class="card-title">Token Bucket vs. Leaky Bucket Rate Limiting Algorithms for Burst Traffic</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Leaky Bucket processes requests at a constant, fixed rate, smoothing traffic but causing queues and rejecting bursts. Token Bucket adds tokens at a fixed rate, allowing requests to consume accumulated tokens instantly to support bursts.</li><li>  <strong>Application Strategy</strong>: Use Token Bucket at API gateways to allow bursty user actions, and Leaky Bucket for rate-limiting calls to sensitive third-party APIs.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.3</span>
+                <span class="card-module">Resilience & Service Mesh</span>
+            </div>
+            <h3 class="card-title">Bulkhead Pattern Thread Pool Isolation, Semaphore Limiters, and Cascading Outages</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Inspired by Titanic's watertight bulkheads. Sharing a single global thread pool across all microservice calls allows a single slow downstream service to exhaust the entire thread pool. Bulkheads allocate isolated thread pools or semaphores for each service.</li><li>  <strong>Application Strategy</strong>: Industry-standard pattern (e.g., Hystrix/Resilience4j). Ensures that a degraded external dependency does not exhaust resources for healthy services.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.4</span>
+                <span class="card-module">Resilience & Service Mesh</span>
+            </div>
+            <h3 class="card-title">Service Mesh Sidecar Pattern, Control Plane, and Data Plane Decoupling</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Decouples network routing, mTLS, circuit breaking, and telemetry from application code into a dedicated Sidecar proxy process (e.g., Envoy) running alongside the service. A central control plane (e.g., Istio) distributes configurations.</li><li>  <strong>Application Strategy</strong>: Standardizes platform-wide traffic management and security policies, removing library dependency locking in multi-language environments.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.5</span>
+                <span class="card-module">Resilience & Service Mesh</span>
+            </div>
+            <h3 class="card-title">Timeout Budgets and Exponential Backoff with Jitter for Anti-Thundering Herd</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Retries must expand backoff intervals exponentially (e.g., 1s, 2s, 4s, 8s...) and inject a randomized "Jitter" delay to prevent clients from synchronized thundering herd spikes.</li><li>  <strong>Application Strategy</strong>: Enforce randomized jitter across all retry attempts in distributed clients to protect recovering servers from collapse.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.1</span>
+                <span class="card-module">Big Tech Case Studies</span>
+            </div>
+            <h3 class="card-title">Netflix Chaos Engineering Chaos Monkey Fault Injection and System Immunity</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: The philosophy of proactively injecting failures into production environment to verify resilience. Chaos Monkey shuts down virtual machine instances or injects latency during business hours, checking if systems self-heal.</li><li>  <strong>Application Strategy</strong>: Uncovers hidden architectural vulnerabilities that would normally go unnoticed until peak traffic events, driving engineers to implement robust failovers.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.2</span>
+                <span class="card-module">Big Tech Case Studies</span>
+            </div>
+            <h3 class="card-title">Twitter Timeline Push vs. Pull Write-diffusion Trade-offs</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Resolves high-concurrency read/write scaling:</li><li>  <strong>Pull (Read Diffusion)</strong>: Writes go to the author's outbox only; followers merge outboxes at query time. High read latency.</li><li>  <strong>Push (Write Diffusion)</strong>: Writes fanout asynchronously to all followers' home timelines. Low read latency, but celebrity tweets trigger write storms. Use hybrid push/pull based on follower count.</li><li>  <strong>Application Strategy</strong>: Hybrid fanout routing is mandatory for massive social graphs where follower distributions exhibit power-law curves.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.3</span>
+                <span class="card-module">Big Tech Case Studies</span>
+            </div>
+            <h3 class="card-title">Amazon Dynamo Masterless Replication, Vector Clocks, and Read/Write Quorums</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: The foundational paper for decentralized AP databases. Features masterless architecture with vector clocks to track update causality and resolve conflicts. Consistency is governed by Quorum parameters: $N$ (replicas), $R$ (read nodes), $W$ (write nodes). If $R + W > N$, strong read consistency is guaranteed.</li><li>  <strong>Application Strategy</strong>: Match globally distributed write-heavy systems (e.g., shopping carts) that require absolute availability, tuning Quorums to trade speed for consistency.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.4</span>
+                <span class="card-module">Big Tech Case Studies</span>
+            </div>
+            <h3 class="card-title">Google Spanner Atomic Clocks + GPS TrueTime API for Global Serializable Transactions</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Achieves global serializable transactions by implementing TrueTime API, utilizing GPS receivers and atomic clocks in each data center. TrueTime guarantees a bounded clock error window $[t.\text{earliest}, t.\text{latest}]$ (typically <7ms), allowingMVCC serializability via Commit Wait.</li><li>  <strong>Application Strategy</strong>: The state-of-the-art solution for globally distributed RDBMS, solving the long-standing distributed transaction consistency-latency dilemma.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.5</span>
+                <span class="card-module">Big Tech Case Studies</span>
+            </div>
+            <h3 class="card-title">Uber Saga Pattern for Distributed Saga Orchestrator and Compensation</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: In long-running microservice transactions where 2PC is too expensive, Saga splits the transaction into local steps $T_1, T_2, \dots, T_n$. If step $T_k$ fails, a central Orchestrator triggers compensating actions $C_{k-1}, \dots, C_1$ in reverse order to rollback state.</li><li>  <strong>Application Strategy</strong>: Apply to multi-stage asynchronous workflows (e.g., booking-charging-matching rides) to avoid locking physical database rows.</li>
+            </div>
+        </div>
+        
+    </main>
+
+    <script>
+        const buttons = document.querySelectorAll('.filter-btn');
+        const cards = document.querySelectorAll('.card');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const targetMod = btn.getAttribute('data-mod');
+                cards.forEach(card => {
+                    if (targetMod === 'all' || card.getAttribute('data-module') === targetMod) {
+                        card.style.display = 'flex';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

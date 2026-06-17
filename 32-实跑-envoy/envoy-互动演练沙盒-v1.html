@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang= + sb_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content= + sb_desc + >
+    <title>Envoy Proxy 核心仿真实验室：三级过滤器链路转发与 xDS 动态配置零停机热重启</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b111e;
+            --panel-bg: #152035;
+            --border-color: #24355a;
+            --text-color: #e2e8f0;
+            --text-muted: #64748b;
+            --accent-color: #3b82f6;
+            --color-hit: #10b981;
+            --color-miss: #ef4444;
+            --color-boost: #f59e0b;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            line-height: 1.4;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .grid-labs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 1024px) {
+            .grid-labs {
+                grid-template-columns: 1fr;
+            }
+        }
+        .lab-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .lab-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: #60a5fa;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+        .lab-description {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .input-group label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .input-ctrl {
+            background-color: #0b111e;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.5rem 0.8rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn:hover {
+            background-color: #2563eb;
+        }
+        .btn-secondary {
+            background-color: #475569;
+        }
+        .btn-secondary:hover {
+            background-color: #334155;
+        }
+        
+        /* Filter chain graphics */
+        .pipeline-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            padding: 1.5rem 1rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        .pipeline-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        .filters-flow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .filter-node {
+            flex: 1;
+            min-width: 80px;
+            height: 50px;
+            border: 1px solid var(--border-color);
+            background-color: #1e293b;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.7rem;
+            font-weight: bold;
+            position: relative;
+            text-align: center;
+            padding: 0.25rem;
+            transition: all 0.3s ease;
+        }
+        .filter-node.active-pass {
+            border-color: #10b981;
+            background-color: rgba(16, 185, 129, 0.25);
+            color: #34d399;
+        }
+        .filter-node.active-fail {
+            border-color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.25);
+            color: #f87171;
+        }
+        .arrow-flow {
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+        
+        /* Process restart graphics */
+        .restart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .proc-box {
+            border: 1px solid var(--border-color);
+            background-color: #0b111e;
+            border-radius: 8px;
+            padding: 1rem;
+            position: relative;
+        }
+        .proc-header {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #60a5fa;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 0.25rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .proc-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+        }
+        .status-running {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+        .status-draining {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+        .status-stopped {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+        .proc-stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+            color: #cbd5e1;
+        }
+        
+        .timeline-graph-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .chart-timeline {
+            height: 120px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            border-left: 2px solid var(--border-color);
+            border-bottom: 2px solid var(--border-color);
+            position: relative;
+        }
+        .timeline-bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            justify-content: flex-end;
+        }
+        .t-bar {
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .t-bar.parent {
+            background-color: #f59e0b;
+        }
+        .t-bar.child {
+            background-color: #10b981;
+        }
+        
+        .log-terminal {
+            background-color: #05070f;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            height: 170px;
+            overflow-y: auto;
+        }
+        .buddy-log {
+            color: #34d399;
+        }
+        .slub-log {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Envoy Proxy 架构核心仿真实验室</h1>
+        <p>交互式拖拽组装 HTTP 过滤器链执行头部阻断与后端负载分发，并动态模拟 xDS 动态配置订阅与平滑耗尽连接的优雅热重启状态机</p>
+    </header>
+
+    <div class="grid-labs">
+        <!-- Lab 1: Filter Chain -->
+        <div class="lab-panel">
+            <h2 class="lab-title">实验一：Envoy 三级过滤器链与 HTTP 路由管线</h2>
+            <p class="lab-description">
+                配置下游 HTTP 请求，自定义 Host、Path 路径以及 Authorization 鉴权标头，点击“SEND REQUEST”发送请求，单步观察请求如何在 Listener SNI 探测、TLS 解密、HTTP 过滤器链及集群路由中流转。
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>SNI Host</label>
+                    <input type="text" id="req-sni" class="input-ctrl" value="api.example.com" style="width:130px">
+                </div>
+                <div class="input-group">
+                    <label>Path</label>
+                    <input type="text" id="req-path" class="input-ctrl" value="/v1/users" style="width:100px">
+                </div>
+                <div class="input-group">
+                    <label>Authorization Header</label>
+                    <input type="text" id="req-auth" class="input-ctrl" value="Bearer secret123" style="width:130px">
+                </div>
+                <button class="btn" onclick="sendReqPipeline()" style="margin-top: auto">SEND REQUEST</button>
+            </div>
+
+            <div class="pipeline-container">
+                <div class="pipeline-title">Envoy L4/L7 Filter Chains Pipeline</div>
+                <div class="filters-flow">
+                    <div class="filter-node" id="node-sni">SNI<br><span style="font-size:0.6rem; color:#94a3b8">tls_inspector</span></div>
+                    <div class="arrow-flow">➜</div>
+                    <div class="filter-node" id="node-tls">TLS<br><span style="font-size:0.6rem; color:#94a3b8">ssl_socket</span></div>
+                    <div class="arrow-flow">➜</div>
+                    <div class="filter-node" id="node-auth">Auth<br><span style="font-size:0.6rem; color:#94a3b8">jwt_auth</span></div>
+                    <div class="arrow-flow">➜</div>
+                    <div class="filter-node" id="node-ratelimit">Limit<br><span style="font-size:0.6rem; color:#94a3b8">local_rate</span></div>
+                    <div class="arrow-flow">➜</div>
+                    <div class="filter-node" id="node-router">Router<br><span style="font-size:0.6rem; color:#94a3b8">route_match</span></div>
+                </div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">网络请求处理链条执行日志</h4>
+            <div class="log-terminal buddy-log" id="pipe-log-term">
+                -- Listener active. Ready to receive Downstream connections. --
+            </div>
+        </div>
+
+        <!-- Lab 2: Dynamic config & hot restart -->
+        <div class="lab-panel">
+            <h2 class="lab-title">实验二：控制面 xDS 动态配置同步与优雅热重启</h2>
+            <p class="lab-description">
+                点击“DYNAMIC XDS UPDATE”执行零停机动态配置，修改内存集群拓扑。点击“TRIGGER HOT RESTART”启动 Envoy 热重启，体验子父进程文件描述符（FD）传递与连接优雅耗尽迁移。
+            </p>
+
+            <div class="controls-row">
+                <button class="btn" onclick="triggerXdsUpdate()">DYNAMIC XDS UPDATE</button>
+                <button class="btn btn-secondary" onclick="triggerHotRestart()">TRIGGER HOT RESTART</button>
+            </div>
+
+            <!-- Processes grid -->
+            <div class="restart-grid">
+                <div class="proc-box">
+                    <div class="proc-header">
+                        <span>Envoy (Parent)</span>
+                        <span class="proc-status status-running" id="parent-status">RUNNING</span>
+                    </div>
+                    <div class="proc-stat-row">
+                        <span>PID</span>
+                        <span id="parent-pid" style="font-family:monospace">1024</span>
+                    </div>
+                    <div class="proc-stat-row">
+                        <span>Active Connections</span>
+                        <span id="parent-conns" style="font-family:monospace">250</span>
+                    </div>
+                    <div class="proc-stat-row">
+                        <span>Draining Status</span>
+                        <span id="parent-drain" style="color:#fbbf24">FALSE</span>
+                    </div>
+                </div>
+
+                <div class="proc-box">
+                    <div class="proc-header">
+                        <span>Envoy (Child)</span>
+                        <span class="proc-status status-stopped" id="child-status">STOPPED</span>
+                    </div>
+                    <div class="proc-stat-row">
+                        <span>PID</span>
+                        <span id="child-pid" style="font-family:monospace">--</span>
+                    </div>
+                    <div class="proc-stat-row">
+                        <span>Active Connections</span>
+                        <span id="child-conns" style="font-family:monospace">0</span>
+                    </div>
+                    <div class="proc-stat-row">
+                        <span>xDS Config Version</span>
+                        <span id="child-version" style="color:#34d399">v1</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-graph-container">
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem">双进程并发连接优雅耗尽迁移曲线</div>
+                <div class="chart-timeline" id="restart-timeline-chart">
+                    <!-- Dynamic timeline bars -->
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.65rem; color:var(--text-muted); margin-top:0.25rem">
+                    <span>Hot Restart Start</span>
+                    <span>Draining Period</span>
+                    <span>Complete</span>
+                </div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">xDS 动态管理与热重启控制日志</h4>
+            <div class="log-terminal slub-log" id="restart-log-term">
+                -- Admin Server listening on http://127.0.0.1:9901 --
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Lab 1: Filter Chain Pipeline State
+        // ==========================================
+        const pipeLog = document.getElementById('pipe-log-term');
+        function logPipe(msg) {
+            pipeLog.innerHTML += `<div>[Pipeline] ${msg}</div>`;
+            pipeLog.scrollTop = pipeLog.scrollHeight;
+        }
+
+        let rateLimitCounter = 0; // limit 3 requests per rate
+
+        function sendReqPipeline() {
+            const sni = document.getElementById('req-sni').value.trim();
+            const path = document.getElementById('req-path').value.trim();
+            const auth = document.getElementById('req-auth').value.trim();
+
+            // Reset active states
+            const nodes = ['node-sni', 'node-tls', 'node-auth', 'node-ratelimit', 'node-router'];
+            nodes.forEach(n => {
+                document.getElementById(n).className = 'filter-node';
+            });
+
+            logPipe(`Incoming Downstream Connection established...`);
+
+            // Step 1: SNI Filter
+            setTimeout(() => {
+                const el = document.getElementById('node-sni');
+                if (sni === "api.example.com") {
+                    el.classList.add('active-pass');
+                    logPipe(`SNI Filter: Original DST matched api.example.com. ClientHello matched certificates.`);
+                    
+                    // Step 2: TLS Inspector
+                    setTimeout(() => {
+                        const elTls = document.getElementById('node-tls');
+                        elTls.classList.add('active-pass');
+                        logPipe(`TLS network filter: ssl_socket handshake success. Decrypting payloads...`);
+
+                        // Step 3: Auth Filter
+                        setTimeout(() => {
+                            const elAuth = document.getElementById('node-auth');
+                            if (auth === "Bearer secret123") {
+                                elAuth.classList.add('active-pass');
+                                logPipe(`HTTP JWT Auth filter: token signature check success. User context set.`);
+
+                                // Step 4: Rate Limit
+                                setTimeout(() => {
+                                    const elLim = document.getElementById('node-ratelimit');
+                                    rateLimitCounter++;
+                                    if (rateLimitCounter <= 3) {
+                                        elLim.classList.add('active-pass');
+                                        logPipe(`HTTP Local Rate Limit: token bucket pass (${rateLimitCounter}/3).`);
+
+                                        // Step 5: Router
+                                        setTimeout(() => {
+                                            const elRoute = document.getElementById('node-router');
+                                            if (path.startsWith("/v1/")) {
+                                                elRoute.classList.add('active-pass');
+                                                logPipe(`Router Match: RDS route ${path} matches cluster 'user-service'.`);
+                                                logPipe(`Upstream Pool: EDS resolves endpoint '10.0.0.32:8080'. Forwarding.`);
+                                                logPipe(`[SUCCESS] Upstream 200 OK returned to downstream client.`);
+                                            } else {
+                                                elRoute.classList.add('active-fail');
+                                                logPipe(`Router Match: RDS path ${path} NOT found. Sending 404.`);
+                                                logPipe(`[FAIL] Local response: 404 Not Found.`);
+                                            }
+                                        }, 400);
+
+                                    } else {
+                                        elLim.classList.add('active-fail');
+                                        logPipe(`[BLOCKED] HTTP Local Rate Limit: bucket exhausted! Sending 429.`);
+                                        logPipe(`[FAIL] Local response: 429 Too Many Requests.`);
+                                        rateLimitCounter = 0; // reset
+                                    }
+                                }, 400);
+
+                            } else {
+                                elAuth.classList.add('active-fail');
+                                logPipe(`[BLOCKED] HTTP JWT Auth filter: invalid signature or missing bearer. Sending 401.`);
+                                logPipe(`[FAIL] Local response: 401 Unauthorized.`);
+                            }
+                        }, 400);
+
+                    }, 400);
+
+                } else {
+                    el.classList.add('active-fail');
+                    logPipe(`[BLOCKED] SNI Filter: Server Name Indication ${sni} NOT matched to local certs. TLS reject.`);
+                    logPipe(`[FAIL] Connection reset by peer.`);
+                }
+            }, 300);
+        }
+
+        // ==========================================
+        // Lab 2: xDS Config & Hot Restart State
+        // ==========================================
+        const restartLog = document.getElementById('restart-log-term');
+        function logRestart(msg) {
+            restartLog.innerHTML += `<div>[Admin] ${msg}</div>`;
+            restartLog.scrollTop = restartLog.scrollHeight;
+        }
+
+        let xdsVersion = 1;
+        function triggerXdsUpdate() {
+            xdsVersion++;
+            logRestart(`xDS discovery grpc stream initialized. Sending EDS packet.`);
+            logRestart(`Received discovery config version v${xdsVersion} from Control Plane.`);
+            logRestart(`Executing std::shared_ptr pointer swap. Configuration updated in-memory.`);
+            logRestart(`[0-DOWNTIME] Dynamic routes updated. Old connections unaffected.`);
+            document.getElementById('child-version').innerText = `v${xdsVersion}`;
+        }
+
+        let isRestarting = false;
+        let restartTimer = null;
+        let timelineData = [];
+
+        function triggerHotRestart() {
+            if (isRestarting) return;
+            isRestarting = true;
+            timelineData = [];
+
+            logRestart("Triggering Hot Restart sequence...");
+            logRestart("Forking child process Envoy...");
+
+            // Set PIDs
+            document.getElementById('child-pid').innerText = "2048";
+            document.getElementById('child-status').innerText = "BOOTING";
+            document.getElementById('child-status').className = "proc-status status-draining";
+
+            logRestart("Child requests shared listener sockets via Unix Domain Socket (UDS)...");
+
+            let step = 0;
+            let parentConns = 300;
+            let childConns = 0;
+
+            const chart = document.getElementById('restart-timeline-chart');
+            chart.innerHTML = '';
+
+            restartTimer = setInterval(() => {
+                step++;
+                if (step === 2) {
+                    logRestart("Parent passes socket file descriptors (FD) to Child via SCM_RIGHTS.");
+                    logRestart("Child starts accepting new connections on port 80/443.");
+                    document.getElementById('child-status').innerText = "RUNNING";
+                    document.getElementById('child-status').className = "proc-status status-running";
+                    document.getElementById('parent-status').innerText = "DRAINING";
+                    document.getElementById('parent-status').className = "proc-status status-draining";
+                    document.getElementById('parent-drain').innerText = "TRUE";
+                }
+
+                if (step >= 2) {
+                    // Drain Parent connections, shift traffic to child
+                    parentConns -= 50;
+                    childConns += 50;
+                    if (parentConns < 0) parentConns = 0;
+                }
+
+                document.getElementById('parent-conns').innerText = parentConns;
+                document.getElementById('child-conns').innerText = childConns;
+
+                // Add to chart
+                const pPercent = (parentConns / 300) * 100;
+                const cPercent = (childConns / 300) * 100;
+
+                const barGroup = document.createElement('div');
+                barGroup.className = 'timeline-bar-group';
+                barGroup.innerHTML = `
+                    <div class="t-bar parent" style="height:${pPercent}%"></div>
+                    <div class="t-bar child" style="height:${cPercent}%"></div>
+                `;
+                chart.appendChild(barGroup);
+
+                if (parentConns === 0) {
+                    clearInterval(restartTimer);
+                    logRestart("Parent active connection hits 0. Draining completed.");
+                    logRestart("Parent process exits. Child PID 2048 takes over completely.");
+                    document.getElementById('parent-status').innerText = "STOPPED";
+                    document.getElementById('parent-status').className = "proc-status status-stopped";
+                    document.getElementById('parent-drain').innerText = "FALSE";
+                    isRestarting = false;
+                }
+            }, 600);
+        }
+    </script>
+</body>
+</html>

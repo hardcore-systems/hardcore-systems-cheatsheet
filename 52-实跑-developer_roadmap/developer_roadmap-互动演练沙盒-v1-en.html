@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>V-DOM Diff & Kubernetes HPA Sandbox</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 16px;
+        }
+        .control-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            color: #A0AEC0;
+            margin-bottom: 4px;
+        }
+        select, input[type="range"] {
+            width: 100%;
+        }
+        .btn {
+            background-color: #9C6666;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 180px;
+            overflow-y: auto;
+            margin-top: 15px;
+            white-space: pre-wrap;
+        }
+        .vdom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .vdom-tree {
+            background-color: #151D30;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 11px;
+            min-height: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>V-DOM Diff & Kubernetes HPA Sandbox</h1>
+        <div class="grid">
+            <!-- Sandbox 1: Virtual DOM Diff -->
+            <div class="card">
+                <h2>Virtual DOM Diff Engine</h2>
+                <div class="control-group">
+                    <label>Select List Action:</label>
+                    <select id="vdom-action">
+                        <option value="insert">Insert item at head</option>
+                        <option value="shuffle">Shuffle / Re-order keys</option>
+                        <option value="delete">Delete middle item</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="runVDomDiff()">Execute V-DOM Diff</button>
+                <div class="vdom-grid">
+                    <div>
+                        <label>Old V-DOM</label>
+                        <div class="vdom-tree" id="old-tree">
+                            - key: A (Index 0)<br>- key: B (Index 1)<br>- key: C (Index 2)
+                        </div>
+                    </div>
+                    <div>
+                        <label>New V-DOM</label>
+                        <div class="vdom-tree" id="new-tree">
+                            - Click Run Diff to generate...
+                        </div>
+                    </div>
+                </div>
+                <div class="console" id="vdom-console" style="height: 80px; margin-top: 10px;">
+                    [V-DOM Engine] Idle. Select change action and run diff.
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Kubernetes HPA Autoscaler -->
+            <div class="card">
+                <h2>Kubernetes HPA Replica Autoscaler</h2>
+                <div class="control-group">
+                    <label id="lbl-qps">Incoming Requests (QPS): 500</label>
+                    <input type="range" id="qps-rate" min="50" max="2500" value="500" oninput="updateQps()">
+                </div>
+                <button class="btn" onclick="runHPA()">Scale Traffic / Load</button>
+                <div class="console" id="k8s-console" style="height: 180px;">
+                    [Kubernetes HPA Loop] Running. ReplicaSet targets: min=1, max=10.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Virtual DOM Simulator
+        function runVDomDiff() {
+            const action = document.getElementById('vdom-action').value;
+            const oldTree = document.getElementById('old-tree');
+            const newTree = document.getElementById('new-tree');
+            const consoleBox = document.getElementById('vdom-console');
+
+            if (action === 'insert') {
+                newTree.innerHTML = `- <span style="color:#B57D7D">key: D (New - Index 0)</span><br>- key: A (Index 1)<br>- key: B (Index 2)<br>- key: C (Index 3)`;
+                consoleBox.innerHTML = `[Reconciliation Diff]\nComparing old and new lists...\n`;
+                consoleBox.innerHTML += `Action detected: Head Insertion! No keys matched for index 0.\n`;
+                consoleBox.innerHTML += `Optimization: Insert Node D. Reused keys [A, B, C] via key identity.`;
+            } else if (action === 'shuffle') {
+                newTree.innerHTML = `- key: C (Index 0)<br>- key: A (Index 1)<br>- key: B (Index 2)`;
+                consoleBox.innerHTML = `[Reconciliation Diff]\nComparing old and new lists...\n`;
+                consoleBox.innerHTML += `Action detected: Key shuffle! Re-ordering nodes in DOM tree.\n`;
+                consoleBox.innerHTML += `Optimization: Reused and shifted physical DOM elements of A, B and C without destruction.`;
+            } else {
+                newTree.innerHTML = `- key: A (Index 0)<br>- key: C (Index 1)`;
+                consoleBox.innerHTML = `[Reconciliation Diff]\nComparing old and new lists...\n`;
+                consoleBox.innerHTML += `Action detected: Deletion! Key B missing in new tree.\n`;
+                consoleBox.innerHTML += `Optimization: Destroyed DOM Node B. Kept A and C active.`;
+            }
+        }
+
+        // K8s HPA Simulator
+        let activeReplicas = 1;
+        function updateQps() {
+            const qps = document.getElementById('qps-rate').value;
+            document.getElementById('lbl-qps').innerText = "True" === "True" ? 
+                `Incoming Requests (QPS): ${qps}` : `网络流入流量 (QPS): ${qps}`;
+        }
+
+        function runHPA() {
+            const qps = parseFloat(document.getElementById('qps-rate').value);
+            const consoleBox = document.getElementById('k8s-console');
+            
+            // Standard HPA formula: Desired = ceil(Current * (CurrentMetric / TargetMetric))
+            const targetQpsPerPod = 250; // Each pod handles 250 QPS comfortably
+            const currentCpuMetric = (qps / (activeReplicas * targetQpsPerPod)) * 70; // Simulate CPU load
+            
+            const targetCpu = 60.0; // target 60%
+            let desiredReplicas = Math.ceil(activeReplicas * (currentCpuMetric / targetCpu));
+            desiredReplicas = Math.max(1, Math.min(10, desiredReplicas)); // min=1, max=10
+
+            consoleBox.innerHTML = `[HPA Reconciliation Loop]\n`;
+            consoleBox.innerHTML += `Current metrics: QPS = \${qps}, CPU Util = \${currentCpuMetric.toFixed(1)}% (Target: 60%)\n`;
+            consoleBox.innerHTML += `Formula: Desired = ceil(\${activeReplicas} * (\${currentCpuMetric.toFixed(1)}% / 60%))\n`;
+            consoleBox.innerHTML += `Autoscaler decision: Desired replicas = \${desiredReplicas}\n\n`;
+
+            if (desiredReplicas > activeReplicas) {
+                consoleBox.innerHTML += `[Scaling UP] Spinning up \${desiredReplicas - activeReplicas} new pods...\n`;
+                for (let i = activeReplicas + 1; i <= desiredReplicas; i++) {
+                    consoleBox.innerHTML += ` - Pod deployment-replica-\${i} state: Pending -> Running\n`;
+                }
+            } else if (desiredReplicas < activeReplicas) {
+                consoleBox.innerHTML += `[Scaling DOWN] Terminating \${activeReplicas - desiredReplicas} pods...\n`;
+                for (let i = activeReplicas; i > desiredReplicas; i--) {
+                    consoleBox.innerHTML += ` - Pod deployment-replica-\${i} state: Terminating\n`;
+                }
+            } else {
+                consoleBox.innerHTML += `[Stable] Pod replica count is optimal. No action needed.\n`;
+            }
+
+            activeReplicas = desiredReplicas;
+            consoleBox.innerHTML += `\nActive Pod Endpoints: \${activeReplicas} running.`;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang= + map_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content= + map_desc + >
+    <title>donnemartin / system-design-primer 高可用与高扩展架构设计知识图谱</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        .header-title h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #7A8B99, #BFA88F);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-title p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 2rem;
+        }
+        .stat-item {
+            text-align: right;
+        }
+        .stat-val {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #60a5fa;
+            line-height: 1.2;
+        }
+        .stat-lbl {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .filter-btn:hover {
+            border-color: var(--accent-color);
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, border-color 0.2s;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: #3b82f6;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .card-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            color: white;
+        }
+        .card-module {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            line-height: 1.3;
+            margin-bottom: 1rem;
+        }
+        .card-body {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.75rem;
+        }
+        .card-body li {
+            margin-left: 1rem;
+            margin-bottom: 0.4rem;
+            list-style-type: disc;
+        }
+        .card-body code {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #0b0f19;
+            color: #f43f5e;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <h1>system-design-primer 架构大图</h1>
+            <p>覆盖 DNS/Anycast 分流、一致性哈希、多级缓存与写一致策略、主从同步半同步、分布式主键、CAP/PACELC 与共识算法、削峰与死信队列、熔断限流等 28 张核心卡片大图。</p>
+        </div>
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-val">28</div>
+                <div class="stat-lbl">核心速查卡片</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val">6</div>
+                <div class="stat-lbl">技术分类模块</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val">L0-L2</div>
+                <div class="stat-lbl">三层知识过滤</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="filter-controls">
+        <button class="filter-btn active" data-mod="all">全部卡片</button>
+        <button class="filter-btn" data-mod="M1" style="border-left: 4px solid var(--slate-blue)">M1: 负载均衡与哈希</button>
+        <button class="filter-btn" data-mod="M2" style="border-left: 4px solid var(--moss-green)">M2: 缓存与一致性</button>
+        <button class="filter-btn" data-mod="M3" style="border-left: 4px solid var(--plum-rose)">M3: 分库分表与读写分离</button>
+        <button class="filter-btn" data-mod="M4" style="border-left: 4px solid var(--terracotta)">M4: 分布式协同共识</button>
+        <button class="filter-btn" data-mod="M5" style="border-left: 4px solid var(--indigo)">M5: 消息队列与异步通信</button>
+        <button class="filter-btn" data-mod="M6" style="border-left: 4px solid var(--antique-gold)">M6: 系统容灾与防雪崩</button>
+    </div>
+
+    <main class="cards-grid">
+
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.1</span>
+                <span class="card-module">负载均衡与一致性哈希</span>
+            </div>
+            <h3 class="card-title">DNS 智能解析、Anycast IP 广播与 CDN 调度策略</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 流量分流的第一道防线。Anycast 允许全球多个地理位置的路由器宣告同一个 IP 地址，客户端的报文经由 BGP 协议自动寻路至物理最近的路由节点。配合 GeoDNS 将用户请求解析至邻近的 CDN 边缘边缘节点，实现静态内容在网络边缘（Edge）的高速就近命中，大幅缩短首字节传输距离。</li><li>  <strong>应用策略</strong>: 在多数据中心和全球化网络架构中，DNS 和 CDN 级负载均衡是平稳分摊数十 Gbps 突发大流量的必备根基。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.2</span>
+                <span class="card-module">负载均衡与一致性哈希</span>
+            </div>
+            <h3 class="card-title">四层负载均衡与七层代理的区别及适用场景</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: L4 负载均衡（如 LVS DR 模式）工作在传输层。它只检查 IP 和 TCP 端口，修改 MAC 地址（DR）或 IP 头（NAT）进行极速转发，不解析 HTTP 应用数据，因此吞吐极高，单机可支撑百万并发连接。L7 负载均衡（如 Envoy/Nginx）工作在应用层，解析 HTTP 请求行、标头，从而可以基于 Cookie 保持会话、路由 Path 以及执行 SSL 卸载。</li><li>  <strong>应用策略</strong>: 典型的生产架构是使用 LVS 作为最外层入口接收网卡流量，然后分发给一组 Envoy 节点进行精细的 L7 规则解析和反向代理。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.3</span>
+                <span class="card-module">负载均衡与一致性哈希</span>
+            </div>
+            <h3 class="card-title">一致性哈希环的拓扑模型、顺时针寻址与节点变化</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 一致性哈希构建了一个包含 $2^{32}$ 个插槽的虚拟哈希环。节点和数据键都使用相同的哈希函数（如 MD5）计算并投射到环的对应位置。当需要获取数据时，沿环顺时针方向查找到遇到的第一个节点，该数据即归属该节点。当某个节点被删除时，仅有该节点的逆时针相邻数据受到影响，需要重新路由至顺时针下一个节点，避免全网迁移。</li><li>  <strong>应用策略</strong>: 用于缓存分片集群（如 Memcached）的客户端路由逻辑，保证集群动态伸缩时缓存命中率维持在 90% 以上。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.4</span>
+                <span class="card-module">负载均衡与一致性哈希</span>
+            </div>
+            <h3 class="card-title">虚拟节点技术在消除数据分配倾斜与热点倾斜中的作用</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 当物理节点较少时，哈希分布随机性强，可能在环上分布极不均匀，引发“数据倾斜”与“热点倾斜”导致单机被打挂。虚拟节点（Virtual Nodes）技术允许为一个物理节点在环上生成数百个不同的映射备份（如 `ServerA</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.1</span>
+                <span class="card-module">多级缓存与一致性策略</span>
+            </div>
+            <h3 class="card-title">多级缓存体系：客户端缓存、网关缓存、本地内存缓存与分布式缓存</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 多级缓存系统依据内存距离逐层铺设：客户端浏览器利用 <code>Cache-Control</code> 进行强缓存；CDN 执行边缘缓存；Varnish/Nginx 承担网关反向代理缓存；应用程序内部使用 Guava/Ehcache 维持高频对象内存；Redis 集群作为分布式共享缓存。通过多级过滤，使请求读取的系统开销和网络延迟呈数量级下降。</li><li>  <strong>应用策略</strong>: 架构设计应当利用“漏斗模型”，将 95% 以上的重复只读请求阻断在分布式缓存之上，避免其压入底层物理数据库。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.2</span>
+                <span class="card-module">多级缓存与一致性策略</span>
+            </div>
+            <h3 class="card-title">Cache-aside 旁路缓存策略的读写并发序列、双写不一致及其规避</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 读时先查缓存，未命中则读 DB 并同步写入缓存。写时<strong>先更新数据库，再删除（Invalidate）旧缓存</strong>。如果写时选择更新缓存，高并发交错下可能出现脏更新；如果选择先删缓存后写 DB，在高并发下可能导致在写 DB 完成前，另一个读请求将 DB 中的老数据重新载入缓存。</li><li>  <strong>应用策略</strong>: 即使使用“先写 DB 后删缓存”，在极端极端并发下（写操作未完成，缓存恰好过期，读操作读到老数据重新写入）也可能有脏数据。可配合“延迟双删”策略或订阅数据库 binlog 异步清理缓存。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.3</span>
+                <span class="card-module">多级缓存与一致性策略</span>
+            </div>
+            <h3 class="card-title">Write-through 与 Write-behind 的数据一致性与延迟折衷</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: Write-through（直写）要求应用在向缓存写入数据时，缓存组件必须同步以事务形式写入数据库，两者均返回成功后才通知应用，确保了数据的绝对强一致与持久度；Write-behind（后写，即 Write-back）下应用写完缓存即认为成功，缓存层通过后台队列收集写请求，定期合并成批量写事务异步写入数据库。</li><li>  <strong>应用策略</strong>: Write-behind 极大地提升了系统的写吞吐率，非常适合日志收集、计数统计场景，但需要忍受系统突发断电时部分内存数据丢失的风险。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.4</span>
+                <span class="card-module">多级缓存与一致性策略</span>
+            </div>
+            <h3 class="card-title">缓存逐出算法：LRU（双向链表+哈希表）与 LFU（频次桶）的物理实现复杂度</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: LRU（Least Recently Used）核心是双向链表+哈希表结构，每次数据被访问时移动到链表头，淘汰时直接摘除链表尾部，添加、删除、更新均在 $O(1)$ 常数时间完成；LFU（Least Frequently Used）在数据项中维护访问频次计数器，并将数据项按频次挂载在不同的频次链表桶中，优先淘汰低频次数据，防止短期突发流量对 LRU 造成热点污染。</li><li>  <strong>应用策略</strong>: Redis 使用了近似 LRU 算法，通过随机采样 5 个 key 并剔除最老的那一个，以极低的内存空间开销换取了非常接近严格 LRU 算法的淘汰精准度。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.5</span>
+                <span class="card-module">多级缓存与一致性策略</span>
+            </div>
+            <h3 class="card-title">应对大并发下的缓存穿透、击穿、雪崩：布隆过滤器与互斥锁的防护策略</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 缓存穿透（查询不存在的数据）通过在缓存前置布隆过滤器（Bloom Filter）或对空结果缓存来防御；缓存击穿（热点 Key 失效）采用互斥锁（如 Redis <code>SETNX</code>），仅允许一个读请求去 DB 加载并重建缓存，其余请求等待；缓存雪崩（大量 Key 同时过期）通过对 Key 的过期时间引入随机扰动抖动（Jitter），打散失效时间。</li><li>  <strong>应用策略</strong>: 属于分布式高并发架构的弹性标配，能够物理隔绝无效的恶意穿透和高并发击穿对数据库的冲击。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.1</span>
+                <span class="card-module">数据库读写分离与分库分表</span>
+            </div>
+            <h3 class="card-title">主从复制拓扑结构中的同步、半同步、异步机制与主备延迟路由</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 读写分离架构中，主库接收写请求并产生 binlog，从库拉取日志进行回放。异步复制下主库不等待从库回放即确认，写延迟最小但主从间存在延迟；同步复制下主库必须等待所有从库提交才确认，可用性极差；半同步复制（Semi-sync）下，主库仅需等待至少一个从库确认收到 binlog 即可返回，折衷了可用性与数据完整性。</li><li>  <strong>应用策略</strong>: 针对刚修改完数据立即读取的业务，为防止主备延迟导致读到老数据，应设计“写后立即读主库”的路由机制或利用版本标记（TSO）进行强一致校验。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.2</span>
+                <span class="card-module">数据库读写分离与分库分表</span>
+            </div>
+            <h3 class="card-title">水平分片（Sharding）与分片键（Shard Key）的选择偏好</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 当单数据库实例的磁盘或写吞吐达到极限时，进行水平切分。核心在于选定分片键（Shard Key）。Shard Key 必须满足：拥有足够大的基数防止数据过度倾斜；在日常查询条件中高频使用（例如以 <code>user_id</code> 分片）。如果查询未携带 Shard Key，分布式数据库中间件必须对所有物理分片执行广播式 Scatter-Gather 扫描，极大消耗计算资源。</li><li>  <strong>应用策略</strong>: 合理规划 Shard Key，并对非分片键字段的查询建立影子索引表（即二次映射表）或同步至列存（Elasticsearch）中进行多维查询。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.3</span>
+                <span class="card-module">数据库读写分离与分库分表</span>
+            </div>
+            <h3 class="card-title">分布式全局主键：Snowflake 算法的碰撞消解</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 分库分表后各实例独立，传统的自增主键无法保证全局唯一。Twitter 的 Snowflake 算法生成一个 64 位的 Long 型整数：其中 1 位符号位保持为 0；41 位用于记录毫秒级时间戳；10 位记录工作机器 ID（5位数据中心 ID + 5位机器 ID）；12 位为单毫秒内的递增序列号。通过硬件 ID 隔离和时钟回拨校验，实现完全无锁的分布式唯一 ID 产生。</li><li>  <strong>应用策略</strong>: 相比于 UUID 的非有序性和大体积，Snowflake 产生的 ID 呈趋势递增，有利于数据库聚簇索引的 B+ 树写入插入性能。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.4</span>
+                <span class="card-module">数据库读写分离与分库分表</span>
+            </div>
+            <h3 class="card-title">数据库联合与非规范化反范式（Denormalization）的读性能置换</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 联合（Federation）将一个大数据库按业务表归属（如 User 库、Order 库）物理拆分到不同机器，分流 I/O；非规范化（反范式设计）通过在表中冗余存储（如存储冗余的用户名而不是仅存储用户ID），消除了海量读查询时的多表联合（JOIN）开销，空间换时间提速读取。</li><li>  <strong>应用策略</strong>: 生产系统中常使用反范式设计来提升读性能，但需要引入强大的异步同步引擎（如 Canal 订阅 Binlog）在底层更新冗余数据。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.1</span>
+                <span class="card-module">分布式协同与共识机制</span>
+            </div>
+            <h3 class="card-title">CAP 定理的物理局限、BASE 弱一致性模型与 PACELC 折衷矩阵</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: CAP 指出在分布式系统发生网络分区（P）时，一致性（C）与可用性（A）不可兼得。PACELC 进一步拓宽了这一边界：即使在系统正常无分区（E）的常态下，系统也必须在低延迟（L）与一致性（C）之间做出抉择。BASE 模型（基本可用 Basically Available、软状态 Soft state、最终一致性 Eventual consistency）是 AP 系统的工程指引。</li><li>  <strong>应用策略</strong>: 对于交易金融等账务类系统，选择 CP 模型；对于社交点赞、通知等系统，选择 AP 模型以追求高响应速度。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.2</span>
+                <span class="card-module">分布式协同与共识机制</span>
+            </div>
+            <h3 class="card-title">去中心化 Gossip 协议在集群状态同步中的弱一致收敛</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 类似于病毒扩散。Gossip 是无中心节点集群状态收敛的代表。每个节点定期向集群中随机挑选的 $k$ 个活跃节点发送自身的心跳和拓扑版本数据。接收节点对比版本并更新，然后继续向外扩散。集群整体状态收敛的时空复杂度呈对数级，对网络波动和节点单点故障有极强容错性。</li><li>  <strong>应用策略</strong>: 广泛用于 Cassandra 节点成员关系发现、Redis Cluster 集群状态同步与拓扑自愈。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.3</span>
+                <span class="card-module">分布式协同与共识机制</span>
+            </div>
+            <h3 class="card-title">两阶段提交（2PC）的协调者单点故障与参与者同步阻塞死锁</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 2PC 包含准备阶段（Prepare）与提交阶段（Commit）。协调者首先向所有参与者发送 CanCommit 询问，参与者执行本地事务并锁定相关资源，但不提交。当协调者收集齐所有参与者的同意反馈后，进入 Commit 阶段发送 DoCommit。缺点是协议是阻塞式的，一旦协调者在 Commit 阶段死机，所有参与者将长久持有本地资源的排他锁，导致系统彻底死锁。</li><li>  <strong>应用策略</strong>: 通常只适用于跨分片事务极少、网络延迟极低的局域网环境，在大规模互联网系统架构中应谨慎使用。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.4</span>
+                <span class="card-module">分布式协同与共识机制</span>
+            </div>
+            <h3 class="card-title">三阶段提交（3PC）超时机制与 PreCommit 状态设计</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 3PC 通过在 2PC 中间插入了一个“预提交（PreCommit）”阶段来降级死锁概率。第一阶段 CanCommit 完成询问后，进入 PreCommit 阶段，参与者进行资源预定；在此阶段后如果协调者发生故障，或者参与者在预设时间内未收到协调者的 Commit 指令，参与者会超时自动执行 Commit，防止资源被永久锁死。</li><li>  <strong>应用策略</strong>: 超时自动提交的设计虽然消除了阻塞，但如果协调者因网络分区发出了 Abort 指令，而参与者超时自动提交了事务，将导致脑裂和数据不一致。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.5</span>
+                <span class="card-module">分布式协同与共识机制</span>
+            </div>
+            <h3 class="card-title">Raft 强一致性共识：Leader 选举状态转移与日志复制机制</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: Raft 将复杂的共识问题归结为 Leader 选举、日志复制与安全性保证。Follower 在接收到 Candidate 的 RequestVote 后进行投票，投票以多数派原则（Majority）产生 Leader。Leader 独占向 Follower 推送日志条目的权力，当且仅当某条日志被多数派 Follower 确认写入后，Leader 才在本地提交并通知应用。</li><li>  <strong>应用策略</strong>: 用作构建强一致元数据存储集群（如 etcd、Kubernetes 控制核心）的底层共识基础。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.1</span>
+                <span class="card-module">异步通信与消息队列流控</span>
+            </div>
+            <h3 class="card-title">消息队列在分布式系统中的削峰填谷作用</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 消息队列充当生产者与消费者之间的缓冲区。当系统流量出现突发洪峰（如整点秒杀）时，请求被写入高吞吐的队列分区，下游的消费者按照数据库和下游微服务能承受的恒定水位进行 Pull（拉取）消费，将尖锐的瞬时请求流量转化为平滑的流式流量。</li><li>  <strong>应用策略</strong>: 消息队列不仅实现了微服务解耦，还能有效防护后端核心链路在流量陡增时不发生雪崩。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.2</span>
+                <span class="card-module">异步通信与消息队列流控</span>
+            </div>
+            <h3 class="card-title">消息传递交付保障：最多一次、最少一次与精确一次的工程边界</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: At-most-once（发送即忘，不重试，有丢消息风险）；At-least-once（带重试与 ACK 确认机制，保证不丢消息但会有重复推送）；Exactly-once（精确一次，要求中间件使用幂等机制与流处理组件的事务提交，代价极高）。</li><li>  <strong>应用策略</strong>: 生产环境绝大部分使用 At-least-once 机制以保证可靠，然后由消费端进行业务层幂等处理。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.3</span>
+                <span class="card-module">异步通信与消息队列流控</span>
+            </div>
+            <h3 class="card-title">消费者幂等性保障：唯一消息 ID 与乐观锁处理去重</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 消费者去重是落地最少一次交付的关键。发信端对每个消息赋予唯一的 Message ID（如 UUID）。消费端在开始执行处理逻辑前，利用 Redis <code>SETNX</code> 锁定该 ID，或者将该 ID 作为数据库表的主键/唯一键写入。如果写入成功，说明是首次处理；如果写入失败（如报主键冲突），直接丢弃该消息发送确认 ACK，保障数据不被二次修改。</li><li>  <strong>应用策略</strong>: 所有涉及资产、扣款或敏感操作的消费端逻辑，必须强制实施强幂等校验，防止网络抖动重发消息导致资产损失。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.4</span>
+                <span class="card-module">异步通信与消息队列流控</span>
+            </div>
+            <h3 class="card-title">队列积压下的回压（Backpressure）机制与生产者控制</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 当消费者处理速度急剧下降导致消息队列内存/磁盘积压超出安全水位时，队列中间件会自适应触发 Backpressure。它通过逐步关闭写套接字接收窗口，直接卡住生产者客户端的发送套接字写入（生产者 write 发生 EAGAIN 或无限期阻塞），将消费端的消费压力逆向传导回数据源头。</li><li>  <strong>应用策略</strong>: 避免了中间件队列在大规模积压下由于内存耗尽引发的进程崩溃，保障了高压下的队列高可用。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.5</span>
+                <span class="card-module">异步通信与消息队列流控</span>
+            </div>
+            <h3 class="card-title">死信队列（DLQ）的投递时机与隔离处理机制</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 当消费端遇到不可修复的逻辑错误（如数据格式非法）、或者经过最大重试次数后仍然持续报错时，消息队列系统将该消息隔离，自动移交到死信队列（Dead Letter Queue）中，防止故障消息长时间霸占正常队列头部引发整条流水线的死锁。</li><li>  <strong>应用策略</strong>: 应对死信队列设置告警机制，通过监控死信消息的入队频率，能瞬间感知到系统上线引发的代码逻辑缺陷或上游接口变更。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.1</span>
+                <span class="card-module">系统弹性设计：熔断、限流与防雪崩</span>
+            </div>
+            <h3 class="card-title">熔断器三态状态机转移控制</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 熔断器用于避免服务依赖崩溃引发的级联雪崩。状态机包含三个核心状态：<strong>Close</strong>（正常接收，统计请求成功率）；一旦滑动窗口内请求失败率（或慢调用比例）超过阈值，转换为 <strong>Open</strong>（彻底阻断，不访问下游，直接本地快速失败返回 Fallback 默认值）；经过冷却期（如 5 秒）进入 <strong>Half-Open</strong>（放行少量探测请求，若成功则闭合回 Close，若再次失败则重新弹回 Open）。</li><li>  <strong>应用策略</strong>: 在微服务调用链的边缘节点和第三方接口调用端必须配置熔断器，以提供关键的故障容错隔离。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.2</span>
+                <span class="card-module">系统弹性设计：熔断、限流与防雪崩</span>
+            </div>
+            <h3 class="card-title">令牌桶与漏桶算法应对突发流量的限流差异</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 漏桶（Leaky Bucket）以恒定速率滴水（发包），能产生绝对平滑的流量，但无法应对突发流量；令牌桶（Token Bucket）以恒定速率向桶内注令牌，允许请求瞬间取光积存的令牌，支持短时并发突发（Burst）。</li><li>  <strong>应用策略</strong>: 漏桶适合保护后端资源绝对平滑、敏感的场景；令牌桶适合绝大部分对并发弹性要求较高的互联网 API 接入端。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.3</span>
+                <span class="card-module">系统弹性设计：熔断、限流与防雪崩</span>
+            </div>
+            <h3 class="card-title">舱壁隔离（Bulkhead）模式：线程池隔离与信号量隔离</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 核心思想是隔离资源。如果所有微服务调用都共享同一个全局线程池，一旦依赖的某个下游接口 A 响应变慢，会迅速占满线程池的所有工作线程，导致访问下游 B、C 的请求全部阻塞。舱壁隔离为每个微服务分配独立的、容量有限的专有线程池或信号量限额。A 的故障最多只能打满其自身的专有线程池，不会波及全局。</li><li>  <strong>应用策略</strong>: 用作保障基础微服务平台在大规模依赖场景下，局部失效绝不拖垮整站的基本物理前提。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.4</span>
+                <span class="card-module">系统弹性设计：熔断、限流与防雪崩</span>
+            </div>
+            <h3 class="card-title">优雅降级机制与动态熔断降级开关（Feature Toggles）</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 降级是用局部体验受损换取全局不发生雪崩。优雅降级（Graceful Degradation）通过手动或自动手段，暂时关闭非核心功能。在网关层使用 Feature Toggles（特性开关），将评论、积分展示等次要接口切换为只返回空数据或本地 Mock 静态语料，从而收拢 CPU 算力与数据库带宽优先保障核心支付链路。</li><li>  <strong>应用策略</strong>: 在双十一、大促来临前，必须设计详尽的降级演练案，将降级级别划分为不同级别动态演进执行。</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.5</span>
+                <span class="card-module">系统弹性设计：熔断、限流与防雪崩</span>
+            </div>
+            <h3 class="card-title">分布式系统高可用性评估：MTBF、MTTR 与 SLA 可用度</h3>
+            <div class="card-body">
+                <li>  <strong>技术机制</strong>: 可用性计算公式为 $\text{Availability} = \frac{\text{MTBF}}{\text{MTBF} + \text{MTTR}}$。其中 MTBF 是平均无故障时间，MTTR 是平均修复时间。要达成 4 个 9 (99.99%) 可用度（即年停机时间不超过 52.56 分钟），必须通过自动化容灾探测、快速蓝绿回滚、快速降级、以及精细的可观测性看板将 MTTR 压缩至分钟级。</li><li>  <strong>应用策略</strong>: 生产级别高可用不只看减少故障，更要关注缩短故障发生后的排障和自动修复周期。</li>
+            </div>
+        </div>
+        
+    </main>
+
+    <script>
+        const buttons = document.querySelectorAll('.filter-btn');
+        const cards = document.querySelectorAll('.card');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const targetMod = btn.getAttribute('data-mod');
+                cards.forEach(card => {
+                    if (targetMod === 'all' || card.getAttribute('data-module') === targetMod) {
+                        card.style.display = 'flex';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>architecture-of-a-database-system Database Kernel Architecture Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #161820;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #2a2d3d;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            max-width: 1200px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 2rem;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+            background: linear-gradient(to right, #f3f4f6, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .stat-item {
+            background: #1e293b50;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            border: 1px solid var(--border-color);
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .filter-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        .filter-btn {
+            background-color: #1e293b;
+            color: #94a3b8;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .filter-btn:hover {
+            border-color: var(--accent-color);
+            color: #fff;
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+        }
+        .grid-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            padding: 1.25rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--theme-color);
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--theme-color);
+            box-shadow: 0 10px 20px -10px var(--theme-color-50);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .relative-id {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #fff;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            background-color: var(--theme-color);
+        }
+        .module-tag {
+            font-size: 0.7rem;
+            color: var(--theme-color);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.75rem;
+        }
+        .card-body {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.5rem;
+        }
+        .card-body ul, .card-body ol {
+            padding-left: 1rem;
+            margin-top: 0.25rem;
+        }
+        .card-body li {
+            margin-bottom: 0.25rem;
+        }
+        .card-body code {
+            font-family: monospace;
+            background-color: #0f1115;
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.25rem;
+            color: #3b82f6;
+        }
+        .card-body strong {
+            color: #f1f5f9;
+        }
+        @media (max-width: 640px) {
+            body { padding: 1rem; }
+            h1 { font-size: 1.5rem; }
+            .grid-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>architecture-of-a-database-system Kernel Architecture Map</h1>
+        <p>High-Density Process Models, CBO Optimizers, SS2PL Locks, and ARIES Recovery Reference System</p>
+        <div class="stats-bar">
+            <span class="stat-item">Core Cards: 28</span>
+            <span class="stat-item">Category Modules: 6</span>
+            <span class="stat-item">3-Level Filtering</span>
+            <span class="stat-item">Zone T Tuning Parameters</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="filter-controls">
+            <button class="filter-btn active" onclick="filterModule('all', this)">ALL</button>
+            <button class="filter-btn" style="--theme-color: var(--slate-blue)" onclick="filterModule('M1', this)">M1. Processes</button>
+            <button class="filter-btn" style="--theme-color: var(--moss-green)" onclick="filterModule('M2', this)">M2. Query</button>
+            <button class="filter-btn" style="--theme-color: var(--plum-rose)" onclick="filterModule('M3', this)">M3. Storage</button>
+            <button class="filter-btn" style="--theme-color: var(--terracotta)" onclick="filterModule('M4', this)">M4. Concurrency</button>
+            <button class="filter-btn" style="--theme-color: var(--indigo)" onclick="filterModule('M5', this)">M5. ARIES</button>
+            <button class="filter-btn" style="--theme-color: var(--antique-gold)" onclick="filterModule('M6', this)">M6. Distributed</button>
+        </div>
+
+        <div class="grid-layout" id="cardsGrid">
+            <!-- Cards will be dynamically injected here -->
+        </div>
+    </div>
+
+    <script>
+        const cardsData = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "Process Models", "color": "#7A8B99", "title": "Process-per-Connection Model", "body": "<li>  <strong>Early Engine Architectures</strong>: Oracle and PostgreSQL historically adopted multi-process designs, allocating a dedicated OS process for each client socket.</li><li>  <strong>Inter-Process Overhead</strong>: Inter-process communication (IPC) must route through shared memory blocks, and process context-switching consumes CPU, limiting active connections.</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "Process Models", "color": "#7A8B99", "title": "Thread-per-Connection Model", "body": "<li>  <strong>Shared Address Spaces</strong>: MySQL and SQL Server allocate a dedicated thread per connection, sharing the parent process's memory space.</li><li>  <strong>Memory Footprint Limits</strong>: Each thread reserves stack spaces, leading to memory fragmentation and high thread scheduler context-switches at scale.</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "Process Models", "color": "#7A8B99", "title": "Worker Pool Scheduling", "body": "<li>  <strong>Decoupled Connections</strong>: Modern engines decouple connection sockets from execution threads by building fixed-size worker pools.</li><li>  <strong>Multiplexed Runloop</strong>: Frontend request routing utilizes async network syscalls (e.g., <code>epoll</code>) to queue execution tasks, processed by thread pools to scale connections efficiently.</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "Process Models", "color": "#7A8B99", "title": "Latch vs Mutex", "body": "<li>  <strong>Locking vs Syncing</strong>: In databases, <code>Lock</code> protects logical transactions (user-visible concurrency), while <code>Latch</code> (mutexes, rwlocks) protects internal shared memory structures.</li><li>  <strong>Transient Latencies</strong>: Latches are lightweight SPIN locks implemented via CAS instructions, held for microseconds to sync page directories and buffer frames.</li>"}, {"id": 5, "relativeId": "M2.1", "module": "M2", "moduleName": "Query Processor", "color": "#7D8F7B", "title": "SQL Parsing & Rewriting", "body": "<li>  <strong>Abstract Syntax Tree</strong>: The SQL parser parses text strings into an Abstract Syntax Tree (AST), checking keywords and schemas.</li><li>  <strong>Semantic Simplification</strong>: The rewriter flattens views, pre-evaluates constants, and simplifies logic to translate AST structures into logical execution plans.</li>"}, {"id": 6, "relativeId": "M2.2", "module": "M2", "moduleName": "Query Processor", "color": "#7D8F7B", "title": "Cost-Based Optimizer", "body": "<li>  <strong>Plan Cost Search</strong>: The CBO evaluates alternative physical operators to select the path with the lowest overall hardware footprint.</li><li>  <strong>Cost Evaluation Formula</strong>: Uses statistics (histograms, row counts) to calculate plan weights: <code>Cost = Page_Reads * W_IO + Tuples_Scanned * W_CPU</code>, mapping out physical plans.</li>"}, {"id": 7, "relativeId": "M2.3", "module": "M2", "moduleName": "Query Processor", "color": "#7D8F7B", "title": "System R Join Plan Optimizer", "body": "<li>  <strong>Join Space Combinatorics</strong>: Join orders scale exponentially with table counts. The System R optimizer uses dynamic programming to search plans bottom-up.</li><li>  <strong>Left-Deep Tree Truncation</strong>: Restricting queries to left-deep trees (where the right child must be a base table) crops the search space, optimizing multi-table join sequences.</li>"}, {"id": 8, "relativeId": "M2.4", "module": "M2", "moduleName": "Query Processor", "color": "#7D8F7B", "title": "Volcano Iterator Model", "body": "<li>  <strong>Standard Operator Contract</strong>: The classic query engine pattern. Operators (e.g., SeqScan, HashJoin) expose a standard interface containing <code>open()</code>, <code>next()</code>, and <code>close()</code>.</li><li>  <strong>Streaming Pipeline</strong>: The parent operator calls <code>next()</code> to pull one tuple at a time from child operators, keeping memory overhead minimal.</li>"}, {"id": 9, "relativeId": "M2.5", "module": "M2", "moduleName": "Query Processor", "color": "#7D8F7B", "title": "Vectorized Execution vs JIT", "body": "<li>  <strong>Volcano Iterator Overhead</strong>: Volcano query execution incurs frequent C++ virtual function calls per record, leading to CPU instruction cache misses.</li><li>  <strong>Execution Evolutions</strong>:</li><li>1.  <strong>Vectorized Execution</strong>: Operators process tuple arrays (e.g., 1024 records) in single runs, utilizing CPU L1 caches and SIMD registers.</li><li>2.  <strong>JIT Compilation</strong>: LLVM compiles execution trees into machine code, eliminating virtual calls.</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "Storage & Buffer", "color": "#9E828A", "title": "Slotted-Page Storage Layout", "body": "<li>  <strong>In-Place Update Defense</strong>: To prevent variable-length updates (e.g., VARCHAR edits) from shifting page offsets, databases use slotted page layouts.</li><li>  <strong>Bidirectional Growth</strong>: Page headers and slot pointer arrays grow downwards from the top, while tuple data grows upwards from the page bottom, optimizing row updates.</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "Storage & Buffer", "color": "#9E828A", "title": "Clock Replacement Policy", "body": "<li>  <strong>LRU Mutex Bottlenecks</strong>: LRU page replacement requires acquiring global mutexes to adjust head/tail pointers on page hits, causing lock contention.</li><li>  <strong>Circular Eviction Hand</strong>: The Clock algorithm maps buffer pool frames to a circular array. A hand sweeps frames, evicting frames with zero usage bits (<code>usage_count = 0</code>), bypassing lock contention.</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "Storage & Buffer", "color": "#9E828A", "title": "Row-Store (NSM) vs Column-Store (DSM)", "body": "<li>  <strong>Storage Trade-offs</strong>:</li><li>1.  <strong>NSM (Row-Store)</strong>: Packs whole record attributes sequentially on pages, optimal for OLTP point updates and inserts.</li><li>2.  <strong>DSM (Column-Store)</strong>: Groups column values together, optimizing OLAP aggregation queries by only loading required attributes.</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "Storage & Buffer", "color": "#9E828A", "title": "Buffer Prefetching & Double Buffering", "body": "<li>  <strong>Masking I/O Latency</strong>: Waiting on disk I/O stalls query operators.</li><li>  <strong>Asynchronous Prefetches</strong>: The storage manager predicts future page lookups and pre-loads pages into the buffer pool asynchronously, using double buffering to overlap compute with disk wait times.</li>"}, {"id": 14, "relativeId": "M4.1", "module": "M4", "moduleName": "Concurrency Control", "color": "#B58A7D", "title": "Strict Two-Phase Locking (SS2PL)", "body": "<li>  <strong>Serializability Invariant</strong>: SS2PL requires transactions to acquire locks during a growing phase and release all exclusive locks (X Locks) only upon commit or rollback.</li><li>  <strong>Cascading Rollback Prevention</strong>: Holding write locks until commit prevents other transactions from reading uncommitted modifications, eliminating cascading rollbacks.</li>"}, {"id": 15, "relativeId": "M4.2", "module": "M4", "moduleName": "Concurrency Control", "color": "#B58A7D", "title": "Lock Manager Layout", "body": "<li>  <strong>In-Memory Lock Directory</strong>: The lock manager maintains a global hash table mapping resources to lock structures.</li><li>  <strong>Double-Linked Lists</strong>: Lock headers contain resource IDs and link two lists: <code>Granted List</code> (holding transactions) and <code>Wait List</code> (queued transactions), validating lock states.</li>"}, {"id": 16, "relativeId": "M4.3", "module": "M4", "moduleName": "Concurrency Control", "color": "#B58A7D", "title": "Lock Escalation & Deadlock Detection", "body": "<li>  <strong>Escalation Safety</strong>: When fine-grained locks (row locks) overwhelm lock tables, the lock manager merges them into coarser locks (table locks) to save memory.</li><li>  <strong>Deadlock Resolution</strong>: The manager builds a Wait-For-Graph and checks for cycles. If a cycle is detected, it aborts a victim transaction, releasing its locks.</li>"}, {"id": 17, "relativeId": "M4.4", "module": "M4", "moduleName": "Concurrency Control", "color": "#B58A7D", "title": "MVCC Version Chain", "body": "<li>  <strong>Non-Blocking Reads</strong>: Write transactions write mutations as version deltas to Undo Logs rather than overwriting database records.</li><li>  <strong>Read View Visibility</strong>: Readers query using a <code>Read View</code> snapshot, traversing version chains to locate the latest committed record, isolating reads from write stalls.</li>"}, {"id": 18, "relativeId": "M4.5", "module": "M4", "moduleName": "Concurrency Control", "color": "#B58A7D", "title": "OCC Validation", "body": "<li>  <strong>Lockless Execution</strong>: OCC assumes write conflicts are rare, executing writes to private workspaces.</li><li>  <strong>Validation Check</strong>: During validation, the engine verifies that read records were not updated by concurrent transactions, committing changes only on validation success.</li>"}, {"id": 19, "relativeId": "M5.1", "module": "M5", "moduleName": "ARIES Recovery", "color": "#5F7582", "title": "WAL Protocol", "body": "<li>  <strong>Durability Contract</strong>: Modified database pages must not be written to disk until the corresponding log entry is flushed.</li><li>  <strong>Transaction Durability</strong>: Commit operations block until all associated WAL records are flushed via <code>fsync</code>, ensuring crash recovery.</li>"}, {"id": 20, "relativeId": "M5.2", "module": "M5", "moduleName": "ARIES Recovery", "color": "#5F7582", "title": "ARIES Analysis Phase", "body": "<li>  <strong>Recovery Startup</strong>: Analysis starts at the last checkpoint.</li><li>  <strong>State Reconstruction</strong>: The engine scans logs forward to rebuild the active Transaction Table (TT) and Dirty Page Table (DPT), identifying the oldest unwritten page LSN.</li>"}, {"id": 21, "relativeId": "M5.3", "module": "M5", "moduleName": "ARIES Recovery", "color": "#5F7582", "title": "ARIES Redo Phase", "body": "<li>  <strong>Repeating History</strong>: Redo starts at the oldest unwritten page LSN, positive-scanning logs to replay all logged modifications (committed or uncommitted), aligning the disk database state.</li>"}, {"id": 22, "relativeId": "M5.4", "module": "M5", "moduleName": "ARIES Recovery", "color": "#5F7582", "title": "ARIES Undo Phase", "body": "<li>  <strong>Log Cleanup</strong>: Undo rolls back transactions left uncommitted at the crash point.</li><li>  <strong>Reverse Scan rollback</strong>: Scans logs backward to reverse modifications, writing Compensation Log Records (CLRs) to prevent redundant rollbacks if re-crashes occur.</li>"}, {"id": 23, "relativeId": "M5.5", "module": "M5", "moduleName": "ARIES Recovery", "color": "#5F7582", "title": "Fuzzy Checkpointing", "body": "<li>  <strong>Non-Blocking Checkpoints</strong>: Writing checkpoints must not block write transactions.</li><li>  <strong>Incremental Checkpoints</strong>: Fuzzy checkpoints log active DPT and TT states to log files without forcing page flushes, enabling check operations to run concurrently with writes.</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "Distributed DB", "color": "#BFA88F", "title": "Shared-Memory Architecture", "body": "<li>  <strong>Bus Performance Limits</strong>: Shared-memory systems connect CPU nodes to a single physical RAM and disk stack.</li><li>  <strong>Interconnect Bottlenecks</strong>: As CPU count grows, memory bus collisions and cache consistency overheads scale, capping hardware scaling.</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "Distributed DB", "color": "#BFA88F", "title": "Shared-Disk Architecture", "body": "<li>  <strong>SAN Disk Interconnect</strong>: Nodes carry dedicated memory but share a central SAN storage array.</li><li>  <strong>DLM Overhead</strong>: To prevent data corruption on concurrent writes, nodes coordinate pages via a Distributed Lock Manager (DLM), introducing latency.</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "Distributed DB", "color": "#BFA88F", "title": "Shared-Nothing Architecture", "body": "<li>  <strong>Independent Nodes</strong>: Each node runs dedicated CPUs, memory, and disks, communicating only over high-speed networks.</li><li>  <strong>Scale-Out Capacity</strong>: Data partitions (shards) distribute queries across nodes, allowing modern distributed databases (e.g., CockroachDB, ClickHouse) to scale out.</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "Distributed DB", "color": "#BFA88F", "title": "Two-Phase Commit (2PC)", "body": "<li>  <strong>Distributed Commit Invariant</strong>:</li><li>1.  <strong>Prepare Phase</strong>: The coordinator asks participants to prepare. Nodes write updates to WAL, lock resources, and return Ready.</li><li>2.  <strong>Commit Phase</strong>: If all nodes return Ready, the coordinator broadcasts commit; otherwise, it aborts, ensuring atomic consistency.</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "Distributed DB", "color": "#BFA88F", "title": "Distributed Join & Data Redistribution", "body": "<li>  <strong>Join Network Footprints</strong>: Multi-node joins require transferring records over networks.</li><li>  <strong>Join Optimizations</strong>:</li><li>1.  <strong>Colocated Join</strong>: Joins tables pre-partitioned on join keys locally.</li><li>2.  <strong>Broadcast Join</strong>: Copies smaller tables to all node segments.</li><li>3.  <strong>Shuffle Join</strong>: Hashes and redistributes tables across nodes.</li>"}];
+
+        function renderCards(filtered) {
+            const grid = document.getElementById('cardsGrid');
+            grid.innerHTML = '';
+            filtered.forEach(card => {
+                const el = document.createElement('div');
+                el.className = 'card';
+                el.style.setProperty('--theme-color', card.color);
+                el.style.setProperty('--theme-color-50', card.color + '33');
+                el.innerHTML = `
+                    <div class="card-header">
+                        <span class="module-tag">${card.moduleName}</span>
+                        <span class="relative-id">${card.relativeId}</span>
+                    </div>
+                    <div class="card-title">${card.title}</div>
+                    <div class="card-body">${card.body}</div>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        function filterModule(mod, btnEl) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            btnEl.classList.add('active');
+            
+            if (mod === 'all') {
+                renderCards(cardsData);
+            } else {
+                const filtered = cardsData.filter(c => c.module === mod);
+                renderCards(filtered);
+            }
+        }
+
+        // Initial render
+        renderCards(cardsData);
+    </script>
+</body>
+</html>

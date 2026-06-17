@@ -1,0 +1,24 @@
+# GitHub Ignore for Hardcore Systems Cheatsheet
+
+# Ignore all LaTeX source files
+**/*.tex
+
+# Ignore all Python build scripts (protecting the conversion engine)
+**/*.py
+
+# Ignore LaTeX compilation temp files
+**/*.aux
+**/*.log
+**/*.out
+**/*.toc
+**/*.synctex.gz
+**/*.fdb_latexmk
+**/*.fls
+**/*.xdv
+
+# Ignore operating system files
+.DS_Store
+Thumbs.db
+
+# Ensure we track everything in the docs/ folder (compiled outputs for Pages)
+!docs/**

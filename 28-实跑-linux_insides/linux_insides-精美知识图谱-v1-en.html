@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux Kernel Architecture & Internals Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .stat-badge {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .stat-badge span.num {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+        .filter-controls {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            width: 300px;
+            outline: none;
+        }
+        .search-box:focus {
+            border-color: var(--accent-color);
+        }
+        .filter-btn {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        .filter-btn:hover {
+            color: var(--text-color);
+            background-color: #1e293b;
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .card-id {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            flex: 1;
+            margin-left: 0.75rem;
+        }
+        .card-body {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.5rem;
+        }
+        .card-body li {
+            margin-left: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+        .card-body code {
+            background-color: rgba(0,0,0,0.3);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #f472b6;
+        }
+        .card-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Linux Kernel Map</h1>
+        <p>High-density boot sequence, CFS scheduling, Buddy page allocator, Slab/SLUB cache recycler, Page Cache, and VFS device I/O internals</p>
+    </header>
+
+    <div class="stats-bar">
+        <div class="stat-badge">Core Cards: <span class="num">28</span></div>
+        <div class="stat-badge">Category Modules: <span class="num">6</span></div>
+        <div class="stat-badge">3-Level Filtering: <span class="num">L0➜L2</span></div>
+        <div class="stat-badge">Zone T Tuning Parameters: <span class="num">Zone T</span></div>
+    </div>
+
+    <div class="filter-controls">
+        <input type="text" id="search" class="search-box" placeholder="Search cards (e.g. Buddy, CFS, SLUB)...">
+        <button class="filter-btn active" onclick="filterModule('ALL')">ALL</button>
+        <button class="filter-btn" onclick="filterModule('M1')">M1 Booting</button>
+        <button class="filter-btn" onclick="filterModule('M2')">M2 Scheduler</button>
+        <button class="filter-btn" onclick="filterModule('M3')">M3 Buddy</button>
+        <button class="filter-btn" onclick="filterModule('M4')">M4 SLUB</button>
+        <button class="filter-btn" onclick="filterModule('M5')">M5 Page Cache</button>
+        <button class="filter-btn" onclick="filterModule('M6')">M6 VFS I/O</button>
+    </div>
+
+    <div class="grid" id="cards-grid">
+        <!-- Rendered by JS -->
+    </div>
+
+    <script>
+        const cards = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "Booting & Initialization", "color": "#7A8B99", "title": "x86 Boot Sector Load and Transition to 64-bit Long Mode (Boot to Long Mode)", "body": "<li>  <strong>Bootloader Load</strong>: The BIOS/UEFI reads the Master Boot Record, executes the GRUB bootloader, copies the kernel bzImage to RAM, and jumps to the entry point in <code>boot/header.S</code>.</li><li>  <strong>Long Mode Transition</strong>: After checking CPU registers in 16-bit real mode, the kernel sets the PE bit in CR0 to transition to 32-bit protected mode. It then configures initial page tables, sets the PAE bit in CR4, and enables long mode in the EFER register.</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "Booting & Initialization", "color": "#7A8B99", "title": "head_64.S Assembly Entry and C start_kernel (head_64.S to start_kernel)", "body": "<li>  <strong>Assembly Initialization</strong>: The CPU jumps to <code>arch/x86/kernel/head_64.S</code> in 64-bit mode. The assembly code clears the BSS segment, configures CPU segment registers, allocates a temporary boot stack, and loads global descriptor table (GDT) pointers.</li><li>  <strong>C Entry Jump</strong>: After completing assembly setup, the kernel executes a jump instruction to enter the C entry point: <code>start_kernel()</code>.</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "Booting & Initialization", "color": "#7A8B99", "title": "setup_arch and E820 Physical RAM Table Mapping (setup_arch & E820)", "body": "<li>  <strong>E820 Address Map</strong>: The function <code>setup_arch()</code> parses <code>boot_params</code> from the bootloader, scanning the E820 map to identify usable and reserved physical memory regions.</li><li>  <strong>Memblock Allocator</strong>: The kernel uses a temporary allocator (<code>memblock</code>) to manage physical memory allocations before the primary page allocator initialization completes.</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "Booting & Initialization", "color": "#7A8B99", "title": "init_IRQ and Formal Page Table Handover (init_IRQ & Kernel Page Tables)", "body": "<li>  <strong>IDT Initialization</strong>: The function <code>init_IRQ()</code> initializes the Interrupt Descriptor Table (IDT) with system call handlers and hardware interrupt gates.</li><li>  <strong>Page Table Handover</strong>: The kernel swaps out temporary boot page tables for the formal <code>swapper_pg_dir</code> page table, mapping virtual memory addresses for subsequent allocations.</li>"}, {"id": 5, "relativeId": "M2.1", "module": "M2", "moduleName": "Interrupts, Traps & CFS", "color": "#7D8F7B", "title": "IDT Entry Descriptors and Interrupt Frame Push (IDT & Interrupt Stack)", "body": "<li>  <strong>IDT Gate Layout</strong>: The IDT contains 256 gate descriptors mapping interrupt vectors to their corresponding Interrupt Service Routine (ISR) addresses.</li><li>  <strong>Hardware Stack Push</strong>: When an interrupt occurs, the CPU pushes current SS, RSP, RFLAGS, CS, and RIP registers onto the kernel stack and redirects execution to the entry gate in <code>common_interrupt</code>.</li>"}, {"id": 6, "relativeId": "M2.2", "module": "M2", "moduleName": "Interrupts, Traps & CFS", "color": "#7D8F7B", "title": "syscall Instruction Vector and sys_call_table Dispatch (syscall & sys_call_table)", "body": "<li>  <strong>syscall Instruction</strong>: 64-bit system calls use the <code>syscall</code> instruction instead of software interrupts. The CPU reads the <code>IA32_LSTAR</code> MSR register to redirect execution to <code>entry_SYSCALL_64</code>.</li><li>  <strong>Call Dispatch</strong>: The entry routine pushes registers onto the stack and uses the call ID in RAX to look up and invoke the system call function in <code>sys_call_table</code>.</li>"}, {"id": 7, "relativeId": "M2.3", "module": "M2", "moduleName": "Interrupts, Traps & CFS", "color": "#7D8F7B", "title": "Softirqs and Workqueues Bottom Half Processing (Bottom Halves)", "body": "<li>  <strong>Bottom Half Processing</strong>: To prevent hard interrupts from stalling the CPU, interrupt tasks are split. The top half executes minimal register saves and registers a softirq.</li><li>  <strong>Asynchronous Engines</strong>:</li><li>1.  <strong>softirq</strong>: Runs in interrupt context and cannot sleep; ideal for fast network interface packet processing.</li><li>2.  <strong>workqueue</strong>: Executes in process context using background threads; can perform I/O operations and sleep.</li>"}, {"id": 8, "relativeId": "M2.4", "module": "M2", "moduleName": "Interrupts, Traps & CFS", "color": "#7D8F7B", "title": "CFS Virtual Runtime Calculations and RB-Tree Sorting (CFS vruntime Update)", "body": "<li>  <strong>Virtual Time Progress</strong>: The CFS scheduler tracks CPU allocation using a <code>vruntime</code> metric. When a process runs, its virtual runtime increases: $\\Delta vruntime = \\Delta physical\\_time \\times \\frac{NICE\\_0\\_LOAD}{weight}$.</li><li>  <strong>RB-Tree Ordering</strong>: The scheduler organizes runnable processes in a red-black tree sorted by <code>vruntime</code>. It selects the leftmost node (<code>rb_leftmost</code>) for execution in $O(1)$ time.</li>"}, {"id": 9, "relativeId": "M2.5", "module": "M2", "moduleName": "Interrupts, Traps & CFS", "color": "#7D8F7B", "title": "switch_to Context Switch Stack Pointer Redirect (switch_to Context Switch)", "body": "<li>  <strong>Context Switch</strong>: When the scheduler switches tasks, it invokes <code>switch_to()</code>.</li><li>  <strong>Stack Redirection</strong>: The routine updates the RSP register to point to the target thread's stack (<code>thread.sp</code>), restoring register states from the target stack to complete the context switch.</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "Physical Memory & Buddy", "color": "#9E828A", "title": "NUMA Nodes and Memory Zone Allocation Boundaries (NUMA Zones)", "body": "<li>  <strong>NUMA Nodes</strong>: On multi-socket systems, physical memory is partitioned into NUMA nodes (represented by <code>pg_data_t</code>) close to their respective CPU sockets to minimize memory access latencies.</li><li>  <strong>Memory Zones</strong>: Nodes divide memory into zones:</li><li>1.  <strong>ZONE_DMA</strong>: The first 16MB of physical RAM, allocated for legacy DMA devices.</li><li>2.  <strong>ZONE_NORMAL</strong>: Memory from 16MB to 4GB, directly mapped by the kernel.</li><li>3.  <strong>ZONE_HIGHMEM</strong>: Memory above 4GB (used on 32-bit systems; obsolete on 64-bit platforms).</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "Physical Memory & Buddy", "color": "#9E828A", "title": "struct page Descriptor Meta Allocation (struct page Layout)", "body": "<li>  <strong>Page Frame Mapping</strong>: The kernel allocates a <code>struct page</code> descriptor in the global <code>mem_map</code> array for every 4KB physical page frame.</li><li>  <strong>Reference Tracking</strong>: Descriptors track page state using <code>_refcount</code> (kernel references) and <code>_mapcount</code> (user\u9875\u8868 mappings). Pages return to the free list when <code>_refcount</code> reaches 0.</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "Physical Memory & Buddy", "color": "#9E828A", "title": "Buddy System Power-of-Two Allocator and Merging (Buddy Allocator)", "body": "<li>  <strong>Free Area Arrays</strong>: The Buddy system manages free memory blocks in a <code>free_area</code> array indexed by orders (from 0 to 10).</li><li>  <strong>Splitting and Merging</strong>:</li><li>  <strong>Allocation</strong>: Requests search for available blocks at the target order. If empty, the allocator splits a higher-order block.</li><li>  <strong>Release</strong>: Releasing blocks calculates the buddy address: $Buddy = Block \\oplus (Order \\ll PAGE\\_SHIFT)$. If the buddy is free, it merges them into a higher-order block.</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "Physical Memory & Buddy", "color": "#9E828A", "title": "Memory Compaction and Page Migration (Memory Compaction)", "body": "<li>  <strong>Fragmentation</strong>: Over time, memory allocation patterns scatter page fragments across the address space, preventing the allocation of large contiguous blocks (e.g., 2MB pages).</li><li>  <strong>Compaction Scans</strong>: The compaction thread (<code>kcompactd</code>) scans the zone from both ends: migrating active pages from one end to free blocks at the other, creating large contiguous free regions.</li>"}, {"id": 14, "relativeId": "M4.1", "module": "M4", "moduleName": "Slab/SLUB Allocator", "color": "#B58A7D", "title": "Slab Caches and Kernel Object Recycling (Slab Allocator Concept)", "body": "<li>  <strong>Fine-Grained Allocations</strong>: The Buddy allocator works with 4KB pages. Allocating small kernel objects (e.g., file descriptors) directly from pages causes memory fragmentation.</li><li>  <strong>Object Recycling</strong>: Slab caches pool pre-allocated, fixed-size objects in memory. Released objects are marked \"free\" but remain initialized, reducing CPU overhead during subsequent allocations.</li>"}, {"id": 15, "relativeId": "M4.2", "module": "M4", "moduleName": "Slab/SLUB Allocator", "color": "#B58A7D", "title": "kmem_cache CPU and Node Layering (kmem_cache Hierarchies)", "body": "<li>  <strong>Per-CPU Fast Path</strong>: <code>kmem_cache</code> allocates objects using a fast-path cache (<code>kmem_cache_cpu</code>) to bypass locking overhead on a per-CPU basis.</li><li>  <strong>Node Shared Path</strong>: If the local CPU cache is depleted, a slow-path routine locks and fetches objects from the NUMA node's shared cache (<code>kmem_cache_node</code>).</li>"}, {"id": 16, "relativeId": "M4.3", "module": "M4", "moduleName": "Slab/SLUB Allocator", "color": "#B58A7D", "title": "SLUB Allocator Inline freelist Offset (SLUB freelist Offset)", "body": "<li>  <strong>Zero-Metadata Allocation</strong>: The SLUB allocator simplifies memory management by removing metadata structures.</li><li>  <strong>Inline Pointers</strong>: It stores the next free object pointer (<code>freelist</code>) directly inside the unused object space, eliminating metadata overhead.</li>"}, {"id": 17, "relativeId": "M4.4", "module": "M4", "moduleName": "Slab/SLUB Allocator", "color": "#B58A7D", "title": "kmalloc Size-Based Route Allocation (kmalloc Implementation)", "body": "<li>  <strong>Pre-Allocated Sizes</strong>: The function <code>kmalloc()</code> manages general-purpose dynamic memory allocations.</li><li>  <strong>Slab Routing</strong>: The kernel pre-allocates slab caches for common sizes (e.g., <code>kmalloc-32</code>, <code>kmalloc-128</code>, <code>kmalloc-2048</code>). Calls to <code>kmalloc(100)</code> route requests to the nearest size (e.g., <code>kmalloc-128</code>).</li>"}, {"id": 18, "relativeId": "M5.1", "module": "M5", "moduleName": "Page Cache & Swapping", "color": "#5F7582", "title": "Page Cache Layout and Radix Tree/XArray Indexing (Page Cache Layout)", "body": "<li>  <strong>Memory Mirrored Files</strong>: The page cache caches file data in physical memory page frames.</li><li>  <strong>Tree Indexing</strong>: Each inode's <code>address_space</code> indexes its cached pages using a Radix Tree (or an XArray in modern kernels), enabling $O(1)$ page lookups by file offset.</li>"}, {"id": 19, "relativeId": "M5.2", "module": "M5", "moduleName": "Page Cache & Swapping", "color": "#5F7582", "title": "Page Writeback Threads and Dirty Page Limits (Page Writeback Control)", "body": "<li>  <strong>Dirty Page Buffering</strong>: Modifying page cache data marks pages as dirty, delaying disk writes.</li><li>  <strong>Writeback Thresholds</strong>: Background threads (e.g., <code>wb_workfn</code>) trigger writebacks. If dirty pages exceed <code>vm.dirty_background_ratio</code>, they run asynchronously; if they exceed <code>vm.dirty_ratio</code>, writes block until pages flush.</li>"}, {"id": 20, "relativeId": "M5.3", "module": "M5", "moduleName": "Page Cache & Swapping", "color": "#5F7582", "title": "Page Frame Reclamation Algorithm (PFRA) and LRU Lists (Page Reclaim PFRA)", "body": "<li>  <strong>Low Watermark Reclaim</strong>: When free memory falls below the zone's low watermark, <code>kswapd</code> triggers page reclamation.</li><li>  <strong>LRU List Migrations</strong>: Zones partition pages into <code>Active</code> and <code>Inactive</code> LRU lists. Unused pages migrate to the Inactive list for reclamation.</li>"}, {"id": 21, "relativeId": "M5.4", "module": "M5", "moduleName": "Page Cache & Swapping", "color": "#5F7582", "title": "LRU Replacement Scanning and Swappiness Controls (LRU & Swappiness)", "body": "<li>  <strong>Two-Pass Scan</strong>: Page reclamation clears the Referenced bit of inactive pages. If the page is accessed before the next scan, it returns to the Active list; otherwise, it is reclaimed.</li><li>  <strong>Swappiness Weight</strong>: The <code>swappiness</code> value adjusts the ratio of anonymous page swaps to file cache page purges.</li>"}, {"id": 22, "relativeId": "M5.5", "module": "M5", "moduleName": "Page Cache & Swapping", "color": "#5F7582", "title": "OOM-Killer badness() Scoring Algorithm (OOM Killer Scoring)", "body": "<li>  <strong>Out-of-Memory Recovery</strong>: If the kernel runs out of memory and cannot reclaim pages, it triggers the OOM killer.</li><li>  <strong>Score Calculations</strong>: The function <code>badness()</code> scores active processes: $Points = \\frac{RSS\\_Memory}{Total\\_System\\_Memory} \\times 1000$. The OOM killer terminates the process with the highest score (modified by <code>oom_score_adj</code>) to free memory.</li>"}, {"id": 23, "relativeId": "M5.6", "module": "M5", "moduleName": "Page Cache & Swapping", "color": "#5F7582", "title": "Swap Space Management and Page Faults (Swap Page Management)", "body": "<li>  <strong>Anonymous Page Swap</strong>: The kernel swaps anonymous memory pages to dedicated disk swap partitions.</li><li>  <strong>Swap Map Tracking</strong>: The kernel tracks swap slot allocations using <code>swap_map</code>. Accessing a swapped page raises a page fault, triggering the kernel to read the page back to RAM.</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "VFS & Block Device I/O", "color": "#BFA88F", "title": "VFS Core Metadata Objects Topology (VFS Core Objects)", "body": "<li>  <strong>VFS Components</strong>:</li><li>1.  <strong>super_block</strong>: Tracks file system metadata (e.g., block sizes, mount points).</li><li>2.  <strong>inode</strong>: Represents a physical file on disk and contains data block pointers.</li><li>3.  <strong>dentry</strong>: Maps filenames to inode numbers to accelerate path resolutions.</li><li>4.  <strong>file</strong>: Tracks open file descriptors and current seek offsets.</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "VFS & Block Device I/O", "color": "#BFA88F", "title": "file_operations VFS Driver Redirections (file_operations VFS)", "body": "<li>  <strong>Virtual Operations</strong>: The <code>struct file</code> includes a pointer to a <code>file_operations</code> structure containing function vectors.</li><li>  <strong>Driver Mounting</strong>: Calls to <code>read()</code> resolve to <code>file->f_op->read()</code>, routing operations to file-system-specific code (e.g., <code>ext4_file_read</code> or a character device driver).</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "VFS & Block Device I/O", "color": "#BFA88F", "title": "BIO Request Packets and bio_vec Mappings (struct bio Layout)", "body": "<li>  <strong>I/O Transfer Units</strong>: The VFS translates file page operations into <code>struct bio</code> packets for block devices.</li><li>  <strong>Scatter-Gather DMA</strong>: A BIO contains an array of <code>bio_vec</code> segments mapping physical pages, offsets, and lengths, allowing DMA controllers to transfer non-contiguous blocks.</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "VFS & Block Device I/O", "color": "#BFA88F", "title": "I/O Schedulers and Request Queue Merging (I/O Scheduler queue)", "body": "<li>  <strong>Request Merging</strong>: BIOs enter a <code>request_queue</code>. Schedulers merge contiguous sector requests (Elevator Merge) into single requests to reduce disk head movements.</li><li>  <strong>Multi-Queue Scheduling</strong>: The <code>blk-mq</code> framework allocates queues to CPU cores, using schedulers like BFQ or Kyber to bypass global lock contention on fast devices.</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "VFS & Block Device I/O", "color": "#BFA88F", "title": "mmap Address Mapping and Page Fault Read (mmap & Page Fault)", "body": "<li>  <strong>Virtual Mappings</strong>: The call <code>mmap()</code> creates a <code>vm_area_struct</code> mapping virtual addresses to file indexes without allocating physical pages.</li><li>  <strong>Zero-Copy Loading</strong>: Accessing mapped memory triggers a page fault. The kernel reads the file segment into the page cache and maps its physical address to the process's page table, avoiding copy overhead.</li>"}];
+        let activeModule = 'ALL';
+
+        function renderCards() {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = '';
+            const query = document.getElementById('search').value.toLowerCase();
+
+            cards.forEach(c => {
+                const matchesSearch = c.title.toLowerCase().includes(query) || c.body.toLowerCase().includes(query);
+                const matchesModule = activeModule === 'ALL' || c.module === activeModule;
+
+                if (matchesSearch && matchesModule) {
+                    const el = document.createElement('div');
+                    el.className = 'card';
+                    el.style.borderLeft = `4px solid ${c.color}`;
+                    el.innerHTML = `
+                        <div class="card-header">
+                            <span class="card-id" style="background-color: ${c.color}22; color: ${c.color}">${c.relativeId}</span>
+                            <h3 class="card-title">${c.title}</h3>
+                        </div>
+                        <div class="card-body">
+                            ${c.body}
+                        </div>
+                        <div class="card-footer">
+                            <span>${c.moduleName}</span>
+                            <span style="color: ${c.color}">Card #${c.id}</span>
+                        </div>
+                    `;
+                    grid.appendChild(el);
+                }
+            });
+        }
+
+        function filterModule(mod) {
+            activeModule = mod;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.innerText.includes(mod) || (mod === 'ALL' && btn.innerText === 'ALL')) {
+                    btn.classList.add('active');
+                }
+            });
+            renderCards();
+        }
+
+        document.getElementById('search').addEventListener('input', renderCards);
+        renderCards();
+    </script>
+</body>
+</html>

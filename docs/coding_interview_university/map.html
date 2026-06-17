@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>计算机科学核心知识拓扑图谱</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #4B5F7A;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        #canvas-container {
+            width: 90%;
+            height: 600px;
+            border: 2px solid #24324F;
+            border-radius: 8px;
+            background-color: #1A202C;
+            position: relative;
+            overflow: hidden;
+        }
+        .node {
+            position: absolute;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(255,255,255,0.1);
+        }
+        #tooltip {
+            width: 80%;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #2D3748;
+            border-left: 5px solid #4B5F7A;
+            border-radius: 4px;
+            min-height: 80px;
+        }
+        .colorM1 { background-color: #4B5F7A; }
+        .colorM2 { background-color: #6B8272; }
+        .colorM3 { background-color: #9C6666; }
+        .colorM4 { background-color: #7A7A7A; }
+        .colorM5 { background-color: #9A825A; }
+        .colorM6 { background-color: #755B77; }
+    </style>
+</head>
+<body>
+    <h1>计算机科学核心知识拓扑图谱</h1>
+    <div id="canvas-container"></div>
+    <div id="tooltip">
+        <h3>点击卡片节点查看详细计算机科学底层机制与物理映射</h3>
+    </div>
+
+    <script>
+        const nodes = [
+            { id: 1, group: 'M1', x: 80, y: 80, label: 'Card 1: Dynamic Array', zh: '卡片 1: 动态数组与均摊分析', desc: 'Contiguous arrays and amortized O(1) mutations.' },
+            { id: 2, group: 'M1', x: 80, y: 180, label: 'Card 2: Linked Lists', zh: '卡片 2: 单双向链表引用', desc: 'Non-contiguous storage, pointer overheads, and locality losses.' },
+            { id: 3, group: 'M1', x: 80, y: 280, label: 'Card 3: Stacks & Queues', zh: '卡片 3: 栈与环形循环队列', desc: 'LIFO & FIFO layouts via array bounds and modulus wrap-arounds.' },
+            { id: 4, group: 'M1', x: 80, y: 380, label: 'Card 4: Hash Table Collide', zh: '卡片 4: 哈希表冲突解决', desc: 'Chaining vs Open Addressing and load factors.' },
+            { id: 5, group: 'M1', x: 80, y: 480, label: 'Card 5: Rehash Expansion', zh: '卡片 5: 渐进式重哈希机制', desc: 'Incremental Redis-like double map migrations.' },
+            
+            { id: 6, group: 'M2', x: 260, y: 80, label: 'Card 6: BST Degradation', zh: '卡片 6: BST树退化与自平衡', desc: 'Binary search tree degradation to single linked lists.' },
+            { id: 7, group: 'M2', x: 260, y: 180, label: 'Card 7: AVL & RBT Trees', zh: '卡片 7: AVL与红黑树平衡旋转', desc: 'Strict height balancing vs 3-rotation weak coloring balances.' },
+            { id: 8, group: 'M2', x: 260, y: 280, label: 'Card 8: Heap Storage', zh: '卡片 8: 二叉堆与优先队列', desc: 'Array-based compact complete trees, SiftUp/SiftDown.' },
+            { id: 9, group: 'M2', x: 260, y: 380, label: 'Card 9: Prefix Trie', zh: '卡片 9: Trie与基数树空间压缩', desc: 'Multi-way prefix branches folded into Radix strings.' },
+            { id: 10, group: 'M2', x: 260, y: 480, label: 'Card 10: Graph Matrix', zh: '卡片 10: 图的矩阵与邻接表', desc: 'O(1) connection tests vs O(V+E) sparse graph lists.' },
+
+            { id: 11, group: 'M3', x: 440, y: 80, label: 'Card 11: BFS & DFS', zh: '卡片 11: 广度与深度优先遍历', desc: 'Queue levels vs recursive stack frame walks.' },
+            { id: 12, group: 'M3', x: 440, y: 180, label: 'Card 12: Merge/Quick Sort', zh: '卡片 12: 归并与快速分治排序', desc: 'O(N) merge space vs unstable pivots and IntroSort swaps.' },
+            { id: 13, group: 'M3', x: 440, y: 280, label: 'Card 13: Heap Sort', zh: '卡片 13: 堆排序原位调整', desc: 'In-place SiftDown sortings and CPU cache misses.' },
+            { id: 14, group: 'M3', x: 440, y: 380, label: 'Card 14: Binary Search', zh: '卡片 14: 二分查找与溢出防范', desc: 'Safe midpoint offsets and binary boundaries.' },
+            { id: 15, group: 'M3', x: 440, y: 480, label: 'Card 15: Bit Manipulation', zh: '卡片 15: 二进制补码位运算', desc: 'Two s complement ALU logic and bitmasks.' },
+
+            { id: 16, group: 'M4', x: 620, y: 80, label: 'Card 16: Recursion Stack', zh: '卡片 16: 递归回溯与系统栈', desc: 'Stack Frame allocations and tail recursion optimization.' },
+            { id: 17, group: 'M4', x: 620, y: 180, label: 'Card 17: DP Memoization', zh: '卡片 17: 动态规划与递推折叠', desc: 'Top-down memo cache vs bottom-up tabulation space folds.' },
+            { id: 18, group: 'M4', x: 620, y: 280, label: 'Card 18: Greedy Local Opt', zh: '卡片 18: 贪心选择局部最优', desc: 'Fractional knapsacks without backtracking.' },
+            { id: 19, group: 'M4', x: 620, y: 380, label: 'Card 19: Divide & Conquer', zh: '卡片 19: 分治递推关系解算', desc: 'Master Theorem case resolutions.' },
+
+            { id: 20, group: 'M5', x: 800, y: 80, label: 'Card 20: CPU Cache Lines', zh: '卡片 20: 缓存行对齐与伪共享', desc: 'L1/L2/L3 64-byte blocks and MESI protocol invalidations.' },
+            { id: 21, group: 'M5', x: 800, y: 180, label: 'Card 21: VM & TLB Walks', zh: '卡片 21: 虚拟内存与页表Walk', desc: 'Multi-level translation walks and TLB page folds.' },
+            { id: 22, group: 'M5', x: 800, y: 280, label: 'Card 22: Context Switch', zh: '卡片 22: 进程线程上下文切换', desc: 'CR3 registers swaps and shared virtual address spaces.' },
+            { id: 23, group: 'M5', x: 800, y: 380, label: 'Card 23: TCP Socket State', zh: '卡片 23: TCP套接字握手挥手', desc: 'TIME_WAIT 2MSL port preservation states.' },
+            { id: 24, group: 'M5', x: 800, y: 480, label: 'Card 24: Asymptotic Big-O', zh: '卡片 24: 渐进时空复杂度边界', desc: 'Limits of growth vs small N constant factor overrides.' },
+
+            { id: 25, group: 'M6', x: 980, y: 80, label: 'Card 25: Design Patterns', zh: '卡片 25: 设计模式系统解耦', desc: 'Creational, structural, and behavioral OOP patterns.' },
+            { id: 26, group: 'M6', x: 980, y: 180, label: 'Card 26: TDD Mocking', zh: '卡片 26: 测试驱动开发测试桩', desc: 'Red-Green-Refactor cycles and stub isolations.' },
+            { id: 27, group: 'M6', x: 980, y: 280, label: 'Card 27: Clean Code SOLID', zh: '卡片 27: SOLID与Clean Code', desc: 'SRP/OCP/LSP/ISP/DIP and cyclomatic complexities.' },
+            { id: 28, group: 'M6', x: 980, y: 380, label: 'Card 28: Scale System Design', zh: '卡片 28: 大规模系统负载均衡', desc: 'Sharding, horizontal scaling, and stateless design.' }
+        ];
+
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+
+        nodes.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `node color${n.group}`;
+            div.style.left = `${n.x}px`;
+            div.style.top = `${n.y}px`;
+            div.innerText = n.zh;
+            div.onclick = () => {
+                tooltip.innerHTML = `
+                    <h3>\${n.zh}</h3>
+                    <p><strong>Module:</strong> \${n.group} | <strong>Details:</strong> \${n.desc}</p>
+                `;
+            };
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>

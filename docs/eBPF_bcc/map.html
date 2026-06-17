@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eBPF bcc Linux 内核可编程性与系统诊断知识图谱</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #161820;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #2a2d3d;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.8rem 1.5rem;
+            text-align: center;
+            min-width: 120px;
+        }
+        .stat-val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .stat-lbl {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .module-col {
+            background-color: rgba(22, 24, 32, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .module-header {
+            font-size: 1.1rem;
+            font-weight: 700;
+            padding-bottom: 0.8rem;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .module-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .item-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .item-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--theme-color, var(--accent-color));
+        }
+        .item-card:hover {
+            transform: translateY(-2px);
+            border-color: #60a5fa;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .card-id {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--theme-color);
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+        
+        /* Modal Window */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        .modal-content {
+            background-color: #161822;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            padding: 2rem;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            color: #94a3b8;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        .close-btn:hover {
+            color: #fff;
+        }
+        .modal-header {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .modal-body {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+        }
+        .modal-body p {
+            margin-bottom: 1rem;
+        }
+        .modal-body li {
+            margin-bottom: 0.5rem;
+            margin-left: 1.2rem;
+        }
+        .modal-body code {
+            background-color: rgba(0, 0, 0, 0.3);
+            color: #38bdf8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>eBPF bcc Linux 内核可编程性与系统诊断图谱</h1>
+        <p>基于 2026 最新内核规范与 CO-RE 机制的高密度系统编程与性能优化速查体系</p>
+    </header>
+    
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-val">28</div>
+            <div class="stat-lbl">核心速查卡片</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">6</div>
+            <div class="stat-lbl">技术分类模块</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">L0-L2</div>
+            <div class="stat-lbl">三层知识过滤</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">3</div>
+            <div class="stat-lbl">Zone T 诊断实验室</div>
+        </div>
+    </div>
+    
+    <div class="map-grid" id="mapGrid"></div>
+    
+    <!-- Modal -->
+    <div class="modal" id="cardModal">
+        <div class="modal-content">
+            <button class="close-btn" id="closeModal">&times;</button>
+            <div class="modal-header">
+                <span class="card-id" id="modalCardId">M1.1</span>
+                <h2 class="modal-title" id="modalCardTitle">Title</h2>
+            </div>
+            <div class="modal-body" id="modalCardBody">Body</div>
+        </div>
+    </div>
+    
+    <script>
+        const cardsData = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "安全沙盒与VM", "color": "#7A8B99", "title": "eBPF 寄存器模型与虚拟 CPU (Registers & CPU Model)", "body": "<li>  <strong>寄存器约束</strong>：eBPF 虚拟机拥有 11 个 64 位硬寄存器。<code>R0</code> 承载辅助函数返回值及程序退出状态；<code>R1-R5</code> 传递辅助函数调用参数；<code>R6-R9</code> 为被调用者保存寄存器（需由 BPF 自动压栈恢复）；<code>R10</code> 为只读帧指针（Frame Pointer），指向 512 字节的栈底。</li><li>  <strong>物理限界</strong>：单程序栈大小硬性限制为 <strong>512 字节</strong>，超限将直接触发 Verifier 拒绝。大对象或复杂上下文状态必须存入 BPF Maps 中而决不能声明为栈上局部变量。</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "安全沙盒与VM", "color": "#7A8B99", "title": "字节码生成与内核 JIT 编译 (Bytecode & JIT Compilation)", "body": "<li>  <strong>编译链路</strong>：开发级 C 代码经 LLVM 以 <code>-target bpf</code> 选项编译，生成符合 ELF 格式的 BPF 字节码二进制。加载时，内核的 <strong>JIT (Just-In-Time) 编译器</strong>（如 x86_64 JIT）将 64 位 BPF 指令逐条直接对齐翻译为 CPU 原生机器码（如 <code>x86 MOV/JMP</code>）。</li><li>  <strong>内核开关</strong>：生产环境必须确保 <code>/proc/sys/net/core/bpf_jit_enable</code> 设置为 <code>1</code>（开启 JIT）且 <code>bpf_jit_harden</code> 设置为 <code>2</code>（硬化防止 JIT 喷射攻击），从而使运行效率近乎原生汇编指令。</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "安全沙盒与VM", "color": "#7A8B99", "title": "Verifier 验证器静态检测边界 (Verifier Static Analysis)", "body": "<li>  <strong>验证流程</strong>：验证器分两阶段执行。第一阶段执行有向无环图（DAG）深度优先遍历，严禁出现死循环、不可达代码以及未初始化指针访问；第二阶段模拟指令执行，追踪每个寄存器的“类型状态”（如 <code>SCALAR_VALUE</code>、<code>PTR_TO_STACK</code>）和值范围。</li><li>  <strong>防线策略</strong>：一旦寄存器进行未经 NULL 校验的指针操作，或指针跨越栈边界读写，验证器将报错终止载入。它通过“状态剪枝”降低评估分支数，避免长时间占用内核。</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "安全沙盒与VM", "color": "#7A8B99", "title": "Helper Functions 辅助函数沙盒安全机制 (Helper Functions)", "body": "<li>  <strong>接口限制</strong>：eBPF 程序严禁直接调用内核定义的任意函数（如 <code>printk</code> 或内核内部符号），以防破坏内核调用栈安全。所有外部交互必须通过系统预分配的静态 Helper Functions 数组（如 <code>bpf_map_lookup_elem</code>、<code>bpf_ktime_get_ns</code>）。</li><li>  <strong>特权控制</strong>：每个 BPF 程序类型（如 <code>BPF_PROG_TYPE_KPROBE</code> 与 <code>BPF_PROG_TYPE_SOCKET_FILTER</code>）有其专属的可调用 Helper 许可子集。在网卡驱动收包上下文中，绝不允许调用可能引发进程挂起或睡眠的辅助函数。</li>"}, {"id": 5, "relativeId": "M1.5", "module": "M1", "moduleName": "安全沙盒与VM", "color": "#7A8B99", "title": "BPF LSM 可信安全防御机制 (BPF LSM Security Hooks)", "body": "<li>  <strong>安全框架</strong>：BPF LSM 允许将 eBPF 程序作为回调函数直接挂载到 Linux 安全模块（LSM）框架的硬挂钩上（如 <code>path_mkdir</code>、<code>file_permission</code>、<code>task_alloc</code>）。</li><li>  <strong>细粒度拦截</strong>：当特定系统操作触发时，BPF 程序检查操作的主客体元数据，并通过返回 <code>0</code>（放行）或非零值（如 <code>-EACCES</code>，拒绝）实现内核级的动态安全合规审计，彻底替代笨重且不可热升级的传统 SELinux 策略。</li>"}, {"id": 6, "relativeId": "M2.1", "module": "M2", "moduleName": "内核插桩与追踪", "color": "#7D8F7B", "title": "Kprobe 与 Kretprobe 动态内核插桩 (Kprobes & Kretprobes)", "body": "<li>  <strong>注入机制</strong>：<code>kprobe</code> 在运行时动态改写内核目标函数的第一条指令为陷阱指令（如 x86 的 <code>int3</code>），触发 CPU 中断陷入。执行先驱 BPF 程序后，执行原指令并返回；<code>kretprobe</code> 劫持函数返回地址，实现退出时的参数与耗时审计。</li><li>  <strong>性能隐患</strong>：由于引发软中断，每次 <code>kprobe</code> 调用会造成数千个 CPU 周期的上下文切换损耗。避免在调度程序（如 <code>schedule</code>）或高频网卡中断函数上使用动态 <code>kprobe</code>。</li>"}, {"id": 7, "relativeId": "M2.2", "module": "M2", "moduleName": "内核插桩与追踪", "color": "#7D8F7B", "title": "Tracepoint 静态内核跟踪点 (Tracepoints)", "body": "<li>  <strong>静态锚点</strong>：由内核开发者预先在核心子系统（如 <code>sched_switch</code>、<code>sys_enter_read</code>）的关键物理位置硬编码的 Tracepoints。其 ABI 接口在内核版本更迭中极度稳定。</li><li>  <strong>零启用损耗</strong>：未被加载挂钩时，Tracepoint 在内核中仅表现为 NOP 指令，完全无性能损耗；一旦启用，会跳转执行绑定的 eBPF 程序，调用开销远低于 <code>kprobe</code> 的软中断。</li>"}, {"id": 8, "relativeId": "M2.3", "module": "M2", "moduleName": "内核插桩与追踪", "color": "#7D8F7B", "title": "Raw Tracepoint 原生跟踪点 (Raw Tracepoints)", "body": "<li>  <strong>性能提纯</strong>：传统的 <code>tracepoint</code> 挂载点在内核中有一个参数序列化适配器（Format adapter），将内核结构转化为易读的参数包。<code>raw_tracepoint</code> 绕过了此层包装，使 eBPF 能够直接访问原始的内核上下文（如直接获取 <code>struct pt_regs</code>）。</li><li>  <strong>适用场景</strong>：在大流量网络或磁盘 IO 监控中，使用 <code>raw_tracepoint</code> 能减少内核级参数转换开销，使追踪吞吐极限提升达 15% 以上。</li>"}, {"id": 9, "relativeId": "M2.4", "module": "M2", "moduleName": "内核插桩与追踪", "color": "#7D8F7B", "title": "fentry / fexit 内核蹦床机制 (fentry / fexit & Trampoline)", "body": "<li>  <strong>无缝跳板</strong>：由 5.5 内核引入的新一代动态插桩技术。通过 BPF Trampoline（内核蹦床）技术，直接修改内核函数开头的 <code>fentry</code> 钩子，用直接的汇编 <code>call</code> 跳转替换原指令。</li><li>  <strong>性能碾压</strong>：由于彻底规避了 <code>kprobe</code> 带来的 <code>int3</code> 中断陷入与寄存器状态大保存开销，<code>fentry/fexit</code> 执行速度与内核静态 tracepoint 一样快，是替代传统 <code>kprobe</code> 的生产首选。</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "用户态追踪与符号", "color": "#9E828A", "title": "Uprobe 与 Uretprobe 用户态动态追踪 (Uprobes & Uretprobes)", "body": "<li>  <strong>机制原理</strong>：对用户态空间进程的虚拟内存地址（如共享库 <code>libc.so</code> 内的 <code>malloc</code>）进行断点指令劫持。当程序运行到插桩地址时，陷于内核态，触发绑定的 eBPF 程序执行。</li><li>  <strong>致命瓶颈</strong>：由于涉及“用户态 $\\rightarrow$ 内核态 $\\rightarrow$ 用户态”的双向上下文切换，每次 <code>uprobe</code> 调用耗时可达 1-2 微秒。严禁在 C++/Rust 高频循环函数内设置 <code>uprobe</code> 插桩。</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "用户态追踪与符号", "color": "#9E828A", "title": "USDT 用户态静态探针 (USDT Probes)", "body": "<li>  <strong>预置监控</strong>：User-level Statically Defined Tracing。由应用开发者（如 MySQL、JVM、Node.js）使用 <code>DTRACE_PROBE</code> 宏在用户态源码中埋设的静态探测点。</li><li>  <strong>运行时插桩</strong>：编译后为 NOP 指令，并记录在 ELF 文件的 <code>.note.stapsdt</code> 段中。启用追踪时，内核将该 NOP 指令动态 patch 为断点指令，实现应用级事件捕捉，避免过度侵入。</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "用户态追踪与符号", "color": "#9E828A", "title": "动态符号表解析与 DWARF 重定位 (Symbol Resolution)", "body": "<li>  <strong>符号映射</strong>：eBPF 内核程序捕捉到的调用栈仅为虚拟内存地址（如 <code>0x7fff81a2f10b</code>）。必须在用户态（如 BCC / Golang 监控端）解析进程的 ELF 二进制符号段（<code>.symtab</code>、<code>.dynsym</code>）将其映射为类名与方法名。</li><li>  <strong>调试还原</strong>：如果二进制文件已被 <code>strip</code>，必须提供外部 DWARF 调试符号文件；针对运行时即时编译的语言（如 Java JVM、V8 JIT），需通过 <code>/tmp/perf-<pid>.map</code> 动态加载 JIT 编译器的内存符号映射。</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "用户态追踪与符号", "color": "#9E828A", "title": "内存泄漏与分配追踪模型 (Memory Leak Tracing)", "body": "<li>  <strong>内存模型</strong>：在 BCC <code>memleak</code> 中，通过挂载 <code>malloc</code> 与 <code>calloc</code> 的 <code>uprobe</code>（或 <code>fentry</code> 如果内核直接分配），记录每次内存申请的地址指针及调用栈，以指针为 Key 存入 BPF Hash Map。</li><li>  <strong>生存差值</strong>：同步挂载 <code>free</code> 的 <code>uprobe</code>，释放时将该 Key 从 Hash Map 中剔除。运行一段时间后，Map 中残留的分配项即为泄漏物理地址与调用栈源头。</li>"}, {"id": 14, "relativeId": "M4.1", "module": "M4", "moduleName": "高性能网络与旁路", "color": "#B58A7D", "title": "XDP 极速数据路径机制 (eXpress Data Path)", "body": "<li>  <strong>就地收包</strong>：XDP 程序挂载在网络驱动收包队列的最早期（<code>RX</code> 环），在网络包尚未被包装为内核 <code>sk_buff</code> 结构体、且未触发内核网络协议栈分配前直接执行。</li><li>  <strong>终极裁决</strong>：支持 <code>XDP_DROP</code>（直接丢包，抗 DDoD 降本神器）、<code>XDP_TX</code>（原网卡送回）、<code>XDP_REDIRECT</code>（绕过 CPU 路由，直达另一块网卡或转发到用户态 <code>AF_XDP</code> 套接字），处理单包时延仅需纳秒级。</li>"}, {"id": 15, "relativeId": "M4.2", "module": "M4", "moduleName": "高性能网络与旁路", "color": "#B58A7D", "title": "TC (Traffic Control) 流量控制与过滤 (TC Clsact)", "body": "<li>  <strong>双向钩子</strong>：挂载在 Linux 流量控制框架的 <code>clsact</code> 队列上。相比 XDP，TC 能够同时接管入站（Ingress）和出站（Egress）的双向流量。</li><li>  <strong>结构解析</strong>：TC 程序已能完整读写内核 <code>struct __sk_buff</code>，直接获取网络分流元数据、VLAN 标签、协议端口等，是构建高性能容器防火墙、负载均衡与微服务流量限速的底座。</li>"}, {"id": 16, "relativeId": "M4.3", "module": "M4", "moduleName": "高性能网络与旁路", "color": "#B58A7D", "title": "Socket Filter 套接字过滤机制 (Socket Filters)", "body": "<li>  <strong>套接字附着</strong>：通过 <code>setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, ...)</code> 直接附着在特定 Socket 描述符上。</li><li>  <strong>应用沙箱</strong>：作为最古老的 BPF 应用形式，它对套接字收发包进行被动复制与监控，无法修改数据包内容，仅用于流量镜像、包结构过滤和轻量级审计（如安全边界流量监控）。</li>"}, {"id": 17, "relativeId": "M4.4", "module": "M4", "moduleName": "高性能网络与旁路", "color": "#B58A7D", "title": "Sockmap 与 Sockhash 套接字重定向 (Sockmap & Sockhash)", "body": "<li>  <strong>环回直连</strong>：<code>BPF_MAP_TYPE_SOCKMAP</code> 存储了活跃网络连接的 Socket 文件描述符。通过将 eBPF 程序挂载到 <code>sk_msg</code> 上，数据包在发送端 Socket 写入缓冲区时被直接复制到接收端 Socket 的读取队列中。</li><li>  <strong>绕过本环</strong>：完全跨越了传统网络层、传输层，对于本地主机（<code>localhost</code> / 容器间通信）的 TCP 通信，直接缩短网络传输耗时达 50% 以上。</li>"}, {"id": 18, "relativeId": "M4.5", "module": "M4", "moduleName": "高性能网络与旁路", "color": "#B58A7D", "title": "容器网络旁路加速设计 (Container Network Bypass)", "body": "<li>  <strong>经典痛点</strong>：传统 Kubernetes 容器间通信依赖 veth-pair 设备，数据包需遍历两次网络协议栈（Pod 协议栈 $\\rightarrow$ 宿主机协议栈），引发高开销。</li><li>  <strong>Cilium 实践</strong>：Cilium 使用 eBPF 动态感知容器网络接口（CNI）拓扑，直接利用 eBPF 将源 Pod 暴露的 Socket 直接与目的 Pod 绑定，越过桥接网卡与 iptables 过滤，实现容器通信极速直通。</li>"}, {"id": 19, "relativeId": "M5.1", "module": "M5", "moduleName": "共享存储与数据流", "color": "#5F7582", "title": "BPF Maps 共享存储物理分类 (BPF Maps)", "body": "<li>  <strong>类型选型</strong>：</li><li><code>BPF_MAP_TYPE_HASH</code>：动态哈希表，适合稀疏大键值查找；</li><li><code>BPF_MAP_TYPE_ARRAY</code>：静态数组表，预分配内存，读取时延最低且稳定；</li><li><code>BPF_MAP_TYPE_LRU_HASH</code>：内置冷热逐出机制，适合处理流量峰值防内存暴涨。</li><li>  <strong>并发防护</strong>：高频写入必须选用 <code>Per-CPU</code> 变体（如 <code>BPF_MAP_TYPE_PERCPU_HASH</code>），每个 CPU 核心独占一份内存分区，实现无锁并发写入，彻底避开内核自旋锁竞争引起的 Cache 抖动。</li>"}, {"id": 20, "relativeId": "M5.2", "module": "M5", "moduleName": "共享存储与数据流", "color": "#5F7582", "title": "Perf Ring Buffer 事件通道 (Perf Event Buffer)", "body": "<li>  <strong>环形结构</strong>：传统的 eBPF 与用户态事件通信管道。内核为每个 CPU 核心独立分配一个专用的 Perf 环形内存区。</li><li>  <strong>丢包设计</strong>：当某一 CPU 突发海量事件，而用户态对应的特定线程消费不及时，该单核缓冲区将直接溢出丢包。此外，由于各核独立存储，多核并发上报的数据在用户态接收端会产生明显的事件时间重叠乱序。</li>"}, {"id": 21, "relativeId": "M5.3", "module": "M5", "moduleName": "共享存储与数据流", "color": "#5F7582", "title": "BPF Ring Buffer 新一代共享缓冲 (BPF Ring Buffer)", "body": "<li>  <strong>全局无锁</strong>：5.8 内核引入的新一代环形缓冲区。由所有 CPU 核心共享同一个全局无锁多生产者、单消费者（MPSC）队列。</li><li>  <strong>零拷贝API</strong>：提供 <code>bpf_ringbuf_reserve</code> API，直接在共享的环形物理内存上预留空间给程序写入，写入完成调用 <code>bpf_ringbuf_commit</code> 瞬间提交，彻底消除了“内核栈写临时结构 $\\rightarrow$ 拷贝至 Perf 环”的二次内存拷贝消耗。</li>"}, {"id": 22, "relativeId": "M5.4", "module": "M5", "moduleName": "共享存储与数据流", "color": "#5F7582", "title": "用户态 Map 异步事件驱动与同步 (Map Operations & User Sync)", "body": "<li>  <strong>操作接口</strong>：用户态通过 <code>bpf(BPF_MAP_LOOKUP_ELEM, ...)</code> 系统调用与 Map 交互。若频繁在死循环中轮询 Map，会导致高昂系统调用开销。</li><li>  <strong>事件驱动</strong>：Ring Buffer 内置 epoll 文件描述符支持。用户态程序通过 <code>epoll_wait</code> 在 Ring Buffer 上进行阻塞等待，当内核通过 <code>bpf_ringbuf_submit</code> 写入数据跨越水位线时自动唤醒用户态消费，维持极低待机 CPU 开销。</li>"}, {"id": 23, "relativeId": "M5.5", "module": "M5", "moduleName": "共享存储与数据流", "color": "#5F7582", "title": "Map Pinning 状态持久化机制 (Map Pinning)", "body": "<li>  <strong>生存局限</strong>：默认情况下，BPF Maps 的生命周期与加载它的 BPF 程序文件描述符（FD）强绑定。一旦用户态守护进程退出且 eBPF 程序卸载，内核中的 Maps 及历史统计数据将随之销毁。</li><li>  <strong>状态承袭</strong>：通过挂载 eBPF 专用虚拟文件系统 <code>bpffs</code>（通常在 <code>/sys/fs/bpf/</code> 下），调用 <code>bpf_obj_pin()</code> 将 Map 锚定到该目录下。这确保了即便程序重启，新的 eBPF 实例依然能重新加载并继承先前的 Map 状态数据。</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "移植适配与防爆", "color": "#BFA88F", "title": "BPF CO-RE 一次编译到处运行 (BPF CO-RE)", "body": "<li>  <strong>移植困局</strong>：不同发行版 Linux 内核的数据结构（如 <code>struct task_struct</code>）中字段偏移量随时在变，导致在 A 机器编译的 BPF 字节码在 B 机器上会因读取到错位数据而触发崩溃。</li><li>  <strong>重定位原理</strong>：Compile Once - Run Everywhere。使用带有调试信息的 Clang 编译 BPF 源码，将对结构体成员访问改写为带重定位标记（<code>__builtin_preserve_access_index()</code>）的虚拟访问。加载时，由 <code>libbpf</code> 根据本地内核 BTF 动态计算并重写字节码中的偏移量，完成无感移植。</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "移植适配与防爆", "color": "#BFA88F", "title": "BTF (BPF Type Format) 类型元数据 (BTF Metadata)", "body": "<li>  <strong>轻量调试</strong>：BTF 是对传统庞大 DWARF 调试元数据格式的高度压缩替代版（体积可缩小 100 倍以上）。它以结构化的紧凑二进制形式编码了内核所有的类型定义、结构体字段、函数原型。</li><li>  <strong>内核自省</strong>：现代内核通过 <code>/sys/kernel/btf/vmlinux</code> 暴露自省元数据，使编译期不需要本地包含繁重的 <code>linux/sched.h</code> 等复杂头文件，只需包含一个 <code>vmlinux.h</code> 即可获得当前内核的完整类型视图。</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "移植适配与防爆", "color": "#BFA88F", "title": "BCC 动态编译 vs libbpf-bootstrap (BCC vs libbpf)", "body": "<li>  <strong>BCC 痛点</strong>：BCC 在运行期调用目标机的 Python + Clang 现场生成字节码，导致部署容器需携带数以百 MB 的编译环境，启动慢且有 CPU 刺突隐患。</li><li>  <strong>libbpf 极简</strong>：使用 <code>libbpf-bootstrap</code> 架构，将 BPF C 字节码在编译阶段即固化并压缩进最终的用户态 C 二进制程序内。部署文件仅几十 KB，秒级瞬间无依赖加载，适合极致轻量化生产推送。</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "移植适配与防爆", "color": "#BFA88F", "title": "bpftool 工具链与 JIT 反编译 (bpftool Diagnostics)", "body": "<li>  <strong>命令行利器</strong>：<code>bpftool</code> 是对内核 BPF 子系统进行监控的权威工具。</li><li>  <strong>诊断命令</strong>：</li><li>查看运行中程序详情：<code>bpftool prog show</code>；</li><li>反编译内核已运行的 JIT 机器码：<code>bpftool prog dump jited id <prog_id></code>；</li><li>强制将 Map 固定持久化：<code>bpftool map pin id <map_id> /sys/fs/bpf/<map_name></code>，是保障生产排障的核心利器。</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "移植适配与防爆", "color": "#BFA88F", "title": "eBPF 生产防爆与 verifier 调优 (eBPF Production Operations)", "body": "<li>  <strong>崩溃防护</strong>：Verifier 一旦检测到死循环、超出栈空间限制、或未检查 NULL 的空指针解引用，将直接拒绝加载，从而彻底保护内核。</li><li>  <strong>调优规避</strong>：对于早期内核不支持循环的情况，必须使用 `</li>"}];
+        const modules = [
+            { id: "M1", name: '安全沙盒与VM', color: "var(--slate-blue)" },
+            { id: "M2", name: '内核插桩与追踪', color: "var(--moss-green)" },
+            { id: "M3", name: '用户态追踪与符号', color: "var(--plum-rose)" },
+            { id: "M4", name: '高性能网络与旁路', color: "var(--terracotta)" },
+            { id: "M5", name: '共享存储与数据流', color: "var(--indigo)" },
+            { id: "M6", name: '移植适配与防爆', color: "var(--antique-gold)" }
+        ];
+        
+        const grid = document.getElementById('mapGrid');
+        
+        const moduleMap = {};
+        modules.forEach(m => {
+            moduleMap[m.id] = [];
+        });
+        
+        cardsData.forEach(card => {
+            if (moduleMap[card.module]) {
+                moduleMap[card.module].push(card);
+            }
+        });
+        
+        modules.forEach(m => {
+            const col = document.createElement('div');
+            col.className = 'module-col';
+            
+            const header = document.createElement('div');
+            header.className = 'module-header';
+            header.innerHTML = `<span>${m.name}</span><span class="module-dot" style="background-color: ${m.color}"></span>`;
+            col.appendChild(header);
+            
+            moduleMap[m.id].forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'item-card';
+                cardEl.style.setProperty('--theme-color', m.color);
+                cardEl.innerHTML = `
+                    <div class="card-top">
+                        <span class="card-id" style="color: ${m.color}">${card.relativeId}</span>
+                    </div>
+                    <div class="card-title">${card.title}</div>
+                `;
+                
+                cardEl.addEventListener('click', () => openModal(card));
+                col.appendChild(cardEl);
+            });
+            
+            grid.appendChild(col);
+        });
+        
+        const modal = document.getElementById('cardModal');
+        const closeModal = document.getElementById('closeModal');
+        
+        function openModal(card) {
+            document.getElementById('modalCardId').innerText = card.relativeId;
+            document.getElementById('modalCardId').style.color = card.color;
+            document.getElementById('modalCardTitle').innerText = card.title;
+            document.getElementById('modalCardBody').innerHTML = card.body;
+            modal.style.display = 'flex';
+        }
+        
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

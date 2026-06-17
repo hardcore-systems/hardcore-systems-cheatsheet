@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang= + map_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content= + map_desc + >
+    <title>Envoy Proxy Core Architecture & Filter Pipeline Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .stat-badge {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .stat-badge span.num {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+        .filter-controls {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            width: 300px;
+            outline: none;
+        }
+        .search-box:focus {
+            border-color: var(--accent-color);
+        }
+        .filter-btn {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        .filter-btn:hover {
+            color: var(--text-color);
+            background-color: #1e293b;
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .card-id {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            flex: 1;
+            margin-left: 0.75rem;
+        }
+        .card-body {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.5rem;
+        }
+        .card-body li {
+            margin-left: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+        .card-body code {
+            background-color: rgba(0,0,0,0.3);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #f472b6;
+        }
+        .card-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Envoy Service Gateway Map</h1>
+        <p>Event loop threading, dynamic xDS configurations, listener SNI parsing, downstream network filters, HTTP routing codec, and circuit breaking resiliency</p>
+    </header>
+
+    <div class="stats-bar">
+        <div class="stat-badge">Core Cards: <span class="num">28</span></div>
+        <div class="stat-badge">Category Modules: <span class="num">6</span></div>
+        <div class="stat-badge">3-Level Filtering: <span class="num">L0➜L2</span></div>
+        <div class="stat-badge">Zone T Admin: <span class="num">Zone T</span></div>
+    </div>
+
+    <div class="filter-controls">
+        <input type="text" id="search" class="search-box" placeholder="Search cards (e.g. Thread, xDS, Filter, Circuit, QUIC)...">
+        <button class="filter-btn active" onclick="filterModule('ALL')">ALL</button>
+        <button class="filter-btn" onclick="filterModule('M1')">M1 Threading</button>
+        <button class="filter-btn" onclick="filterModule('M2')">M2 xDS</button>
+        <button class="filter-btn" onclick="filterModule('M3')">M3 Filters</button>
+        <button class="filter-btn" onclick="filterModule('M4')">M4 Upstream</button>
+        <button class="filter-btn" onclick="filterModule('M5')">M5 Protocol</button>
+        <button class="filter-btn" onclick="filterModule('M6')">M6 Resilience</button>
+    </div>
+
+    <div class="grid" id="cards-grid">
+        <!-- Rendered by JS -->
+    </div>
+
+    <script>
+        const cards = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "Event Loop & Threading", "color": "#7A8B99", "title": "Thread-per-core Event Loop Architecture & Lockless Data Path", "body": "<li>  <strong>Technical Mechanism</strong>: Envoy runs a Thread-per-core model. A main thread orchestrates system states while worker threads process request pipelines. Each worker core runs a dedicated event dispatcher (<code>DispatcherImpl</code>) to run non-blocking network loops with zero cross-thread locking or thread contention.</li><li>  <strong>Application Strategy</strong>: Set thread concurrency (<code>--concurrency</code>) to match the exact number of physical CPU cores to optimize processing efficiency.</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "Event Loop & Threading", "color": "#7A8B99", "title": "Libevent Event Loop Integration & Min-Heap Timer Architecture", "body": "<li>  <strong>Technical Mechanism</strong>: Wraps Libevent's <code>event_base</code> loops. File descriptors are polled asynchronously using epoll/kqueue. Timer structures (e.g. check intervals, request timeouts) are organized inside a Min-Heap tree, ensuring O(1) time complexity to find expired timers.</li><li>  <strong>Application Strategy</strong>: Avoid blocking actions or intensive computations inside HTTP filters or Wasm plugins to prevent stalling the worker core's dispatcher.</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "Event Loop & Threading", "color": "#7A8B99", "title": "Socket SO_REUSEPORT listener Sharing & Worker Distribution", "body": "<li>  <strong>Technical Mechanism</strong>: By default, Envoy enables <code>SO_REUSEPORT</code> on listening ports, binding a separate socket instance per worker thread to the same port. The kernel hashes incoming connection packets to dispatch traffic directly to worker event queues, avoiding accept lock contention.</li><li>  <strong>Application Strategy</strong>: Under short-lived high-frequency connections, hash collisions may cause worker load imbalance. Enable <code>SO_INCOMING_CPU</code> socket options to process packets on the CPU core handling NIC interrupts.</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "Event Loop & Threading", "color": "#7A8B99", "title": "Hot Restart Socket Transfer via Unix Domain Sockets", "body": "<li>  <strong>Technical Mechanism</strong>: During hot restarts, the new child process boots and establishes communication with the parent process over a Unix Domain Socket. The parent process passes its active listening file descriptors (FD) to the child via <code>SCM_RIGHTS</code> ancillary control messages, allowing the child to take over ports with 0 packet drop.</li><li>  <strong>Application Strategy</strong>: Use hot restarts to upgrade binaries or reload static configurations gracefully without dropping active connections.</li>"}, {"id": 5, "relativeId": "M2.1", "module": "M2", "moduleName": "Dynamic Configuration (xDS)", "color": "#7D8F7B", "title": "xDS Configuration Dependencies & Validation Sequence", "body": "<li>  <strong>Technical Mechanism</strong>: xDS APIs govern Envoy configuration: LDS (Listener), RDS (Route), CDS (Cluster), and EDS (Endpoint). To prevent routing requests to uninitialized endpoints, Envoy updates dependencies in order: CDS and EDS are populated first, followed by LDS and RDS activation.</li><li>  <strong>Application Strategy</strong>: Control planes must synchronize updates in order (CDS \u279c EDS \u279c LDS \u279c RDS) or use Aggregated Discovery Service (ADS) gRPC streams to guarantee configuration consistency.</li>"}, {"id": 6, "relativeId": "M2.2", "module": "M2", "moduleName": "Dynamic Configuration (xDS)", "color": "#7D8F7B", "title": "gRPC Subscription Stream & Configuration ACK/NACK", "body": "<li>  <strong>Technical Mechanism</strong>: Worker threads subscribe to configuration updates over gRPC streams. The control plane pushes updates inside a <code>DiscoveryResponse</code> with a version tag. Envoy parses the structure; if valid, it applies the configuration and sends an ACK; if invalid, it rejects with a NACK and continues running the active version.</li><li>  <strong>Application Strategy</strong>: Set alerts on NACK rates to capture invalid configuration pushes or schema validation failures from the control plane.</li>"}, {"id": 7, "relativeId": "M2.3", "module": "M2", "moduleName": "Dynamic Configuration (xDS)", "color": "#7D8F7B", "title": "std::shared_ptr Atomic Pointer Swap & Lockless Configuration Reload", "body": "<li>  <strong>Technical Mechanism</strong>: Envoy workers read configurations in a thread-safe read-only format. When the main thread receives a configuration patch, it compiles the structures and performs an atomic pointer swap (<code>std::atomic_store</code>) to redirect worker loops to the new configuration object, recycling old structures when references hit zero.</li><li>  <strong>Application Strategy</strong>: Eliminates read-write lock latency, ensuring configuration updates do not degrade gateway forwarding throughput under high loads.</li>"}, {"id": 8, "relativeId": "M2.4", "module": "M2", "moduleName": "Dynamic Configuration (xDS)", "color": "#7D8F7B", "title": "Static Configuration Bootstrap & Dynamic Overrides", "body": "<li>  <strong>Technical Mechanism</strong>: On startup, Envoy parses a bootstrap file (YAML/JSON). If dynamic subscriptions are configured, it initializes EAL structures and static listeners first, then connects to the xDS server over gRPC to subscribe to dynamic clusters and routes.</li><li>  <strong>Application Strategy</strong>: Static configs are ideal for local testing; production environments should rely on dynamic control planes to avoid physical restart delays.</li>"}, {"id": 9, "relativeId": "M2.5", "module": "M2", "moduleName": "Dynamic Configuration (xDS)", "color": "#7D8F7B", "title": "Listener Draining & Connection Draining Timeout", "body": "<li>  <strong>Technical Mechanism</strong>: When a listener is updated or removed via LDS, active connections are not closed immediately. The listener stops accepting new sockets, flags connections as \"Draining\", and injects a <code>Connection: close</code> header into outbound packets, allowing clients to reconnect over a configurable timeout.</li><li>  <strong>Application Strategy</strong>: Tune <code>drain_timeout</code> (typically 10s-30s) to match client keepalive policies to allow connections to drain gracefully.</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "Filter Chain Architecture", "color": "#9E828A", "title": "SNI Listener Filter & TLS inspector Parsing", "body": "<li>  <strong>Technical Mechanism</strong>: Listener filters execute immediately after TCP handshakes succeed. The <code>tls_inspector</code> filter sniffs the initial bytes of incoming streams, parsing the TLS Client Hello payload in plaintext to extract the Server Name Indication (SNI) and ALPN values, storing them in the connection metadata.</li><li>  <strong>Application Strategy</strong>: Map SNI parameters to separate filter chains to host multiple domain certificates on a single IP and port.</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "Filter Chain Architecture", "color": "#9E828A", "title": "Network Filter Chain & L4 TLS/TCP Lifecycle", "body": "<li>  <strong>Technical Mechanism</strong>: Network filters manage L4 network connections. By stacking read/write callbacks (<code>onData</code>/<code>onWrite</code>), filters process TLS termination (<code>SslSocket</code>), protocol parsing, and access logs, before passing decrypted payload bytes up to L7 handlers.</li><li>  <strong>Application Strategy</strong>: Create network filters to build custom TCP gateways, TLS decryptors, or protocol inspection filters (e.g. Redis/Mongo sniffers).</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "Filter Chain Architecture", "color": "#9E828A", "title": "HTTP Filter Pipeline & decodeHeaders/decodeData Callbacks", "body": "<li>  <strong>Technical Mechanism</strong>: L7 processing pipeline. Filters implement callbacks like <code>decodeHeaders()</code>, <code>decodeData()</code>, and <code>encodeHeaders()</code>. Requests pass through decode stages sequentially; responses pass through encode stages. A filter can halt execution by returning <code>StopIteration</code> (e.g., Auth failures returning 401).</li><li>  <strong>Application Strategy</strong>: Streamline request modifications, request header rewriting, auth validations, and local routing rules using custom HTTP filters.</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "Filter Chain Architecture", "color": "#9E828A", "title": "WebAssembly (Wasm) Sandbox Isolation & Async gRPC Client", "body": "<li>  <strong>Technical Mechanism</strong>: WebAssembly (Wasm) filters run in independent sandbox VMs (e.g., V8, Wasmtime). If Wasm code executes invalid instructions or runs out of memory, the sandbox crashes and returns 500, isolating the main Envoy process from crashes. It supports non-blocking async gRPC requests to external auth servers.</li><li>  <strong>Application Strategy</strong>: Wasm is ideal for custom extensions in multi-tenant mesh environments, balancing runtime extensibility with stability.</li>"}, {"id": 14, "relativeId": "M4.1", "module": "M4", "moduleName": "Load Balancing & Pools", "color": "#B58A7D", "title": "Downstream vs Upstream Connection Pool Management", "body": "<li>  <strong>Technical Mechanism</strong>: Downstream client connections use long-lived reuse patterns. For backend servers, Envoy maintains an Upstream connection pool for each cluster and protocol version (H1, H2). New requests map to an active socket, while HTTP/2 requests multiplex over single TCP sockets.</li><li>  <strong>Application Strategy</strong>: Set limits on <code>max_connections</code> and <code>max_requests_per_connection</code> to prevent socket exhaustion or memory leaks on upstream clusters.</li>"}, {"id": 15, "relativeId": "M4.2", "module": "M4", "moduleName": "Load Balancing & Pools", "color": "#B58A7D", "title": "Round Robin vs Least Request (2-Choice) Load Balancing", "body": "<li>  <strong>Technical Mechanism</strong>: Traditional Round Robin can route requests to congested backends. The Least Request algorithm picks nodes using a <code>2-Choice</code> pattern: it selects two healthy upstream nodes at random, compares their active request counters, and routes the request to the node handling fewer active connections.</li><li>  <strong>Application Strategy</strong>: Least Request is recommended for high-concurrency workloads to minimize P99 latency spikes.</li>"}, {"id": 16, "relativeId": "M4.3", "module": "M4", "moduleName": "Load Balancing & Pools", "color": "#B58A7D", "title": "Maglev Consistent Hashing Table & Ring Hash Stability", "body": "<li>  <strong>Technical Mechanism</strong>: Traditional Ring Hashing has O(log N) lookup complexity. Maglev maps nodes to a pre-computed lookup table of size $M$ (typically a prime number like 65537). Lookup is O(1) via hash modulo. When nodes join or leave, table reconstruction overhead is low, minimizing routing shifts.</li><li>  <strong>Application Strategy</strong>: Use Maglev for session affinity based on headers or cookies in large-scale deployments to avoid high lookup costs.</li>"}, {"id": 17, "relativeId": "M4.4", "module": "M4", "moduleName": "Load Balancing & Pools", "color": "#B58A7D", "title": "Locality-Weighted Routing & Local Failover Priority", "body": "<li>  <strong>Technical Mechanism</strong>: Locality routing prioritizes traffic within the same machine room or zone (Locality 0). If the health score of local nodes drops below a threshold (e.g. 70%), Envoy redirects a proportion of requests to neighboring localities (Locality 1), balancing local preference with failover capacity.</li><li>  <strong>Application Strategy</strong>: Deploy locality routing to reduce cross-zone latency and save network egress costs.</li>"}, {"id": 18, "relativeId": "M5.1", "module": "M5", "moduleName": "Protocol Translation", "color": "#5F7582", "title": "HTTP/1.1 to HTTP/2 Multiplex Translation", "body": "<li>  <strong>Technical Mechanism</strong>: Receives downstream HTTP/1.1 connections, parses headers, and instantiates logical HTTP streams. The gateway connection pool translates and multiplexes these streams over active upstream HTTP/2 TCP sockets.</li><li>  <strong>Application Strategy</strong>: Use Envoy as an edge gateway to upgrade legacy client connections to multiplexed HTTP/2 backend services.</li>"}, {"id": 19, "relativeId": "M5.2", "module": "M5", "moduleName": "Protocol Translation", "color": "#5F7582", "title": "gRPC over HTTP/2 Frame Transcoding", "body": "<li>  <strong>Technical Mechanism</strong>: gRPC runs over HTTP/2 stream channels. The Envoy JSON transcoder parses HTTP/1.1 JSON requests, extracts payload fields, and wraps them in HTTP/2 protobuf frame segments (<code>HEADER</code> and <code>DATA</code> frames) destined for backend gRPC endpoints.</li><li>  <strong>Application Strategy</strong>: Expose internal gRPC microservices as REST APIs without modifying application code.</li>"}, {"id": 20, "relativeId": "M5.3", "module": "M5", "moduleName": "Protocol Translation", "color": "#5F7582", "title": "HTTP/3 (QUIC) Transport & Connection Migration", "body": "<li>  <strong>Technical Mechanism</strong>: HTTP/3 uses UDP-based QUIC instead of TCP, merging TLS 1.3 to achieve a 1-RTT handshake. Connections are tracked via a unique <code>Connection ID</code> instead of client IP/Port, allowing clients to switch networks (e.g., Wi-Fi to 4G) without dropping sessions.</li><li>  <strong>Application Strategy</strong>: Deploy HTTP/3 for mobile clients and edge nodes to maintain persistent connections during network handoffs.</li>"}, {"id": 21, "relativeId": "M5.4", "module": "M5", "moduleName": "Protocol Translation", "color": "#5F7582", "title": "Stream Head-of-Line Blocking (HOLB) Elimination in QUIC", "body": "<li>  <strong>Technical Mechanism</strong>: In HTTP/2, a packet drop on the underlying TCP socket stalls all multiplexed streams because TCP treats the payload as a single stream window. QUIC isolates stream windows in UDP; a packet drop on one stream only blocks that stream, leaving other active streams unaffected.</li><li>  <strong>Application Strategy</strong>: Improves latency stability on high-loss channels (e.g., wireless environments).</li>"}, {"id": 22, "relativeId": "M5.5", "module": "M5", "moduleName": "Protocol Translation", "color": "#5F7582", "title": "Zero-Copy Buffer Management via Slice Chain Linked Lists", "body": "<li>  <strong>Technical Mechanism</strong>: Instead of allocating large contiguous buffers, Envoy's <code>WatermarkBuffer</code> stores packet data in linked lists of small memory segments called Slices. Modifying headers or splitting buffers changes only node pointers and offsets, avoiding data copies.</li><li>  <strong>Application Strategy</strong>: Cuts CPU and memory usage when routing large payloads or handling file uploads.</li>"}, {"id": 23, "relativeId": "M5.6", "module": "M5", "moduleName": "Protocol Translation", "color": "#5F7582", "title": "Non-Blocking Compression Filters (Gzip / Brotli)", "body": "<li>  <strong>Technical Mechanism</strong>: Compression is CPU-intensive. Compression filters execute gzip/brotli algorithms in non-blocking slices, preventing large payloads from stalling the worker core event loop, and can offload processing to dedicated encryption cards.</li><li>  <strong>Application Strategy</strong>: Enable compression filters for text payloads on edge gateways to reduce public egress bandwidth without blocking worker threads.</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "Resiliency & Protection", "color": "#BFA88F", "title": "Resource-Counter-based Circuit Breaking", "body": "<li>  <strong>Technical Mechanism</strong>: Envoy circuit breaking triggers immediately based on real-time resource usage counters rather than rolling error rates. Counters track <code>max_connections</code>, <code>max_pending_requests</code>, <code>max_requests</code>, and <code>max_retries</code>. If a counter overflows, new requests are rejected locally with a 503.</li><li>  <strong>Application Strategy</strong>: Provides fast O(1) protection against cascading failures, isolating upstream clusters from overload.</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "Resiliency & Protection", "color": "#BFA88F", "title": "Passive Outlier Detection & Endpoint Ejection", "body": "<li>  <strong>Technical Mechanism</strong>: Outlier detection monitors inline response codes. If an endpoint returns 5 consecutive 5xx errors or connection timeouts, Envoy marks it as unhealthy and ejects it from the load balancer list for a configurable duration.</li><li>  <strong>Application Strategy</strong>: Combines with load balancing to route traffic around failing nodes in seconds without control plane intervention.</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "Resiliency & Protection", "color": "#BFA88F", "title": "Active Health Checking Probe Loops", "body": "<li>  <strong>Technical Mechanism</strong>: Active health checkers run periodic background timers to send probe requests (e.g., <code>GET /healthz</code>) to all endpoints. Unhealthy nodes are removed, and only returned to rotation after passing consecutive successful probes.</li><li>  <strong>Application Strategy</strong>: Use active and passive health checks in tandem to prevent routing requests to starting or failing instances.</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "Resiliency & Protection", "color": "#BFA88F", "title": "Retry Budgets & Retry Storm Prevention", "body": "<li>  <strong>Technical Mechanism</strong>: To prevent retries from overloading downstream systems, the retry budget limits retry attempts to a percentage of total active traffic (default 20%). If retries exceed this ratio, Envoy drops further retry requests.</li><li>  <strong>Application Strategy</strong>: Essential safeguard in mesh architectures to prevent retry storms from collapsing failing backends.</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "Resiliency & Protection", "color": "#BFA88F", "title": "Local Token Bucket vs Global Distributed Rate Limiting", "body": "<li>  <strong>Technical Mechanism</strong>: Local rate limiting runs in-memory using token bucket filters with 0 network overhead. Global rate limiting makes asynchronous gRPC requests to an external Redis cluster to validate quota across the grid.</li><li>  <strong>Application Strategy</strong>: Combine local rate limiting on edge gateways (for DDoS defense) with global rate limiting for business-logic API quotas.</li>"}];
+        let activeModule = 'ALL';
+
+        function renderCards() {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = '';
+            const query = document.getElementById('search').value.toLowerCase();
+
+            cards.forEach(c => {
+                const matchesSearch = c.title.toLowerCase().includes(query) || c.body.toLowerCase().includes(query);
+                const matchesModule = activeModule === 'ALL' || c.module === activeModule;
+
+                if (matchesSearch && matchesModule) {
+                    const el = document.createElement('div');
+                    el.className = 'card';
+                    el.style.borderLeft = `4px solid ${c.color}`;
+                    el.innerHTML = `
+                        <div class="card-header">
+                            <span class="card-id" style="background-color: ${c.color}22; color: ${c.color}">${c.relativeId}</span>
+                            <h3 class="card-title">${c.title}</h3>
+                        </div>
+                        <div class="card-body">
+                            ${c.body}
+                        </div>
+                        <div class="card-footer">
+                            <span>${c.moduleName}</span>
+                            <span style="color: ${c.color}">Card #${c.id}</span>
+                        </div>
+                    `;
+                    grid.appendChild(el);
+                }
+            });
+        }
+
+        function filterModule(mod) {
+            activeModule = mod;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.innerText.includes(mod) || (mod === 'ALL' && btn.innerText === 'ALL')) {
+                    btn.classList.add('active');
+                }
+            });
+            renderCards();
+        }
+
+        document.getElementById('search').addEventListener('input', renderCards);
+        renderCards();
+    </script>
+</body>
+</html>

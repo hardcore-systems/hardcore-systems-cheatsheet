@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang= + map_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content= + map_desc + >
+    <title>google / sre-book High-Availability & Reliability Engineering Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        .header-title h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #7A8B99, #BFA88F);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-title p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 2rem;
+        }
+        .stat-item {
+            text-align: right;
+        }
+        .stat-val {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #60a5fa;
+            line-height: 1.2;
+        }
+        .stat-lbl {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .filter-btn:hover {
+            border-color: var(--accent-color);
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, border-color 0.2s;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: #3b82f6;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .card-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            color: white;
+        }
+        .card-module {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            line-height: 1.3;
+            margin-bottom: 1rem;
+        }
+        .card-body {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.75rem;
+        }
+        .card-body li {
+            margin-left: 1rem;
+            margin-bottom: 0.4rem;
+            list-style-type: disc;
+        }
+        .card-body code {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #0b0f19;
+            color: #f43f5e;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <h1>google / sre-book Knowledge Map</h1>
+            <p>Site Reliability Engineering (SRE) core practices, SLI/SLO formulation, error budgets, multi-burn-rate alerts, cascading fail protection, client throttling, timeout deadlocks, retry storms, and toil automation.</p>
+        </div>
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-val">28</div>
+                <div class="stat-lbl">Core Cards</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val">6</div>
+                <div class="stat-lbl">Category Modules</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val">L0-L2</div>
+                <div class="stat-lbl">3-Level Knowledge</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="filter-controls">
+        <button class="filter-btn active" data-mod="all">All Cards</button>
+        <button class="filter-btn" data-mod="M1" style="border-left: 4px solid var(--slate-blue)">M1: SLO & Budget</button>
+        <button class="filter-btn" data-mod="M2" style="border-left: 4px solid var(--moss-green)">M2: Alerting</button>
+        <button class="filter-btn" data-mod="M3" style="border-left: 4px solid var(--plum-rose)">M3: Overload</button>
+        <button class="filter-btn" data-mod="M4" style="border-left: 4px solid var(--terracotta)">M4: Retries</button>
+        <button class="filter-btn" data-mod="M5" style="border-left: 4px solid var(--indigo)">M5: Capacity</button>
+        <button class="filter-btn" data-mod="M6" style="border-left: 4px solid var(--antique-gold)">M6: Automation</button>
+    </div>
+
+    <main class="cards-grid">
+
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.1</span>
+                <span class="card-module">SLI, SLO & Error Budget</span>
+            </div>
+            <h3 class="card-title">Service Level Indicator (SLI) Principles: Latency, Error Rate, Throughput, and Saturation</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: SLI is a quantitative measure of service performance (e.g., <code>Successful Requests / Total Requests</code>). The four golden signals of monitoring are: <strong>Latency</strong> (time taken to serve a request), <strong>Traffic</strong> (demand rate), <strong>Errors</strong> (rate of failing requests), and <strong>Saturation</strong> (fullness of the most constrained system resource).</li><li>  <strong>Application Strategy</strong>: SLIs must reflect user experience (e.g., client-side perceived latency) rather than bare host CPU utilization, ensuring metrics correlate directly with user satisfaction.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.2</span>
+                <span class="card-module">SLI, SLO & Error Budget</span>
+            </div>
+            <h3 class="card-title">Service Level Objective (SLO) Formulation and User Experience Thresholds</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: SLO is a target value for an SLI (e.g., 99.9% of requests have latency < 200ms). Setting SLOs should target the user happiness boundary: below this threshold, users complain. Pursuing excessively high SLOs exponentially restricts development velocity and raises server cost.</li><li>  <strong>Application Strategy</strong>: Drive consensus among Product, Dev, and SRE that SLO is not a pursuit of perfection, but a balance of user happiness and speed.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.3</span>
+                <span class="card-module">SLI, SLO & Error Budget</span>
+            </div>
+            <h3 class="card-title">Error Budget Mathematical Derivation, Burn Speed, and Release Velocity Governance</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: $\text{Error Budget} = 1 - \text{SLO}$ (e.g., 99.9% SLO yields a 0.1% monthly error budget, equivalent to 43.8 minutes of downtime/month). The error budget balances dev (velocity) and ops (reliability): as long as budget remains, dev releases freely; if budget burns out, releases freeze to focus on stability.</li><li>  <strong>Application Strategy</strong>: Implement error budget as a hard organizational rule, turning it into an automated release gatekeeper to eliminate inter-departmental conflict.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M1">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7A8B99">M1.4</span>
+                <span class="card-module">SLI, SLO & Error Budget</span>
+            </div>
+            <h3 class="card-title">White-box vs. Black-box Monitoring: Scopes, Use Cases, and Blind Spots</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: <strong>White-box monitoring</strong> queries internal metrics (e.g., heap memory, GC pauses, pool sizes) to diagnose root causes and predict capacity. <strong>Black-box monitoring</strong> tests external behavior (e.g., polling ping requests) to detect ongoing outages.</li><li>  <strong>Application Strategy</strong>: Use white-box for debugging and capacity alerts, and reserve black-box for waking up on-call engineers to minimize false alerts from transient single-node spikes.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.1</span>
+                <span class="card-module">Alerting & Incident Management</span>
+            </div>
+            <h3 class="card-title">Traditional Threshold Alerting Limitations and Multi-window Multi-burn-rate Alerting</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Naive threshold alerts (e.g., "Error rate > 1%") generate excessive false alarms (on transient drops) or miss slow-bleed leaks. SRE burn-rate alerting monitors budget depletion rates. A 14.4x burn rate means 2% of the monthly budget is consumed in 1 hour. By analyzing 1-hour and 6-hour windows concurrently, SRE captures both fast disasters and slow drifts.</li><li>  <strong>Application Strategy</strong>: Rewrite Prometheus alerting rules to base alerts on SLO burn rates, drastically reducing alarm fatigue and pager noise.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.2</span>
+                <span class="card-module">Alerting & Incident Management</span>
+            </div>
+            <h3 class="card-title">Alert Noise Reduction: Separating Pager Alerts from Non-Urgent Tickets</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Restrict <strong>Pager</strong> alerts (which wake up engineers via phone/SMS) only to incidents that require immediate human intervention and directly threaten SLOs. Downclass secondary issues, covered by self-healing redundancy, to automated <strong>Tickets</strong> processed during business hours.</li><li>  <strong>Application Strategy</strong>: Auditing alert rules periodically; if an alert doesn't require immediate action, it must be removed from the pager system.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.3</span>
+                <span class="card-module">Alerting & Incident Management</span>
+            </div>
+            <h3 class="card-title">Structured On-call Incident Response and MTTR Compression</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: During incidents, the on-call team adopts structured roles: <strong>Incident Commander</strong> (IC, directs response and delegates), <strong>Communications Lead</strong> (updates stakeholders and public), and <strong>Operations Lead</strong> (isolates faults). This prevents engineers from duplicate debugging or leaving communications ignored.</li><li>  <strong>Application Strategy</strong>: Compile detailed Runbooks for all critical alerts, guiding on-call actions step-by-step to compress troubleshooting time.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M2">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #7D8F7B">M2.4</span>
+                <span class="card-module">Alerting & Incident Management</span>
+            </div>
+            <h3 class="card-title">Blameless Postmortem and 5 Whys Root Cause Analysis</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Postmortems assume engineers made good-faith decisions based on available information. It focuses on "why the system failed" rather than "who broke it." The 5 Whys recursively trace the root cause (e.g., why DB crashed -> why query bloated -> why index was missing -> why migration was skipped -> why review policy was weak).</li><li>  <strong>Application Strategy</strong>: Build a blameless culture to encourage team honesty in reporting defects, converting outages into structural stability improvements.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.1</span>
+                <span class="card-module">Overload Control & Cascading Failures</span>
+            </div>
+            <h3 class="card-title">Cascading Failure Mechanisms: Queue Bloat, Memory Leaks, and Deadlocks</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Cascading failure is a positive feedback loop. When a subset of nodes crashes due to overload, traffic automatically redirects to the remaining healthy nodes, exceeding their capacity and triggering OOMs, queue delays, and lock deadlocks, collapsing the entire system.</li><li>  <strong>Application Strategy</strong>: Design defensive gateways that proactively drop excess requests to prevent the cluster from entering a cascading collapse.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.2</span>
+                <span class="card-module">Overload Control & Cascading Failures</span>
+            </div>
+            <h3 class="card-title">Google's Adaptive Client Throttling Formula and SDK Integration</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: When backends overload, client retries can saturate network cards even if the gateway drops requests. Adaptive throttling calculates rejection probability locally: $P_{\text{reject}} = \max\left(0, \frac{\text{requests} - K \times \text{accepts}}{\text{requests} + 1}\right)$, where $K$ is the multiplier (typically 2.0). Rejections happen on the client before hitting the network.</li><li>  <strong>Application Strategy</strong>: Embed this adaptive throttling algorithm in gRPC client interceptors and client libraries to insulate overloaded backends from probe storms.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.3</span>
+                <span class="card-module">Overload Control & Cascading Failures</span>
+            </div>
+            <h3 class="card-title">Server-side Graceful Degradation (Load Shedding) by Traffic Prioritization</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Under high CPU utilization or queue congestion, servers drop incoming requests based on priority tags (e.g., <code>X-Priority</code>). Dropping non-essential requests (e.g., recommendation feeds) frees up CPU cycles to process core transactions (e.g., payment processing).</li><li>  <strong>Application Strategy</strong>: Configure dynamic load-shedding policies at the API gateway layer to drop non-critical traffic during peak workloads.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.4</span>
+                <span class="card-module">Overload Control & Cascading Failures</span>
+            </div>
+            <h3 class="card-title">Distributed Timeout Budgets and Deadline Propagation</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: In long call chains (A -> B -> C), if A has a 5-second timeout, but B takes 4.9 seconds to call C, A has already timed out. Continuing computation on C wastes CPU resources. Deadline propagation sends the remaining timeout budget inside the request context, allowing downstream nodes to abort early if budget is exhausted.</li><li>  <strong>Application Strategy</strong>: Enable Deadline Propagation in RPC frameworks to eliminate zombie computations on overloaded backends.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M3">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #9E828A">M3.5</span>
+                <span class="card-module">Overload Control & Cascading Failures</span>
+            </div>
+            <h3 class="card-title">Slow Call Mitigation and Self-healing Warm-up Algorithms</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Newly launched instances (lacking JIT compilation or cache warming) can freeze if they receive full production traffic immediately. A Warm-up algorithm scales incoming traffic weight linearly or exponentially (e.g., from 10% to 100% over 5 minutes) to protect cold instances.</li><li>  <strong>Application Strategy</strong>: Configure warm-up properties in Kubernetes Service routing or ingress load balancers to eliminate rolling update timeout spikes.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.1</span>
+                <span class="card-module">Transient Failures & Retries</span>
+            </div>
+            <h3 class="card-title">Retry Storm Mechanisms and Client Retry Budget Limits</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: When a downstream service degrades, multiple layers retrying calls amplify traffic exponentially (e.g., $3^4 = 81$ times for a 4-layer call stack), creating a retry storm. A Retry Budget restricts retry requests to a fixed ratio (e.g., max 10% of total outbound requests) locally.</li><li>  <strong>Application Strategy</strong>: Enforce that retries only occur at the top-level client or use retry budgets in RPC client interceptors.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.2</span>
+                <span class="card-module">Transient Failures & Retries</span>
+            </div>
+            <h3 class="card-title">Exponential Backoff with Jitter for Anti-Thundering Herd Spikes</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Retries without delays cause clients to bombard backends simultaneously. Exponential backoff stretches retry intervals ($2^{\text{attempt}}$). Adding randomized "Jitter" (e.g., scattering a 2-second delay randomly between 0.2s and 2s) spreads client attempts evenly over time.</li><li>  <strong>Application Strategy</strong>: Enforce exponential backoff with jitter on all distributed client-server communication channels to protect recovering instances.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.3</span>
+                <span class="card-module">Transient Failures & Retries</span>
+            </div>
+            <h3 class="card-title">Idempotency Design and Distributed Locking in Retry Flows</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Retrying a write operation requires that the operation is idempotent. Downstream handlers verify the request's unique ID (e.g., <code>message_id</code>) using Redis <code>SETNX</code> or database unique indexes to block duplicate processing.</li><li>  <strong>Application Strategy</strong>: Ensure all mutable RPC interfaces exposed to retries enforce strict idempotency contracts at the API layer.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M4">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #B58A7D">M4.4</span>
+                <span class="card-module">Transient Failures & Retries</span>
+            </div>
+            <h3 class="card-title">Feature Toggles for Dynamic Degraded Runtime Configurations</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Wrap complex or resource-heavy features inside Feature Toggles. During extreme load spikes, operators toggle configs via central configuration servers (e.g., Apollo) without code changes or restarts to disable heavy services.</li><li>  <strong>Application Strategy</strong>: Maintain pre-configured degradation playbooks, disabling non-essential UI sections dynamically during peak workloads.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.1</span>
+                <span class="card-module">Capacity Planning & Load Balancing</span>
+            </div>
+            <h3 class="card-title">Global Server Load Balancing (GSLB) DNS, Anycast, and Multi-Center Failover</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: GSLB manages top-level ingress traffic. Anycast IP routing forwards requests to the nearest edge router; GeoDNS resolves domain queries to physically close data centers. SREs dynamically adjust GSLB traffic weights (e.g., 40:60) to balance regional capacities.</li><li>  <strong>Application Strategy</strong>: Shift GSLB routing targets instantly during fiber cuts or power failures, routing traffic around impacted regions.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.2</span>
+                <span class="card-module">Capacity Planning & Load Balancing</span>
+            </div>
+            <h3 class="card-title">Capacity Planning and Limit Testing: Watermarks and Safe Scaling Thresholds</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: SREs run load tests (e.g., replaying shadow traffic or scaling single-instance loads to failure) to find real inflection watermarks. Safe thresholds (e.g., autoscale at 70% CPU or 65% bandwidth) are set based on grow forecasts.</li><li>  <strong>Application Strategy</strong>: Drive infrastructure provisioning through limit-test data rather than guesswork, optimizing server budgets.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.3</span>
+                <span class="card-module">Capacity Planning & Load Balancing</span>
+            </div>
+            <h3 class="card-title">Client-side Load Balancing and Connection Subsetting</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: In huge clusters (e.g., 10000 clients and 1000 servers), full-mesh connections force each server to maintain thousands of TCP connections. Subsetting limits each client to connect to a random subset (e.g., 20) of backend instances.</li><li>  <strong>Application Strategy</strong>: Eliminate TCP connection storms in massive clusters, reducing discovery catalog overhead on service mesh control planes.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M5">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #5F7582">M5.4</span>
+                <span class="card-module">Capacity Planning & Load Balancing</span>
+            </div>
+            <h3 class="card-title">Graceful Shutdown and Connection Draining for Zero-Downtime Updates</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Force-killing processes during updates breaks active requests. Graceful shutdowns set instance weight to 0, unregister from discovery, transition to Draining (rejecting new connections while finishing active requests), and kill the process only when empty.</li><li>  <strong>Application Strategy</strong>: Enable graceful shutdowns in application frameworks and container specs to eliminate 502/504 errors during rolling updates.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.1</span>
+                <span class="card-module">SRE Automation & Toil Elimination</span>
+            </div>
+            <h3 class="card-title">Defining Toil and SRE's 50% Engineering Time Budget Rule</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Toil is operational work that is manual, repetitive, automatable, and lacks long-term value (e.g., manual host restarts, provisioning credentials). Google SRE rules cap toil at 50%, forcing engineers to spend at least 50% of their time on engineering to automate toil away.</li><li>  <strong>Application Strategy</strong>: Track team time allocation; if toil exceeds 50%, reassign dev resources to reconstruct automation pipelines.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.2</span>
+                <span class="card-module">SRE Automation & Toil Elimination</span>
+            </div>
+            <h3 class="card-title">Infrastructure as Code (IaC) and GitOps in Auto-Remediation Environments</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Define configs, infrastructure, and access rules in code (e.g., Terraform, YAML). Changes occur only via Git PRs. GitOps controllers (e.g., ArgoCD) watch the Git repo and reconcile cluster states to match Git definitions.</li><li>  <strong>Application Strategy</strong>: Eliminate configuration drift on production hosts, enabling reproducible, version-controlled disaster recovery.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.3</span>
+                <span class="card-module">SRE Automation & Toil Elimination</span>
+            </div>
+            <h3 class="card-title">Progressive Canary Deployments and Automated SLI Rollbacks</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Releases deploy to a small subset (e.g., 1%) of instances (Canary nodes). Metric monitors compare Canary SLIs (errors, latency, OOMs) against Baseline nodes. If canary SLIs degrade, automatic rollback is triggered.</li><li>  <strong>Application Strategy</strong>: Implement progressive delivery to restrict the blast radius of software regressions.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.4</span>
+                <span class="card-module">SRE Automation & Toil Elimination</span>
+            </div>
+            <h3 class="card-title">Auto-Remediation Script Limits and Positive Feedback Loop Blockers</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Remediation systems (e.g., StackStorm) automate recovery actions (e.g., restarting containers on memory leaks). To prevent loops (e.g., cascading restarts during database downtime), remediation scripts must include execution rate limits and circuit breakers.</li><li>  <strong>Application Strategy</strong>: Define clear exit criteria and handover points to human operators in all auto-healing pipelines.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.5</span>
+                <span class="card-module">SRE Automation & Toil Elimination</span>
+            </div>
+            <h3 class="card-title">Disaster Recovery Testing (Google DiRT) and Ingress Failover Scenarios</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Google DiRT simulates catastrophic failures (e.g., fiber cuts, data center power outages) without warning. This verifies multi-region failovers under pressure and test SRE response coordination.</li><li>  <strong>Application Strategy</strong>: Conduct regular fire drills; disaster recovery plans not tested in production drills are assumed to be non-functional.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.6</span>
+                <span class="card-module">SRE Automation & Toil Elimination</span>
+            </div>
+            <h3 class="card-title">Sublinear Operational Scaling Math and SRE Efficiency Metrics</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: SRE targets sublinear scaling, ensuring operational overhead grows sublinearly with system size: $\text{SRE Staff} \propto \log(\text{Scale})$. By constant engineering and automation, a 10x scale growth should not require 10x staff.</li><li>  <strong>Application Strategy</strong>: Use sublinear scaling metrics to evaluate SRE team efficiency and automation platform success.</li>
+            </div>
+        </div>
+        
+        <div class="card" data-module="M6">
+            <div class="card-header">
+                <span class="card-id" style="background-color: #BFA88F">M6.7</span>
+                <span class="card-module">SRE Automation & Toil Elimination</span>
+            </div>
+            <h3 class="card-title">Change Management Principles: Small Changes, High Observability, and Fast Rollback</h3>
+            <div class="card-body">
+                <li>  <strong>Technical Mechanism</strong>: Over 70% of outages stem from changes. Change management rests on three pillars: <strong>Small changes</strong> (reduces complexity), <strong>High observability</strong> (early detection via SLI sampling), and <strong>Fast rollback</strong> (idempotent rollback scripts).</li><li>  <strong>Application Strategy</strong>: White-box all change deployment pipelines, ensuring changes are incrementally rolled out.</li>
+            </div>
+        </div>
+        
+    </main>
+
+    <script>
+        const buttons = document.querySelectorAll('.filter-btn');
+        const cards = document.querySelectorAll('.card');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const targetMod = btn.getAttribute('data-mod');
+                cards.forEach(card => {
+                    if (targetMod === 'all' || card.getAttribute('data-module') === targetMod) {
+                        card.style.display = 'flex';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

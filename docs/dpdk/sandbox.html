@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang= + sb_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content= + sb_desc + >
+    <title>DPDK 协议栈仿真实验室：无锁环形队列原子 CAS 抢占与用户态 PMD 轮询模型</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b111e;
+            --panel-bg: #152035;
+            --border-color: #24355a;
+            --text-color: #e2e8f0;
+            --text-muted: #64748b;
+            --accent-color: #3b82f6;
+            --color-hit: #10b981;
+            --color-miss: #ef4444;
+            --color-boost: #f59e0b;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            line-height: 1.4;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .grid-labs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 1024px) {
+            .grid-labs {
+                grid-template-columns: 1fr;
+            }
+        }
+        .lab-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .lab-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: #60a5fa;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+        .lab-description {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .input-group label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .input-ctrl {
+            background-color: #0b111e;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.5rem 0.8rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn:hover {
+            background-color: #2563eb;
+        }
+        .btn-secondary {
+            background-color: #475569;
+        }
+        .btn-secondary:hover {
+            background-color: #334155;
+        }
+        
+        /* Ring Buffer Visuals */
+        .ring-visual-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            height: 240px;
+        }
+        .ring-track {
+            width: 180px;
+            height: 180px;
+            border: 8px double var(--border-color);
+            border-radius: 50%;
+            position: relative;
+        }
+        .ring-slot {
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background-color: #1e293b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #94a3b8;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s;
+        }
+        .ring-slot.active-prod {
+            border-color: #f59e0b;
+            background-color: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+        .ring-slot.active-cons {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+        .ring-slot.filled {
+            border-color: #10b981;
+            background-color: rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+        .pointer-lbl {
+            position: absolute;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            font-weight: bold;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            color: white;
+            white-space: nowrap;
+            z-index: 10;
+            transform: translate(-50%, -50%);
+        }
+        
+        /* Stats Table & Live Chart */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+        .stat-box {
+            background-color: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0.5rem;
+        }
+        .stat-val {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #60a5fa;
+            margin-top: 0.2rem;
+        }
+        .chart-container {
+            height: 150px;
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+            border-left: 2px solid var(--border-color);
+            padding-bottom: 2px;
+            padding-left: 6px;
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        .chart-bar-group {
+            flex: 1;
+            display: flex;
+            height: 100%;
+            align-items: flex-end;
+            gap: 2px;
+        }
+        .bar-sub {
+            flex: 1;
+            border-radius: 2px 2px 0 0;
+            transition: height 0.3s;
+            position: relative;
+        }
+        .bar-sub.interrupt {
+            background: linear-gradient(to top, #ef4444, #f87171);
+        }
+        .bar-sub.pmd {
+            background: linear-gradient(to top, #10b981, #34d399);
+        }
+        .chart-y-lbl {
+            position: absolute;
+            left: 5px;
+            top: 5px;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+        .chart-x-lbl {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+        .log-terminal {
+            background-color: #05070f;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            height: 170px;
+            overflow-y: auto;
+        }
+        .buddy-log {
+            color: #34d399;
+        }
+        .slub-log {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>DPDK 用户态高性能架构仿真实验室</h1>
+        <p>在线演示 DPDK rte_ring 多生产者并发 CAS 指令预留与自旋对齐发布，并可视化对比用户态 PMD 轮询与内核中断在超高包率下的性能差异</p>
+    </header>
+
+    <div class="grid-labs">
+        <!-- Lab 1: Ring Buffer CAS -->
+        <div class="lab-panel">
+            <h2 class="lab-title">实验一：rte_ring 无锁并发环形 CAS 预留机制</h2>
+            <p class="lab-description">
+                单步模拟 DPDK rte_ring 多生产者 CAS 抢占预留。两个生产者线程同时竞争头部指针，CAS 失败的线程进行重试，写入完成后自旋等待前序线程并对齐 tail 指针。
+            </p>
+
+            <div class="controls-row">
+                <button class="btn" onclick="stepProducers()">单步运行生产者</button>
+                <button class="btn btn-secondary" onclick="consumeOne()">消费一个包 (cons)</button>
+                <button class="btn btn-secondary" onclick="resetRing()">重置环形缓冲</button>
+            </div>
+
+            <div class="ring-visual-container">
+                <div class="ring-track" id="ring-track-div">
+                    <!-- Slots and pointers injected by JS -->
+                </div>
+                <!-- Labels -->
+                <div id="pointer-labels-container"></div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">rte_ring 线程并发轨迹执行日志</h4>
+            <div class="log-terminal buddy-log" id="ring-log-term">
+                -- rte_ring online. Multi-Producer CAS mode initialized. --
+            </div>
+        </div>
+
+        <!-- Lab 2: PMD vs Interrupt -->
+        <div class="lab-panel">
+            <h2 class="lab-title">实验二：用户态 PMD 轮询收包 vs Linux 内核中断风暴对比</h2>
+            <p class="lab-description">
+                对比 Linux 内核中断与 DPDK 用户态 PMD 轮询性能。拖动包速率滑块观察，在超高包率下，中断模式会触发中断风暴（CPU占满、丢包率飙升），而 PMD 模式通过 Burst 批量处理表现优异。
+            </p>
+
+            <div class="controls-row" style="margin-bottom:1rem">
+                <div class="input-group" style="flex-grow:1">
+                    <label id="rate-label">输入包速率 (pps): 10,000</label>
+                    <input type="range" id="rate-slider" min="1000" max="100000" step="5000" value="10000" class="input-ctrl" style="width:100%" oninput="updateSim()">
+                </div>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div>模式</div>
+                    <div class="stat-val" id="sim-mode-val" style="color:#fbbf24">Linux IRQ</div>
+                </div>
+                <div class="stat-box">
+                    <div>CPU 负载</div>
+                    <div class="stat-val" id="cpu-load-val">10%</div>
+                </div>
+                <div class="stat-box">
+                    <div>吞吐率 (pps)</div>
+                    <div class="stat-val" id="throughput-val">10k</div>
+                </div>
+                <div class="stat-box">
+                    <div>丢包率 (%)</div>
+                    <div class="stat-val" id="drop-rate-val" style="color:#ef4444">0%</div>
+                </div>
+            </div>
+
+            <div class="controls-row" style="margin-bottom: 1rem">
+                <button class="btn" onclick="toggleMode('IRQ')">IRQ Interrupt Mode</button>
+                <button class="btn btn-secondary" onclick="toggleMode('PMD')">DPDK PMD Polling Mode</button>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-y-lbl">CPU 占用率 vs 丢包率 (0-100%)</div>
+                <!-- Chart bars -->
+                <div class="chart-bar-group">
+                    <div class="bar-sub interrupt" id="bar-cpu-irq" style="height: 10%"></div>
+                    <div class="bar-sub pmd" id="bar-cpu-pmd" style="height: 0%"></div>
+                </div>
+                <div class="chart-bar-group">
+                    <div class="bar-sub interrupt" id="bar-drop-irq" style="height: 0%"></div>
+                    <div class="bar-sub pmd" id="bar-drop-pmd" style="height: 0%"></div>
+                </div>
+                <div class="chart-x-lbl">左侧柱：CPU 占用率 | 右侧柱：网络丢包率</div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">内核网络处理性能监测日志</h4>
+            <div class="log-terminal slub-log" id="sim-log-term">
+                -- Simulator ready. Select IRQ or PMD mode to begin --
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Lab 1: Ring Buffer CAS State
+        // ==========================================
+        const ringSize = 8;
+        let ring = Array(ringSize).fill(null); // null means empty, else packet id
+        let prod_head = 0;
+        let prod_tail = 0;
+        let cons_head = 0;
+        let cons_tail = 0;
+
+        let cas_step = 0; // 0 to 9 step lifecycle
+        let thread1_val = null;
+        let thread2_val = null;
+        let thread1_head_old = null;
+        let thread2_head_old = null;
+
+        function renderRing() {
+            const track = document.getElementById('ring-track-div');
+            track.innerHTML = '';
+            const labelsContainer = document.getElementById('pointer-labels-container');
+            labelsContainer.innerHTML = '';
+
+            const r = 90; // radius
+            for (let i = 0; i < ringSize; i++) {
+                const angle = (i * 2 * Math.PI / ringSize) - Math.PI/2;
+                const x = 90 + r * Math.cos(angle);
+                const y = 90 + r * Math.sin(angle);
+
+                const slot = document.createElement('div');
+                slot.className = 'ring-slot';
+                if (ring[i] !== null) {
+                    slot.classList.add('filled');
+                    slot.innerText = ring[i];
+                } else {
+                    slot.innerText = i;
+                }
+                
+                // Highlight slots during active write steps
+                if (cas_step >= 5 && i === thread1_head_old) {
+                    slot.classList.add('active-prod');
+                }
+                if (cas_step >= 6 && i === thread2_head_old) {
+                    slot.classList.add('active-prod');
+                }
+
+                slot.style.left = `${x}px`;
+                slot.style.top = `${y}px`;
+                track.appendChild(slot);
+            }
+
+            // Draw Pointer labels
+            // Helper to get angle-based positions
+            const getPointerPos = (idx, offset) => {
+                const angle = (idx * 2 * Math.PI / ringSize) - Math.PI/2;
+                const dist = 90 + offset;
+                const x = 90 + dist * Math.cos(angle) + 20; // bounding shift
+                const y = 90 + dist * Math.sin(angle) + 160; // offset inside parent
+                return {x, y};
+            };
+
+            const addLabel = (idx, text, color, offset) => {
+                const pos = getPointerPos(idx, offset);
+                const lbl = document.createElement('div');
+                lbl.className = 'pointer-lbl';
+                lbl.style.backgroundColor = color;
+                lbl.style.left = `${pos.x}px`;
+                lbl.style.top = `${pos.y}px`;
+                lbl.innerText = text;
+                labelsContainer.appendChild(lbl);
+            };
+
+            addLabel(prod_head, `P_HEAD: ${prod_head}`, '#ef4444', 28);
+            addLabel(prod_tail, `P_TAIL: ${prod_tail}`, '#f59e0b', 14);
+            addLabel(cons_head, `C_HEAD: ${cons_head}`, '#3b82f6', -14);
+            addLabel(cons_tail, `C_TAIL: ${cons_tail}`, '#10b981', -28);
+        }
+
+        const ringLog = document.getElementById('ring-log-term');
+        function logRing(msg) {
+            ringLog.innerHTML += `<div>[Tick] ${msg}</div>`;
+            ringLog.scrollTop = ringLog.scrollHeight;
+        }
+
+        function resetRing() {
+            ring = Array(ringSize).fill(null);
+            prod_head = 0;
+            prod_tail = 0;
+            cons_head = 0;
+            cons_tail = 0;
+            cas_step = 0;
+            thread1_val = null;
+            thread2_val = null;
+            ringLog.innerHTML = '<div>-- ring reset --</div>';
+            renderRing();
+        }
+
+        function stepProducers() {
+            if (cas_step === 0) {
+                // Thread 1 & 2 read head
+                thread1_head_old = prod_head;
+                thread2_head_old = prod_head;
+                logRing("Thread 1 (P1) & Thread 2 (P2) read prod_head = " + prod_head + " and check space.");
+                cas_step = 1;
+            } else if (cas_step === 1) {
+                // Thread 1 executes CAS success
+                thread1_head_old = prod_head;
+                prod_head = (prod_head + 1) % ringSize;
+                logRing("P1 CAS executes successfully. advanced prod_head to " + prod_head + ".");
+                cas_step = 2;
+            } else if (cas_step === 2) {
+                // Thread 2 executes CAS failure
+                logRing("P2 tries CAS(old_head=" + thread2_head_old + ", new=" + ((thread2_head_old+1)%ringSize) + "). FAIL! Head changed to " + prod_head + ".");
+                cas_step = 3;
+            } else if (cas_step === 3) {
+                // Thread 2 reads new head and retries CAS
+                thread2_head_old = prod_head;
+                prod_head = (prod_head + 1) % ringSize;
+                logRing("P2 re-reads head (" + thread2_head_old + ") and retries CAS. SUCCESS! advanced prod_head to " + prod_head + ".");
+                cas_step = 4;
+            } else if (cas_step === 4) {
+                // Thread 1 writes packet
+                ring[thread1_head_old] = "PKT1";
+                logRing("P1 writes packet data into slot " + thread1_head_old + ".");
+                cas_step = 5;
+            } else if (cas_step === 5) {
+                // Thread 2 writes packet
+                ring[thread2_head_old] = "PKT2";
+                logRing("P2 writes packet data into slot " + thread2_head_old + ".");
+                cas_step = 6;
+            } else if (cas_step === 6) {
+                // Thread 2 tries to update tail but blocks
+                logRing("P2 checks prod_tail (" + prod_tail + ") != old_head (" + thread2_head_old + "). P2 SPIN-WAITS to maintain sequence.");
+                cas_step = 7;
+            } else if (cas_step === 7) {
+                // Thread 1 updates tail
+                prod_tail = (prod_tail + 1) % ringSize;
+                logRing("P1 updates prod_tail to " + prod_tail + ". P1 task COMPLETE.");
+                cas_step = 8;
+            } else if (cas_step === 8) {
+                // Thread 2 breaks spin-wait and updates tail
+                prod_tail = (prod_tail + 1) % ringSize;
+                logRing("P2 detects tail updated. P2 breaks spin-wait and updates prod_tail to " + prod_tail + ". P2 COMPLETE.");
+                cas_step = 0; // reset sequence
+            }
+            renderRing();
+        }
+
+        function consumeOne() {
+            if (cons_head === prod_tail) {
+                logRing("Ring empty! No packets available to consume (cons_head == prod_tail).");
+                return;
+            }
+            const data = ring[cons_head];
+            ring[cons_head] = null;
+            logRing("Consumer thread dequeued packet " + data + " from slot " + cons_head + ".");
+            cons_head = (cons_head + 1) % ringSize;
+            cons_tail = cons_head;
+            renderRing();
+        }
+
+        // ==========================================
+        // Lab 2: PMD vs Interrupt State
+        // ==========================================
+        let simMode = 'IRQ'; // IRQ or PMD
+
+        function toggleMode(mode) {
+            simMode = mode;
+            document.getElementById('sim-mode-val').innerText = mode === 'IRQ' ? 'Linux IRQ' : 'DPDK PMD';
+            document.getElementById('sim-mode-val').style.color = mode === 'IRQ' ? '#ef4444' : '#10b981';
+            updateSim();
+        }
+
+        const simLog = document.getElementById('sim-log-term');
+        function logSim(msg) {
+            simLog.innerHTML += `<div>${msg}</div>`;
+            simLog.scrollTop = simLog.scrollHeight;
+        }
+
+        function updateSim() {
+            const rate = parseInt(document.getElementById('rate-slider').value);
+            document.getElementById('rate-label').innerText = (simMode === 'IRQ' ? "IRQ Packet Rate" : "PMD Packet Rate") + ": " + rate.toLocaleString() + " pps";
+
+            let cpu = 0;
+            let throughput = 0;
+            let drop = 0;
+
+            if (simMode === 'IRQ') {
+                // IRQ mode: Interrupt rate increases CPU overhead
+                // Interrupt overload threshhold around 35,000 pps
+                const loadFactor = rate / 35000;
+                if (loadFactor < 1.0) {
+                    cpu = Math.round(loadFactor * 100);
+                    throughput = rate;
+                    drop = 0;
+                    logSim(`[IRQ Info] Packet rate ${rate} pps. CPU handling interrupts. CPU Load: ${cpu}%`);
+                } else {
+                    cpu = 100;
+                    // Livelock bounds throughput
+                    throughput = Math.round(35000 * (1 - (rate - 35000) / 150000));
+                    if (throughput < 10000) throughput = 10000;
+                    drop = Math.round(((rate - throughput) / rate) * 100);
+                    logSim(`[IRQ WARNING] Livelock! CPU pinned at 100% by softirqs. Dropping packets: ${drop}%`);
+                }
+                
+                // Update chart
+                document.getElementById('bar-cpu-irq').style.height = `${cpu}%`;
+                document.getElementById('bar-cpu-pmd').style.height = `0%`;
+                document.getElementById('bar-drop-irq').style.height = `${drop}%`;
+                document.getElementById('bar-drop-pmd').style.height = `0%`;
+
+            } else {
+                // PMD mode: CPU is always 100% polling
+                cpu = 100;
+                // PMD processing limit around 120,000 pps in this mock
+                if (rate <= 95000) {
+                    throughput = rate;
+                    drop = 0;
+                    logSim(`[PMD Info] PMD polling NIC Ring in bursts of 32. 0 interrupts. Zero drops.`);
+                } else {
+                    throughput = 95000;
+                    drop = Math.round(((rate - throughput) / rate) * 100);
+                    logSim(`[PMD Warning] Hardware queue limit reached. Dropping packets: ${drop}%`);
+                }
+
+                // Update chart
+                document.getElementById('bar-cpu-irq').style.height = `0%`;
+                document.getElementById('bar-cpu-pmd').style.height = `100%`;
+                document.getElementById('bar-drop-irq').style.height = `0%`;
+                document.getElementById('bar-drop-pmd').style.height = `${drop}%`;
+            }
+
+            document.getElementById('cpu-load-val').innerText = `${cpu}%`;
+            document.getElementById('throughput-val').innerText = `${Math.round(throughput/1000)}k pps`;
+            document.getElementById('drop-rate-val').innerText = `${drop}%`;
+        }
+
+        // Init
+        resetRing();
+        updateSim();
+    </script>
+</body>
+</html>

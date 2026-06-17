@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSTEP Operating System Architecture & Internals Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #161820;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #2a2d3d;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .stat-badge {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .stat-badge span.num {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+        .filter-controls {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            width: 300px;
+            outline: none;
+        }
+        .search-box:focus {
+            border-color: var(--accent-color);
+        }
+        .filter-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        .filter-btn:hover {
+            color: var(--text-color);
+            background-color: #2e3b4e;
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .card-tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            color: white;
+            text-transform: uppercase;
+        }
+        .card-id {
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: white;
+        }
+        .card-body {
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.75rem;
+        }
+        .card-body li {
+            list-style-type: none;
+            padding-left: 1.2rem;
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+        .card-body li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+        .card-body code {
+            background-color: #0f1115;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #f43f5e;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>OSTEP Kernel Map</h1>
+        <p>High-Density CPU Scheduling, Page Table Translations, Mutex Synclocks, Crash Journaling consistency, and Distributed Storage reference system</p>
+    </header>
+
+    <div class="stats-bar">
+        <div class="stat-badge">Core Cards: <span class="num">28</span></div>
+        <div class="stat-badge">Category Modules: <span class="num">6</span></div>
+        <div class="stat-badge">3-Level Filtering: <span class="num">L0 $ightarrow$ L2</span></div>
+        <div class="stat-badge">Zone T Tuning Parameters: <span class="num">T1/T2</span></div>
+    </div>
+
+    <div class="filter-controls">
+        <input type="text" id="search" class="search-box" placeholder="Search cards..." oninput="filterCards()">
+        <button class="filter-btn active" data-mod="all" onclick="setFilter('all', this)">All Modules</button>
+        <button class="filter-btn" data-mod="M1" onclick="setFilter('M1', this)">M1: CPU & Sched</button>
+        <button class="filter-btn" data-mod="M2" onclick="setFilter('M2', this)">M2: Memory & Page</button>
+        <button class="filter-btn" data-mod="M3" onclick="setFilter('M3', this)">M3: Concurrency</button>
+        <button class="filter-btn" data-mod="M4" onclick="setFilter('M4', this)">M4: Storage</button>
+        <button class="filter-btn" data-mod="M5" onclick="setFilter('M5', this)">M5: Crash Consist</button>
+        <button class="filter-btn" data-mod="M6" onclick="setFilter('M6', this)">M6: Distributed</button>
+    </div>
+
+    <div class="grid" id="cards-grid"></div>
+
+    <script>
+        const cards = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "CPU Virtualization", "color": "#7A8B99", "title": "Process Descriptors, Kernel Stacks & Context Switching (Process Lifecycle & Kernel Stack)", "body": "<li>  <strong>Process Control Block</strong>: The OS defines process properties, file descriptors, and page table root pointers in a descriptor struct (e.g., <code>struct proc</code> or <code>task_struct</code> in Linux).</li><li>  <strong>Context Switch Assembly</strong>: During a context switch, the scheduler saves current CPU registers (EIP, ESP) to the process's kernel stack, updates the stack pointer (ESP) to the target process's stack, and pops registers to resume execution.</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "CPU Virtualization", "color": "#7A8B99", "title": "Limited Direct Execution (LDE) and Trap Handling (Limited Direct Execution)", "body": "<li>  <strong>Hardware Ring Levels</strong>: The CPU isolates memory space using Mode Bits (Kernel Mode Ring 0 vs. User Mode Ring 3). User processes cannot execute privileged commands or modify CR3 registers directly.</li><li>  <strong>Syscall Trap Path</strong>: User requests for system resources execute a <code>syscall</code> instruction, which forces a trap that jumps to an entry in the kernel's trap table and transitions execution to Ring 0.</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "CPU Virtualization", "color": "#7A8B99", "title": "Multi-Level Feedback Queue (MLFQ) Scheduling (MLFQ Scheduling)", "body": "<li>  <strong>Dynamic Priority Rules</strong>: MLFQ routes new jobs to the highest priority queue (with small time slices). If a job consumes its entire slice, its priority is demoted. If it yields the CPU before expiration, its priority is preserved.</li><li>  <strong>Starvation Prevention</strong>: To prevent background batches from starving, the scheduler monitors a global period $S$. When $S$ expires, the scheduler boosts all active processes to the highest priority queue and resets their slices.</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "CPU Virtualization", "color": "#7A8B99", "title": "Proportional Share and Completely Fair Scheduler (CFS) (CFS Scheduling)", "body": "<li>  <strong>Random Lottery Shares</strong>: Proportional share schedulers allocate tickets to processes and run a lottery draw for each slice, ensuring runtime matches ticket allocation ratios.</li><li>  <strong>CFS Virtual Runtime</strong>: Linux CFS tracks a <code>vruntime</code> metric for each process, scheduling the thread with the lowest virtual runtime first. The scheduler manages runnable processes in an RB-Tree, ensuring $O(\\log N)$ updates.</li>"}, {"id": 5, "relativeId": "M2.1", "module": "M2", "moduleName": "Memory Virtualization", "color": "#7D8F7B", "title": "Base & Bounds Address Relocation (Base and Bounds Translation)", "body": "<li>  <strong>Hardware Relocation</strong>: Early operating systems isolated memory spaces using two CPU registers: <code>Base</code> and <code>Bounds</code>.</li><li>  <strong>Translation Bounds</strong>: When an instruction references memory, the CPU adds the <code>Base</code> offset to the virtual address. If the resulting address exceeds the <code>Bounds</code> range, the CPU raises a segmentation fault signal.</li>"}, {"id": 6, "relativeId": "M2.2", "module": "M2", "moduleName": "Memory Virtualization", "color": "#7D8F7B", "title": "Free Space Memory Allocation Strategies (Free-space Management)", "body": "<li>  <strong>Free List Tracking</strong>: Memory allocators (e.g., <code>malloc</code> library backends) track unallocated memory segments in a free list.</li><li>  <strong>Allocation Policies</strong>:</li><li>1.  <strong>First-Fit</strong>: Selects the first free block large enough for the request. It is fast but can cause fragmentation at the head of the list.</li><li>2.  <strong>Best-Fit</strong>: Scans the list to find the block closest in size to the request, minimizing wasted space but creating tiny, unusable memory holes.</li><li>3.  <strong>Worst-Fit</strong>: Allocates from the largest block available, leaving large remaining blocks but quickly exhausting big contiguous regions.</li>"}, {"id": 7, "relativeId": "M2.3", "module": "M2", "moduleName": "Memory Virtualization", "color": "#7D8F7B", "title": "Paging Systems and Page Table Entry (PTE) Flags (Paging & PTE Flags)", "body": "<li>  <strong>Page to Frame Mapping</strong>: Paging divides virtual memory into fixed pages (usually 4KB) and physical memory into page frames, tracking mappings in page tables.</li><li>  <strong>PTE Flags</strong>: Page Table Entries contain the Physical Frame Number (PFN) and control bits: <code>P</code> (Present in memory), <code>R/W</code> (Read/Write permissions), <code>U/S</code> (User/Supervisor privilege limit), and <code>D</code> (Dirty bit for page replacement).</li>"}, {"id": 8, "relativeId": "M2.4", "module": "M2", "moduleName": "Memory Virtualization", "color": "#7D8F7B", "title": "Translation Lookaside Buffers (TLB) and ASID Flags (TLB Cache & ASID)", "body": "<li>  <strong>Translation Cache</strong>: To avoid performing memory walks for every read, the CPU caches virtual-to-physical address mappings in the TLB cache.</li><li>  <strong>ASID Context Preservation</strong>: To prevent flushing the TLB on context switches, entries include an Address Space Identifier (ASID) tag to verify ownership, allowing multiple process mappings to coexist.</li>"}, {"id": 9, "relativeId": "M2.5", "module": "M2", "moduleName": "Memory Virtualization", "color": "#7D8F7B", "title": "Multi-Level Page Tables Space Savings (Multi-Level Page Tables)", "body": "<li>  <strong>Directory-Level Indexing</strong>: Multi-level page tables divide the linear page table into page-sized chunks, using a Page Directory (PD) to index the page table pages.</li><li>  <strong>On-Demand Allocation</strong>: If a directory entry (PDE) has its Present bit set to 0, the corresponding secondary page table page is omitted, saving memory in sparse address spaces.</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "Concurrency & Locks", "color": "#9E828A", "title": "Mutex Locks and Atomic Hardware Instructions (Mutex & Atomic Hardware)", "body": "<li>  <strong>Data Race Prevention</strong>: Standard load and store instructions are not atomic. Concurrent writes create data races.</li><li>  <strong>Atomic Instructions</strong>:</li><li>1.  <strong>Test-and-Set</strong>: Writes a value to memory and returns the old value atomically, allowing mutex implementation.</li><li>2.  <strong>Compare-and-Swap (CAS)</strong>: Updates a memory location only if its current value matches a target parameter, enabling lock-free data structures.</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "Concurrency & Locks", "color": "#9E828A", "title": "Condition Variables, Semaphores & Producer-Consumer (CV & Semaphores)", "body": "<li>  <strong>Thread Block Queues</strong>: Condition variables allow threads to release a mutex and block in a wait queue via <code>pthread_cond_wait</code> until another thread calls <code>pthread_cond_signal</code>.</li><li>  <strong>Semaphore Counters</strong>: Semaphores manage resource access using an integer counter. <code>sem_wait</code> decrements the counter and blocks if the value is negative; <code>sem_post</code> increments the counter and wakes a waiting thread.</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "Concurrency & Locks", "color": "#9E828A", "title": "Lock Contention and Futex Queues (Futex Queue)", "body": "<li>  <strong>Spinning Overhead</strong>: If a lock is held for long durations, waiting threads spin in CPU loops, wasting processing cycles.</li><li>  <strong>Futex Thread Suspension</strong>: Linux uses <code>futex</code> (Fast Userspace Mutex) to handle lock contention. Uncontended locks are acquired in user-space; contested locks trigger a <code>sys_futex</code> system call to suspend the thread in a kernel queue.</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "Concurrency & Locks", "color": "#9E828A", "title": "Coffman Deadlock Conditions and Prevention (Deadlock Coffman Conditions)", "body": "<li>  <strong>Four Deadlock Conditions</strong>: Deadlocks require all four conditions to hold:</li><li>1.  <strong>Mutual Exclusion</strong> (exclusive resource access).</li><li>2.  <strong>Hold-and-Wait</strong> (threads holding resources request new ones).</li><li>3.  <strong>No Preemption</strong> (allocated resources cannot be forced away).</li><li>4.  <strong>Circular Wait</strong> (threads form a dependency cycle).</li><li>  <strong>Deadlock Prevention</strong>: The most effective prevention is breaking the circular wait condition by enforcing a strict global lock acquisition ordering.</li>"}, {"id": 14, "relativeId": "M4.1", "module": "M4", "moduleName": "Storage & File Systems", "color": "#B58A7D", "title": "Disk I/O Controllers, DMA, and Hardware Interrupts (Disk I/O & DMA)", "body": "<li>  <strong>Polling Overhead</strong>: If the CPU handles data transfers directly through I/O registers, it wastes cycles polling device status registers.</li><li>  <strong>DMA Controller Bypass</strong>: A Direct Memory Access (DMA) controller manages block transfers between memory and disk directly. The CPU initiates the transfer and continues other work until the DMA raises an interrupt upon completion.</li>"}, {"id": 15, "relativeId": "M4.2", "module": "M4", "moduleName": "Storage & File Systems", "color": "#B58A7D", "title": "RAID Array Topologies and Trade-offs (RAID Architectures)", "body": "<li>  <strong>RAID 0 (Striping)</strong>: Spreads blocks across disks to maximize read/write performance. It lacks redundancy; a single disk failure corrupts the entire array.</li><li>  <strong>RAID 1 (Mirroring)</strong>: Duplicate writes to duplicate disks provide 100% redundancy, doubling read throughput but reducing capacity utilization to 50%.</li><li>  <strong>RAID 5 (Distributed Parity)</strong>: Rotates parity blocks across disks to survive a single disk failure, offering a storage efficiency of $(N-1)/N$.</li>"}, {"id": 16, "relativeId": "M4.3", "module": "M4", "moduleName": "Storage & File Systems", "color": "#B58A7D", "title": "VSFS File System Disk Layout (Very Simple File System)", "body": "<li>  <strong>Block-Based Segmentation</strong>: VSFS partitions storage space into fixed 4KB blocks.</li><li>  <strong>Functional Layout</strong>:</li><li>1.  <strong>Superblock</strong>: Stores file system metadata (e.g., block counts, inode limits).</li><li>2.  <strong>Bitmaps</strong>: Tracks free inodes and data blocks.</li><li>3.  <strong>Inode Table</strong>: Contains inode definitions, mapping file properties and data block pointers.</li><li>4.  <strong>Data Blocks</strong>: Stores file contents and directory trees.</li>"}, {"id": 17, "relativeId": "M4.4", "module": "M4", "moduleName": "Storage & File Systems", "color": "#B58A7D", "title": "Path Resolution and Directory Lookups (Path Resolution Walk)", "body": "<li>  <strong>Iterative Lookup</strong>: Resolving a path like <code>/foo/bar.txt</code> starts at the root inode (usually inode 2).</li><li>  <strong>Inode Traversal</strong>: The kernel reads the root directory's data blocks to find the inode number for the directory <code>foo</code>, reads <code>foo</code>'s data blocks to find <code>bar.txt</code>'s inode, and uses that inode to read the file contents.</li>"}, {"id": 18, "relativeId": "M5.1", "module": "M5", "moduleName": "Crash Consistency & Journaling", "color": "#5F7582", "title": "Crash Consistency and Split Writes (Crash Consistency)", "body": "<li>  <strong>Multi-Block Updates</strong>: Appending data to a file requires updating three structures: the inode, the data bitmap, and the data block.</li><li>  <strong>Inconsistency Anomalies</strong>: Since disk writes cannot update all three locations simultaneously, a crash can leave the file system in an inconsistent state (e.g., an inode pointing to unallocated space).</li>"}, {"id": 19, "relativeId": "M5.2", "module": "M5", "moduleName": "Crash Consistency & Journaling", "color": "#5F7582", "title": "FSCK Consistency Scanner (FSCK Utility)", "body": "<li>  <strong>Post-Crash Verification</strong>: FSCK (File System Consistency Check) scans the file system after an unclean shutdown.</li><li>  <strong>Scan Latency</strong>: FSCK audits all inodes, bitmaps, and directory structures. On modern large-capacity drives, this scan can take hours or days, making it unsuitable for high-availability systems.</li>"}, {"id": 20, "relativeId": "M5.3", "module": "M5", "moduleName": "Crash Consistency & Journaling", "color": "#5F7582", "title": "Write-Ahead Journaling Transaction Flow (Write-Ahead Journaling)", "body": "<li>  <strong>Transactional Writes</strong>: To prevent metadata corruption, file changes are written to a dedicated disk journal space first.</li><li>  <strong>Journal States</strong>:</li><li>1.  <strong>Journal Write</strong>: Writes block updates to the journal.</li><li>2.  <strong>Journal Commit</strong>: Appends a transaction commit block; once written, the transaction is committed.</li><li>3.  <strong>Checkpoint</strong>: Writes changes to their final file system locations.</li><li>4.  <strong>Free</strong>: Clears the transaction from the journal.</li>"}, {"id": 21, "relativeId": "M5.4", "module": "M5", "moduleName": "Crash Consistency & Journaling", "color": "#5F7582", "title": "Data vs. Metadata Journaling Modes (Metadata Journaling)", "body": "<li>  <strong>Data Journaling</strong>: Logs both file data and metadata. It offers the highest safety but doubles disk write volume, reducing performance.</li><li>  <strong>Metadata Journaling</strong>: Logs only metadata changes (inodes and bitmaps); file data is written directly to the data blocks. This mode reduces I/O volume while maintaining system consistency.</li>"}, {"id": 22, "relativeId": "M5.5", "module": "M5", "moduleName": "Crash Consistency & Journaling", "color": "#5F7582", "title": "Write Barriers and Controller Reordering (Write Barriers)", "body": "<li>  <strong>Out-of-Order Disk Writes</strong>: Disk controllers reorder write queues to optimize head movements, which can cause a commit block to write before its journal transactions.</li><li>  <strong>Barrier Synchronization</strong>: The OS sends a <code>Write Barrier</code> command to force all pending writes to disk before executing subsequent write operations, preserving log order.</li>"}, {"id": 23, "relativeId": "M5.6", "module": "M5", "moduleName": "Crash Consistency & Journaling", "color": "#5F7582", "title": "Log-Structured File Systems (LFS) and Cleaner Threads (LFS & Segment Clean)", "body": "<li>  <strong>Random Write Seek Penalty</strong>: Traditional file systems write updates to different disk locations, causing latency on mechanical drives.</li><li>  <strong>Segment Logging</strong>: LFS buffers writes in memory and writes them sequentially in large <code>Segments</code> at the end of the disk log. It uses a background cleaner thread to relocate active blocks and reclaim space.</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "Distributed & Advanced Storage", "color": "#BFA88F", "title": "Network File System (NFS) Stateless Architecture (NFS Protocol)", "body": "<li>  <strong>Remote File Mounting</strong>: NFS uses RPC protocols to mount remote file systems over networks.</li><li>  <strong>Stateless Recovery</strong>: The server does not track client states (e.g., opened files). Clients include a <code>File Handle</code> (volume ID, inode, generation count) with every RPC request, allowing seamless server failovers.</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "Distributed & Advanced Storage", "color": "#BFA88F", "title": "NFS Client Caching and Attribute Consistency (NFS Cache Consistency)", "body": "<li>  <strong>Latency Mitigation</strong>: NFS clients cache file properties and data blocks locally to minimize network RPC overhead.</li><li>  <strong>Caching Policies</strong>:</li><li>1.  <strong>Attribute Cache Timeout</strong>: Clients verify file attributes with the server at fixed intervals (e.g., every 3 seconds).</li><li>2.  <strong>Close-to-Open</strong>: Clients flush dirty pages on <code>close()</code> and verify file attributes on <code>open()</code>, providing basic multi-client consistency.</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "Distributed & Advanced Storage", "color": "#BFA88F", "title": "SSD Physics: Page Writes and Block Erasures (SSD Physics)", "body": "<li>  <strong>Granular Boundaries</strong>: Solid-state drives read and write data in <code>Pages</code> (e.g., 4KB) but erase data in larger <code>Blocks</code> (e.g., 128 pages).</li><li>  <strong>Overwrite Limitations</strong>: SSD cells cannot be overwritten directly. A page must be erased before it can be written to, requiring a block-level erase operation.</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "Distributed & Advanced Storage", "color": "#BFA88F", "title": "Flash Translation Layer (FTL) and Wear Leveling (FTL & Wear Leveling)", "body": "<li>  <strong>Logical Mapping</strong>: The SSD controller runs FTL firmware to map logical block addresses from the OS to physical flash pages.</li><li>  <strong>Garbage Collection</strong>: FTL uses out-of-place writes to avoid in-place erasures. Outdated pages are marked invalid, and a garbage collector consolidates active pages to erase blocks. FTL uses wear leveling to distribute writes and prevent premature cell wear.</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "Distributed & Advanced Storage", "color": "#BFA88F", "title": "Virtual File System (VFS) Redirection (VFS Abstraction)", "body": "<li>  <strong>File Abstraction Layer</strong>: The operating system provides a VFS layer to expose standard syscalls (e.g., <code>open</code>, <code>read</code>, <code>write</code>) to user applications.</li><li>  <strong>Function Table Routing</strong>: VFS defines generic structures like <code>struct file</code> and <code>struct inode</code>. It routes read/write calls to file-system-specific implementations using function pointer tables.</li>"}];
+        let activeFilter = 'all';
+
+        function renderCards() {
+            const grid = document.getElementById('cards-grid');
+            const searchVal = document.getElementById('search').value.toLowerCase();
+            grid.innerHTML = '';
+
+            cards.forEach(card => {
+                const matchesFilter = activeFilter === 'all' || card.module === activeFilter;
+                const matchesSearch = card.title.toLowerCase().includes(searchVal) || card.body.toLowerCase().includes(searchVal);
+
+                if (matchesFilter && matchesSearch) {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'card';
+                    cardEl.style.borderTop = `4px solid ${card.color}`;
+                    cardEl.innerHTML = `
+                        <div class="card-header">
+                            <span class="card-tag" style="background-color: ${card.color}">${card.relativeId}</span>
+                            <span class="card-id">Card ${card.id}</span>
+                        </div>
+                        <h3 class="card-title">${card.title}</h3>
+                        <div class="card-body">${card.body}</div>
+                    `;
+                    grid.appendChild(cardEl);
+                }
+            });
+        }
+
+        function setFilter(mod, btn) {
+            activeFilter = mod;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderCards();
+        }
+
+        function filterCards() {
+            renderCards();
+        }
+
+        window.onload = renderCards;
+    </script>
+</body>
+</html>

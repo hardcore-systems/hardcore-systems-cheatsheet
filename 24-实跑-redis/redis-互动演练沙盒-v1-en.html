@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>redis-internals Redis Internals Interactive Simulation Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --panel-bg: #161820;
+            --border-color: #2a2d3d;
+            --text-color: #e2e8f0;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+            --accent-gold: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, sans-serif;
+            padding: 2rem;
+            line-height: 1.4;
+        }
+        header {
+            max-width: 1200px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #ffffff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p { color: #94a3b8; font-size: 0.9rem; }
+        .sandbox-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .sim-panel {
+            background-color: var(--panel-bg);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+        }
+        .sim-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        .sim-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            .sim-content { grid-template-columns: 1fr; }
+        }
+        .control-box {
+            background-color: #0f1115;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .visual-box {
+            background-color: #0f1115;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 300px;
+            position: relative;
+        }
+        input {
+            background-color: #1e293b;
+            color: #fff;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.85rem;
+            outline: none;
+        }
+        label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        button {
+            background-color: var(--accent-blue);
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #2563eb; }
+        button:disabled { background-color: #4b5563; cursor: not-allowed; }
+        .btn-red { background-color: var(--accent-red); }
+        .btn-red:hover { background-color: #dc2626; }
+        .btn-green { background-color: var(--accent-green); }
+        .btn-green:hover { background-color: #059669; }
+        
+        .console-log {
+            width: 100%;
+            background-color: #000;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #10b981;
+            height: 90px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        /* Sim 1 Rehash visualizer */
+        .rehash-visual-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            width: 100%;
+        }
+        .table-panel {
+            background-color: #1e293b40;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            font-size: 0.72rem;
+            min-height: 180px;
+        }
+        .table-panel h4 { font-size: 0.78rem; margin-bottom: 0.4rem; border-bottom: 1px solid var(--border-color); color: #fff; text-align: center; }
+        .bucket-list { display: flex; flex-direction: column; gap: 0.25rem; }
+        .bucket-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.2rem; background: #0f111550; border-radius: 0.2rem; }
+        .bucket-id { font-weight: bold; width: 40px; color: var(--accent-gold); }
+        .bucket-nodes { display: flex; gap: 0.25rem; }
+        .node-unit { padding: 0.1rem 0.3rem; background: var(--accent-blue); border-radius: 0.2rem; font-family: monospace; font-size: 0.65rem; color:#fff; }
+        .node-unit.rehashed { background: var(--accent-green); }
+
+        /* Sim 2 LRU visualizer */
+        .lru-visual-box {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 0.5rem;
+        }
+        .key-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4rem;
+            background: #1e293b40;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+        }
+        .key-meta { display: flex; gap: 1rem; font-family: monospace; }
+        .key-meta .time { color: var(--accent-gold); }
+        .sampling-mark { font-weight: bold; color: var(--accent-red); }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Redis Memory Engine Interactive Sandbox</h1>
+        <p>Interactive Simulations for dict progressive rehashing and approximated LRU sampling eviction</p>
+    </header>
+
+    <div class="sandbox-grid">
+        <!-- Sim 1: Rehash -->
+        <div class="sim-panel">
+            <div class="sim-title">Simulation 1: Progressive Rehash Process</div>
+            <div class="sim-content">
+                <div class="control-box">
+                    <label>Key to Insert:</label>
+                    <input type="text" id="rehashKey" value="user_100" style="margin-bottom:0.25rem;">
+                    <button id="btnRehashInsert" onclick="insertRehashKey()">Insert Key</button>
+                    
+                    <button id="btnRehashStep" onclick="stepRehash()" style="margin-top:0.5rem;" disabled>Step Rehash</button>
+                    
+                    <label style="margin-top:0.5rem;">Key to Find:</label>
+                    <input type="text" id="rehashFindKey" value="user_100" style="margin-bottom:0.25rem;">
+                    <button id="btnRehashFind" onclick="findRehashKey()">Find Key</button>
+                    
+                    <button class="btn-red" onclick="resetRehash()" style="margin-top:auto;">Reset Laboratory</button>
+                </div>
+                <div class="visual-box">
+                    <div class="rehash-visual-grid">
+                        <div class="table-panel">
+                            <h4>ht[0] (Active)</h4>
+                            <div class="bucket-list" id="ht0List">
+                                <!-- buckets -->
+                            </div>
+                        </div>
+                        <div class="table-panel">
+                            <h4>ht[1] (Rehashing target)</h4>
+                            <div class="bucket-list" id="ht1List">
+                                <!-- buckets -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="console-log" id="rehashLog">>>> Dict: ht[0] allocated with 4 slots. ht[1] is inactive.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sim 2: LRU -->
+        <div class="sim-panel">
+            <div class="sim-title">Simulation 2: Approximated LRU Eviction vs Strict LRU</div>
+            <div class="sim-content">
+                <div class="control-box">
+                    <label>Key Name to Add/Access:</label>
+                    <input type="text" id="lruKeyName" value="key_A" style="margin-bottom:0.25rem;">
+                    <button onclick="accessLruKey()">Insert Key (Access Update)</button>
+                    
+                    <button class="btn-green" onclick="evictLruApprox()" style="margin-top:0.5rem;">Evict (Approximated LRU)</button>
+                    <button class="btn-green" onclick="evictLruStrict()" style="margin-top:0.25rem;">Evict (Strict LRU)</button>
+                    <button class="btn-red" onclick="resetLru()" style="margin-top:auto;">Reset Laboratory</button>
+                </div>
+                <div class="visual-box">
+                    <div class="lru-visual-box" id="lruKeyContainer">
+                        <!-- keys in memory -->
+                    </div>
+                    <div class="console-log" id="lruLog">>>> Eviction: maxmemory cache size set to 5 keys. Approximated LRU will draw samples.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Simulation 1: Progressive Rehash
+        // ==========================================
+        let ht0Size = 4;
+        let ht1Size = 8;
+        let ht0 = Array(ht0Size).fill(null).map(() => []);
+        let ht1 = Array(ht1Size).fill(null).map(() => []);
+        let rehashidx = -1; // -1 means rehash inactive
+        let totalKeys = 0;
+
+        function simpleHash(key, size) {
+            let hash = 0;
+            for (let i = 0; i < key.length; i++) {
+                hash = (hash << 5) - hash + key.charCodeAt(i);
+                hash |= 0; // Convert to 32bit integer
+            }
+            return Math.abs(hash) % size;
+        }
+
+        function renderRehash() {
+            const ht0Div = document.getElementById('ht0List');
+            const ht1Div = document.getElementById('ht1List');
+            
+            ht0Div.innerHTML = '';
+            ht0.forEach((bucket, idx) => {
+                let nodesHtml = bucket.map(k => `<div class="node-unit">${k}</div>`).join('');
+                let activeMark = (rehashidx !== -1 && idx === rehashidx) ? ' <span style="color:red;">&larr; rehashidx</span>' : '';
+                let rehashedMark = (rehashidx !== -1 && idx < rehashidx) ? ' <span style="color:#64748b;">(moved)</span>' : '';
+                ht0Div.innerHTML += `
+                    <div class="bucket-item">
+                        <span class="bucket-id">slot[${idx}]</span>
+                        <div class="bucket-nodes">${nodesHtml}</div>
+                        ${activeMark}${rehashedMark}
+                    </div>
+                `;
+            });
+
+            ht1Div.innerHTML = '';
+            if (rehashidx === -1) {
+                ht1Div.innerHTML = '<div style="color:#64748b; text-align:center; padding-top:4rem;">ht[1] Unallocated</div>';
+            } else {
+                ht1.forEach((bucket, idx) => {
+                    let nodesHtml = bucket.map(k => `<div class="node-unit rehashed">${k}</div>`).join('');
+                    ht1Div.innerHTML += `
+                        <div class="bucket-item">
+                            <span class="bucket-id">slot[${idx}]</span>
+                            <div class="bucket-nodes">${nodesHtml}</div>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function insertRehashKey() {
+            const key = document.getElementById('rehashKey').value.trim();
+            const log = document.getElementById('rehashLog');
+            if (!key) return;
+
+            if (rehashidx === -1) {
+                // Check if reload trigger needed: let's load factor = 1.0 (4 keys)
+                if (totalKeys >= ht0Size) {
+                    rehashidx = 0;
+                    log.innerHTML += `\n>>> [Rehash Trigger] Load Factor >= 1.0. Allocating ht[1] (Size ${ht1Size}) and activating rehashidx=0.`;
+                    document.getElementById('btnRehashStep').disabled = false;
+                }
+            }
+
+            if (rehashidx === -1) {
+                const idx = simpleHash(key, ht0Size);
+                ht0[idx].push(key);
+                log.innerHTML += `\n>>> [Insert] Put key "${key}" to ht[0] slot[${idx}]`;
+            } else {
+                // If rehashing, all new inserts write to ht[1] directly
+                const idx = simpleHash(key, ht1Size);
+                ht1[idx].push(key);
+                log.innerHTML += `\n>>> [Insert (during rehash)] Hashing key "${key}" directly to ht[1] slot[${idx}]`;
+                
+                // Do one step rehash automatically
+                _rehashStep();
+            }
+            
+            totalKeys++;
+            renderRehash();
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function _rehashStep() {
+            if (rehashidx === -1 || rehashidx >= ht0Size) {
+                rehashidx = -1;
+                document.getElementById('btnRehashStep').disabled = true;
+                return;
+            }
+            
+            const log = document.getElementById('rehashLog');
+            // Skip empty buckets
+            while (rehashidx < ht0Size && ht0[rehashidx].length === 0) {
+                log.innerHTML += `\n>>> [Step Rehash] ht[0] slot[${rehashidx}] is empty. Skipping.`;
+                rehashidx++;
+            }
+
+            if (rehashidx < ht0Size) {
+                const keysToMove = ht0[rehashidx];
+                ht0[rehashidx] = []; // clear
+                keysToMove.forEach(k => {
+                    const newIdx = simpleHash(k, ht1Size);
+                    ht1[newIdx].push(k);
+                    log.innerHTML += `\n  -> Moved key "${k}" from ht[0] slot[${rehashidx}] to ht[1] slot[${newIdx}]`;
+                });
+                log.innerHTML += `\n>>> [Step Rehash] Completed slot[${rehashidx}]. Incrementing rehashidx to ${rehashidx + 1}.`;
+                rehashidx++;
+            }
+
+            if (rehashidx >= ht0Size) {
+                // Rehash completed
+                ht0 = ht1;
+                ht0Size = ht1Size;
+                ht1 = Array(ht1Size * 2).fill(null).map(() => []);
+                ht1Size = ht0Size * 2;
+                rehashidx = -1;
+                document.getElementById('btnRehashStep').disabled = true;
+                log.innerHTML += `\n>>> [Rehash SUCCESS] All elements merged. ht[0] replaced by ht[1]. ht[1] deactivated.`;
+            }
+        }
+
+        function stepRehash() {
+            _rehashStep();
+            renderRehash();
+            const log = document.getElementById('rehashLog');
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function findRehashKey() {
+            const key = document.getElementById('rehashFindKey').value.trim();
+            const log = document.getElementById('rehashLog');
+            if (!key) return;
+
+            log.innerHTML += `\n>>> [Find] Querying key "${key}"...`;
+            
+            // Check ht[0] first
+            const idx0 = simpleHash(key, ht0Size);
+            const inHt0 = ht0[idx0].includes(key);
+
+            if (rehashidx === -1) {
+                if (inHt0) {
+                    log.innerHTML += `\n  -> FOUND in ht[0] slot[${idx0}] (Rehash inactive)`;
+                } else {
+                    log.innerHTML += `\n  -> NOT FOUND in ht[0] (Rehash inactive)`;
+                }
+            } else {
+                // During rehash, if slot has been rehashed, it must be in ht[1]
+                if (idx0 < rehashidx) {
+                    log.innerHTML += `\n  -> slot[${idx0}] already rehashed. Redirecting search to ht[1]...`;
+                    const idx1 = simpleHash(key, ht1Size);
+                    if (ht1[idx1].includes(key)) {
+                        log.innerHTML += `\n  -> FOUND in ht[1] slot[${idx1}]`;
+                    } else {
+                        log.innerHTML += `\n  -> NOT FOUND in ht[1]`;
+                    }
+                } else {
+                    log.innerHTML += `\n  -> slot[${idx0}] not yet rehashed. Searching ht[0]...`;
+                    if (inHt0) {
+                        log.innerHTML += `\n  -> FOUND in ht[0] slot[${idx0}]`;
+                    } else {
+                        log.innerHTML += `\n  -> Redirecting query to check ht[1]...`;
+                        const idx1 = simpleHash(key, ht1Size);
+                        if (ht1[idx1].includes(key)) {
+                            log.innerHTML += `\n  -> FOUND in ht[1] slot[${idx1}]`;
+                        } else {
+                            log.innerHTML += `\n  -> NOT FOUND in ht[1]`;
+                        }
+                    }
+                }
+                
+                // Do one step rehash automatically to speed up rehash
+                _rehashStep();
+                renderRehash();
+            }
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function resetRehash() {
+            ht0Size = 4;
+            ht1Size = 8;
+            ht0 = Array(ht0Size).fill(null).map(() => []);
+            ht1 = Array(ht1Size).fill(null).map(() => []);
+            rehashidx = -1;
+            totalKeys = 0;
+            renderRehash();
+            document.getElementById('btnRehashStep').disabled = true;
+            document.getElementById('rehashLog').innerHTML = ">>> Dict: ht[0] allocated with 4 slots. ht[1] is inactive.";
+        }
+
+        // ==========================================
+        // Simulation 2: Approximated LRU Eviction
+        // ==========================================
+        let maxMemory = 5;
+        let dbMemory = [];
+        let timeCounter = 1000;
+
+        function renderLru() {
+            const container = document.getElementById('lruKeyContainer');
+            container.innerHTML = '';
+            
+            dbMemory.forEach(item => {
+                let sampleMark = item.isSample ? ' <span class="sampling-mark">[Sampled]</span>' : '';
+                container.innerHTML += `
+                    <div class="key-row">
+                        <div style="font-weight:bold; color:#fff;">${item.name} ${sampleMark}</div>
+                        <div class="key-meta">
+                            <span>Last Access: <span class="time">${item.accessTime}</span></span>
+                            <span>Idle: <span class="time" style="color:red;">${timeCounter - item.accessTime}s</span></span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function accessLruKey() {
+            const name = document.getElementById('lruKeyName').value.trim();
+            const log = document.getElementById('lruLog');
+            if (!name) return;
+
+            timeCounter += Math.floor(Math.random() * 20) + 10; // increment virtual time
+            
+            // Clear sample flags
+            dbMemory.forEach(k => k.isSample = false);
+
+            const existing = dbMemory.find(k => k.name === name);
+            if (existing) {
+                existing.accessTime = timeCounter;
+                log.innerHTML += `\n>>> [Access] Read/Write "${name}". Updated access time to ${timeCounter}.`;
+            } else {
+                if (dbMemory.length >= maxMemory) {
+                    log.innerHTML += `\n>>> [Alert] Cache full (Size ${maxMemory}). Please evict a key before writing.`;
+                    renderLru();
+                    log.scrollTop = log.scrollHeight;
+                    return;
+                }
+                dbMemory.push({ name: name, accessTime: timeCounter, isSample: false });
+                log.innerHTML += `\n>>> [Access] Inserted key "${name}" at time ${timeCounter}.`;
+            }
+
+            renderLru();
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function evictLruApprox() {
+            const log = document.getElementById('lruLog');
+            if (dbMemory.length === 0) {
+                log.innerHTML += "\n>>> [Evict] Cache is empty.";
+                log.scrollTop = log.scrollHeight;
+                return;
+            }
+
+            log.innerHTML += "\n>>> [Evict] Approximated LRU eviction triggered (maxmemory-samples=3)";
+            
+            // Clear old sample marks
+            dbMemory.forEach(k => k.isSample = false);
+
+            // Draw 3 random samples
+            let sampleIndices = [];
+            while (sampleIndices.length < Math.min(3, dbMemory.length)) {
+                let randIdx = Math.floor(Math.random() * dbMemory.length);
+                if (!sampleIndices.includes(randIdx)) {
+                    sampleIndices.push(randIdx);
+                }
+            }
+
+            let victim = null;
+            let maxIdle = -1;
+
+            sampleIndices.forEach(idx => {
+                const item = dbMemory[idx];
+                item.isSample = true;
+                const idle = timeCounter - item.accessTime;
+                log.innerHTML += `\n  -> Sampled key "${item.name}" (Idle: ${idle}s)`;
+                if (idle > maxIdle) {
+                    maxIdle = idle;
+                    victim = item;
+                }
+            });
+
+            log.innerHTML += `\n>>> [Evict Decision] Victim is "${victim.name}" with max idle time of ${maxIdle}s in samples. Evicted!`;
+            
+            dbMemory = dbMemory.filter(k => k.name !== victim.name);
+            
+            // Increment clock slightly
+            timeCounter += 5;
+            renderLru();
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function evictLruStrict() {
+            const log = document.getElementById('lruLog');
+            if (dbMemory.length === 0) {
+                log.innerHTML += "\n>>> [Evict] Cache is empty.";
+                log.scrollTop = log.scrollHeight;
+                return;
+            }
+
+            log.innerHTML += "\n>>> [Evict] Strict LRU eviction triggered (Global linear scan)";
+            
+            // Clear old samples
+            dbMemory.forEach(k => k.isSample = false);
+
+            let victim = null;
+            let maxIdle = -1;
+
+            dbMemory.forEach(item => {
+                const idle = timeCounter - item.accessTime;
+                if (idle > maxIdle) {
+                    maxIdle = idle;
+                    victim = item;
+                }
+            });
+
+            log.innerHTML += `\n>>> [Evict Decision] Globally scanned all elements. Victim is "${victim.name}" with max idle time of ${maxIdle}s. Evicted!`;
+            
+            dbMemory = dbMemory.filter(k => k.name !== victim.name);
+            
+            timeCounter += 5;
+            renderLru();
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function resetLru() {
+            dbMemory = [
+                { name: "key_1", accessTime: 100 },
+                { name: "key_2", accessTime: 320 },
+                { name: "key_3", accessTime: 450 },
+                { name: "key_4", accessTime: 710 },
+                { name: "key_5", accessTime: 820 }
+            ];
+            timeCounter = 1000;
+            renderLru();
+            document.getElementById('lruLog').innerHTML = ">>> Eviction: maxmemory cache size set to 5 keys. Approximated LRU will draw samples.";
+        }
+
+        // Initial render
+        renderRehash();
+        resetLru();
+    </script>
+</body>
+</html>

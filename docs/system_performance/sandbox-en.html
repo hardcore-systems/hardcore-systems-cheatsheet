@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Systems Performance Tuning & Diagnostics Interactive Sandbox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .sandbox-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            display: none;
+        }
+
+        .sandbox-container.active {
+            display: block;
+        }
+
+        .desc-banner {
+            background-color: #1e293b;
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1.12fr 1fr;
+            gap: 2rem;
+        }
+
+        .panel {
+            background-color: #0b0f19;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel h3 {
+            font-size: 1.1rem;
+            color: #f1f5f9;
+            margin-bottom: 1rem;
+        }
+
+        select, textarea {
+            width: 100%;
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: #38bdf8;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88rem;
+            padding: 0.8rem;
+            outline: none;
+            margin-bottom: 1rem;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .btn {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.88rem;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #4b5563;
+        }
+
+        .btn-secondary:hover {
+            background-color: #374151;
+        }
+
+        /* Flame Graph Visualizer */
+        .flamegraph-viz {
+            background-color: #0b0f19;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 4px;
+            height: 240px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .flame-row {
+            display: flex;
+            width: 100%;
+            gap: 2px;
+        }
+
+        .flame-block {
+            height: 22px;
+            background-color: var(--block-color, #e05a47);
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.72rem;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            transition: transform 0.2s, filter 0.2s;
+        }
+
+        .flame-block:hover {
+            transform: scaleY(1.1);
+            filter: brightness(1.2);
+        }
+
+        .log-display {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: #38bdf8;
+            height: 180px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+        }
+
+        /* Histograms */
+        .histogram {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background-color: #111827;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            height: 220px;
+            overflow-y: auto;
+        }
+
+        .hist-row {
+            display: flex;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            gap: 1rem;
+        }
+
+        .hist-range {
+            width: 80px;
+            color: #94a3b8;
+        }
+
+        .hist-bar-container {
+            flex: 1;
+            height: 14px;
+            background-color: #0b0f19;
+            position: relative;
+            border-radius: 2px;
+        }
+
+        .hist-bar {
+            position: absolute;
+            height: 100%;
+            background-color: #10b981;
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        .hist-count {
+            width: 40px;
+            color: #f1f5f9;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Systems Performance Tuning & Diagnostics Interactive Sandbox</h1>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tab1')">CPU Flame Graph & Page Faults</button>
+            <button class="tab-btn" onclick="switchTab('tab2')">Disk biolatency & bpftrace Probes</button>
+        </div>
+    </header>
+
+    <!-- TAB 1: CPU & Page Faults -->
+    <div id="tab1" class="sandbox-container active">
+        <div class="desc-banner">
+            Simulates time-based stack sampling Flame Graphs and Virtual/Physical Page Fault allocations.
+        </div>
+        <div class="grid-2">
+            <div class="panel">
+                <h3>Select CPU Profiling Workload:</h3>
+                <select id="cpu-workload" onchange="loadFlameGraph()">
+                    <option value="db">Database Index Join Query</option>
+                    <option value="web">HTTP Server Router Routing</option>
+                    <option value="json">Large JSON Serialization/De</option>
+                </select>
+                
+                <h4 style="margin: 0.5rem 0; font-size: 0.95rem;">Interactive Flame Graph (Hover to view):</h4>
+                <div class="flamegraph-viz" id="flame-graph"></div>
+
+                <div style="margin-top: 0.8rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #f59e0b;" id="flame-detail">
+                    Hover over stacked frames to inspect details.
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Memory Page Fault Simulation</h3>
+                <div class="actions">
+                    <button class="btn" onclick="simulatePF('alloc')">Allocate Virtual Memory (100MB)</button>
+                    <button class="btn btn-secondary" onclick="simulatePF('minor')">Access Page (Minor Page Fault)</button>
+                    <button class="btn btn-secondary" style="background-color: #b91c1c" onclick="simulatePF('major')">Access Page (Major Page Fault / Swap)</button>
+                </div>
+                <div class="log-display" id="pf-log">; Standing by... Click step 1 to allocate virtual memory.</div>
+                
+                <div style="margin-top: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #94a3b8;" id="vmstat-stats">
+                    <div>vmstat: pgfault = 0</div>
+                    <div>vmstat: pgmajfault = 0</div>
+                    <div>vmstat: swap_in = 0</div>
+                    <div>vmstat: swap_out = 0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: Disk I/O & bpftrace -->
+    <div id="tab2" class="sandbox-container">
+        <div class="desc-banner">
+            Simulates disk biolatency histograms under different schedulers and dynamic bpftrace scripts compiling in kernel space.
+        </div>
+        <div class="grid-2">
+            <div class="panel">
+                <h3>Disk I/O biolatency & bpftrace simulation</h3>
+                <label style="font-size: 0.88rem; color: #94a3b8;">Select Disk I/O Scheduler:</label>
+                <select id="io-scheduler">
+                    <option value="none">none (NVMe High-Speed SSD)</option>
+                    <option value="deadline">deadline (Congested HDD/SATA)</option>
+                    <option value="bfq">BFQ (Fair bandwidth budget)</option>
+                </select>
+                <button class="btn" onclick="runBiolatency()">Simulate Disk I/O Workload</button>
+
+                <h4 style="margin: 1rem 0 0.5rem 0; font-size: 0.9rem; color: #f1f5f9;">biolatency (us) distribution:</h4>
+                <div class="histogram" id="latency-hist">
+                    <!-- Rows will populate dynamically -->
+                </div>
+            </div>
+            <div class="panel">
+                <h3>eBPF / bpftrace Console</h3>
+                <label style="font-size: 0.88rem; color: #94a3b8;">Select or Edit bpftrace Script:</label>
+                <select id="bpf-templates" onchange="loadBpfTemplate()">
+                    <option value="vfs">kprobe:vfs_read /comm == "nginx"/ { @[comm] = count(); }</option>
+                    <option value="open">tracepoint:syscalls:sys_enter_openat { printf("%s opened %s\n", comm, str(args->filename)); }</option>
+                    <option value="latency">kprobe:vfs_write { @start[tid] = nsecs; } kretprobe:vfs_write ...</option>
+                </select>
+                <textarea id="bpf-code">kprobe:vfs_read /comm == "nginx"/ { @[comm] = count(); }</textarea>
+                <button class="btn" onclick="runBpf()">Run bpftrace Script</button>
+                <div class="log-display" id="bpf-log">; Standing by... Select a script and run.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.sandbox-container').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ================= TAB 1 Logic =================
+        const flameTemplates = {
+            db: [
+                [{name: "all", width: "100%", color: "#7a7a7a" }],
+                [{name: "postgres: query_exec", width: "85%", color: "#e05a47" }, {name: "sys_idle", width: "15%", color: "#9a825a" }],
+                [{name: "ExecutorRun", width: "65%", color: "#e05a47" }, {name: "ProcessUtility", width: "20%", color: "#4B5F7A" }],
+                [{name: "ExecScan", width: "45%", color: "#e05a47" }, {name: "IndexNext", width: "20%", color: "#e05a47" }],
+                [{name: "HeapTupleSatisfiesMVCC", width: "35%", color: "#ef4444" }]
+            ],
+            web: [
+                [{name: "all", width: "100%", color: "#7a7a7a" }],
+                [{name: "nginx: worker", width: "90%", color: "#6B8272" }, {name: "sys_timer", width: "10%", color: "#9a825a" }],
+                [{name: "ngx_http_handler", width: "70%", color: "#6B8272" }, {name: "ngx_process_events", width: "20%", color: "#4B5F7A" }],
+                [{name: "ngx_http_core_run_phases", width: "55%", color: "#6B8272" }, {name: "ngx_epoll_process_events", width: "15%", color: "#4B5F7A" }],
+                [{name: "ngx_http_static_handler", width: "30%", color: "#6B8272" }, {name: "vfs_read", width: "25%", color: "#9C6666" }]
+            ],
+            json: [
+                [{name: "all", width: "100%", color: "#7a7a7a" }],
+                [{name: "node: main_loop", width: "95%", color: "#755B77" }],
+                [{name: "v8::internal::JSONParser", width: "75%", color: "#755B77" }, {name: "gc_scavenge", width: "20%", color: "#7a7a7a" }],
+                [{name: "v8::internal::ParseJson", width: "60%", color: "#755B77" }],
+                [{name: "v8::internal::ScanString", width: "40%", color: "#ef4444" }]
+            ]
+        };
+
+        function loadFlameGraph() {
+            const type = document.getElementById('cpu-workload').value;
+            const container = document.getElementById('flame-graph');
+            container.innerHTML = '';
+            
+            const layers = flameTemplates[type];
+            layers.forEach(layer => {
+                const row = document.createElement('div');
+                row.className = 'flame-row';
+                layer.forEach(block => {
+                    const el = document.createElement('div');
+                    el.className = 'flame-block';
+                    el.style.width = block.width;
+                    el.style.setProperty('--block-color', block.color);
+                    el.innerText = block.name;
+                    el.onmouseover = () => {
+                        document.getElementById('flame-detail').innerText = `Frame: ${block.name} | Width: ${block.width} of CPU samples.`;
+                    };
+                    row.appendChild(el);
+                });
+                container.appendChild(row);
+            });
+        }
+
+        // Page fault stats
+        let stats = { pgfault: 0, pgmajfault: 0, swap_in: 0, swap_out: 0 };
+        function simulatePF(type) {
+            const log = document.getElementById('pf-log');
+            if (type === 'alloc') {
+                log.innerText += "\n[alloc] mmap(NULL, 104857600, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fffb8000000";
+                log.innerText += "\n[alloc] Virtual address space allocated. No physical frames mapped yet.";
+            } else if (type === 'minor') {
+                stats.pgfault += 1284;
+                log.innerText += "\n[minor] Writing to virtual address 0x7fffb801a000... CPU page fault triggered.";
+                log.innerText += "\n[minor] Minor page fault resolved. MMU mapped virtual page to physical frame 0x2e08a (No disk I/O, latency < 1us)";
+            } else if (type === 'major') {
+                stats.pgfault += 105;
+                stats.pgmajfault += 12;
+                stats.swap_in += 12;
+                log.innerText += "\n[major] Reading virtual address 0x7fffb905f000... Page has been swapped out!";
+                log.innerText += "\n[major] Major page fault triggered! Blocking kernel thread. Reading sector from /dev/sda swap block (Disk I/O latency = 8.4ms)";
+            }
+            
+            // update stats display
+            document.getElementById('vmstat-stats').innerHTML = `
+                <div>vmstat: pgfault = ${stats.pgfault}</div>
+                <div>vmstat: pgmajfault = ${stats.pgmajfault}</div>
+                <div>vmstat: swap_in = ${stats.swap_in}</div>
+                <div>vmstat: swap_out = ${stats.swap_out}</div>
+            `;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // ================= TAB 2 Logic =================
+        const histData = {
+            none: [
+                { range: "0 - 1 us", count: 12 },
+                { range: "2 - 4 us", count: 85 },
+                { range: "8 - 16 us", count: 412 },
+                { range: "32 - 64 us", count: 1240 },
+                { range: "128us-256us", count: 5200 },
+                { range: "512us-1ms",   count: 154 },
+                { range: "> 2ms",      count: 2 }
+            ],
+            deadline: [
+                { range: "0 - 1 us", count: 0 },
+                { range: "2 - 4 us", count: 1 },
+                { range: "8 - 16 us", count: 12 },
+                { range: "32 - 64 us", count: 88 },
+                { range: "128us-256us", count: 320 },
+                { range: "512us-1ms",   count: 2540 },
+                { range: "> 2ms",      count: 410 }
+            ],
+            bfq: [
+                { range: "0 - 1 us", count: 4 },
+                { range: "2 - 4 us", count: 15 },
+                { range: "8 - 16 us", count: 84 },
+                { range: "32 - 64 us", count: 912 },
+                { range: "128us-256us", count: 3120 },
+                { range: "512us-1ms",   count: 980 },
+                { range: "> 2ms",      count: 140 }
+            ]
+        };
+
+        function runBiolatency() {
+            const sched = document.getElementById('io-scheduler').value;
+            const hist = document.getElementById('latency-hist');
+            hist.innerHTML = '';
+            
+            const rows = histData[sched];
+            const maxVal = Math.max(...rows.map(r => r.count));
+            
+            rows.forEach(r => {
+                const pct = (r.count / maxVal) * 100;
+                const rowEl = document.createElement('div');
+                rowEl.className = 'hist-row';
+                rowEl.innerHTML = `
+                    <span class="hist-range">${r.range}</span>
+                    <div class="hist-bar-container">
+                        <div class="hist-bar" style="width: ${pct}%"></div>
+                    </div>
+                    <span class="hist-count">${r.count}</span>
+                `;
+                hist.appendChild(rowEl);
+            });
+        }
+
+        const bpfTemplates = {
+            vfs: `kprobe:vfs_read /comm == "nginx"/ {
+    @[comm] = count();
+}`,
+            open: `tracepoint:syscalls:sys_enter_openat {
+    printf("%s opened %s\n", comm, str(args->filename));
+}`,
+            latency: `kprobe:vfs_write {
+    @start[tid] = nsecs;
+}
+kretprobe:vfs_write /@start[tid]/ {
+    @latency = hist(nsecs - @start[tid]);
+    delete(@start[tid]);
+}`
+        };
+
+        function loadBpfTemplate() {
+            const val = document.getElementById('bpf-templates').value;
+            document.getElementById('bpf-code').value = bpfTemplates[val];
+        }
+
+        function runBpf() {
+            const log = document.getElementById('bpf-log');
+            log.innerText = "Compiling bpftrace script... Linked successfully to LLVM IR compiler.\nAttaching probe to kernel hooks... Running tracing trace (Press Ctrl-C to exit):\n";
+            
+            const val = document.getElementById('bpf-templates').value;
+            if (val === 'vfs') {
+                let ticks = 0;
+                let interval = setInterval(() => {
+                    if (ticks >= 4) {
+                        clearInterval(interval);
+                        log.innerText += "\n\n@[nginx] = 41285\n";
+                        log.scrollTop = log.scrollHeight;
+                        return;
+                    }
+                    log.innerText += `\nnginx (PID: 1245${ticks}) triggered vfs_read...`;
+                    log.scrollTop = log.scrollHeight;
+                    ticks++;
+                }, 600);
+            } else if (val === 'open') {
+                let ticks = 0;
+                let files = ["/etc/nginx/nginx.conf", "/var/log/nginx/access.log", "/lib64/libc.so.6", "/usr/share/nginx/html/index.html"];
+                let interval = setInterval(() => {
+                    if (ticks >= 4) {
+                        clearInterval(interval);
+                        return;
+                    }
+                    log.innerText += `\nnginx opened ${files[ticks]}`;
+                    log.scrollTop = log.scrollHeight;
+                    ticks++;
+                }, 600);
+            } else if (val === 'latency') {
+                log.innerText += "\n@latency (VFS Write Latency in Nanoseconds):\n";
+                log.innerText += "[256 - 512]       ||||||||||||                    410\n";
+                log.innerText += "[512 - 1K]        |||||||||||||||||||||||||||     1240\n";
+                log.innerText += "[1K - 2K]         ||||||||                        280\n";
+                log.innerText += "[2K - 4K]         |                               12\n";
+            }
+        }
+
+        // Init page
+        loadFlameGraph();
+        runBiolatency();
+    </script>
+</body>
+</html>

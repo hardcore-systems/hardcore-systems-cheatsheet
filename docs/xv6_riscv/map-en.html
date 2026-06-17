@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xv6-riscv Operating System Architecture & Internals Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .stat-badge {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .stat-badge span.num {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+        .filter-controls {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            width: 300px;
+            outline: none;
+        }
+        .search-box:focus {
+            border-color: var(--accent-color);
+        }
+        .filter-btn {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        .filter-btn:hover {
+            color: var(--text-color);
+            background-color: #1e293b;
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .card-id {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            flex: 1;
+            margin-left: 0.75rem;
+        }
+        .card-body {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.5rem;
+        }
+        .card-body li {
+            margin-left: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+        .card-body code {
+            background-color: rgba(0,0,0,0.3);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #f472b6;
+        }
+        .card-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>xv6-riscv Kernel Map</h1>
+        <p>High-density boot sequence, trap vector trampoline, SV39 page walks, spinlock atomics, WAL disk logging transactions, and Unix pipes reference system</p>
+    </header>
+
+    <div class="stats-bar">
+        <div class="stat-badge">Core Cards: <span class="num">28</span></div>
+        <div class="stat-badge">Category Modules: <span class="num">6</span></div>
+        <div class="stat-badge">3-Level Filtering: <span class="num">L0➜L2</span></div>
+        <div class="stat-badge">Zone T Registers: <span class="num">Zone T</span></div>
+    </div>
+
+    <div class="filter-controls">
+        <input type="text" id="search" class="search-box" placeholder="Search cards (e.g. walk, trampoline, sleep, bcache)...">
+        <button class="filter-btn active" onclick="filterModule('ALL')">ALL</button>
+        <button class="filter-btn" onclick="filterModule('M1')">M1 Boot/Proc</button>
+        <button class="filter-btn" onclick="filterModule('M2')">M2 Traps/Sys</button>
+        <button class="filter-btn" onclick="filterModule('M3')">M3 VM/PTE</button>
+        <button class="filter-btn" onclick="filterModule('M4')">M4 Locks/Sync</button>
+        <button class="filter-btn" onclick="filterModule('M5')">M5 WAL/Cache</button>
+        <button class="filter-btn" onclick="filterModule('M6')">M6 FS/Pipes</button>
+    </div>
+
+    <div class="grid" id="cards-grid">
+        <!-- Rendered by JS -->
+    </div>
+
+    <script>
+        const cards = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "Boot & Process Scheduling", "color": "#7A8B99", "title": "RISC-V Entry & Start Boot (`kernel/entry.S` / `kernel/start.c`)", "body": "<li>  <strong>Physical Boot Entry</strong>: QEMU loads the kernel and jumps all CPU cores (Harts) to <code>_entry</code> in <code>entry.S</code>.</li><li>  <strong>Kernel Stack Setup</strong>: Computes private stack pointers for each CPU using <code>sp = stack0 + (hartid * 4096)</code>, allocating a 4KB kernel stack page per core.</li><li>  <strong>M Mode to S Mode Transition</strong>: In <code>start.c</code>, writes the MPP bits in the machine status register <code>mstatus</code> to return to Supervisor (S) mode, sets <code>mepc</code> to <code>main()</code>, configures timer interrupts via CLINT, and triggers <code>mret</code> to jump to <code>main()</code>.</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "Boot & Process Scheduling", "color": "#7A8B99", "title": "Proc PCB Layout & Allocation (`struct proc` / `kernel/proc.h` / `kernel/proc.c`)", "body": "<li>  <strong>Process Control Block</strong>: <code>struct proc</code> tracks process state (UNUSED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE), page table pointer (<code>pagetable</code>), kernel stack pointer (<code>kstack</code>), trap context (<code>trapframe</code>), and open file table.</li><li>  <strong>Process Allocation</strong>: <code>allocproc()</code> searches the global <code>proc</code> array, assigns a new PID, calls <code>kalloc()</code> to allocate a page for <code>trapframe</code>, maps the <code>TRAMPOLINE</code> and <code>TRAPFRAME</code> pages at the top of the user virtual memory, and configures a dummy kernel context stack frame setting <code>ra</code> to <code>forkret()</code>.</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "Boot & Process Scheduling", "color": "#7A8B99", "title": "Round-Robin Scheduler Loop (`scheduler()` / `kernel/proc.c`)", "body": "<li>  <strong>Scheduler Thread</strong>: Each CPU runs an infinite <code>scheduler()</code> loop that never returns, scanning the global <code>proc</code> array for <code>RUNNABLE</code> processes.</li><li>  <strong>Locking Barrier</strong>: Acquires the target process's <code>p->lock</code>, changes its state to <code>RUNNING</code>, sets the CPU's local <code>c->proc</code> pointer, and invokes the context switch.</li><li>  <strong>CPU Reclaiming</strong>: Calls <code>swtch(&c->context, &p->context)</code> to swap registers. When a process yields (<code>yield()</code>), sleeps (<code>sleep()</code>), or exits (<code>exit()</code>), it acquires its own <code>p->lock</code> and calls <code>sched()</code> to switch back to the scheduler thread.</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "Boot & Process Scheduling", "color": "#7A8B99", "title": "Context Switch Assembly (`kernel/swtch.S` / `kernel/proc.c`)", "body": "<li>  <strong>swtch characteristics</strong>: <code>swtch</code> is written in pure RISC-V assembly and only saves callee-saved registers (<code>ra</code>, <code>sp</code>, <code>s0 - s11</code>).</li><li>  <strong>Execution Flow</strong>:</li><li>1. Saves current CPU callee-saved registers (<code>ra</code>, <code>sp</code>, <code>s0-s11</code>) into the <code>old</code> context structure.</li><li>2. Restores new thread callee-saved registers (<code>ra</code>, <code>sp</code>, <code>s0-s11</code>) from the <code>new</code> context structure.</li><li>3. Runs <code>ret</code> which jumps the instruction pointer to the restored <code>ra</code> of the target context.</li>"}, {"id": 5, "relativeId": "M2.1", "module": "M2", "moduleName": "Traps & System Calls", "color": "#7D8F7B", "title": "Privilege Mode & Trap Vector (`stvec` / `kernel/trap.c`)", "body": "<li>  <strong>Privilege Boundary</strong>: User apps run in U Mode, while the kernel runs in S Mode. Exceptions, system calls, or hardware interrupts automatically raise the privilege level to S Mode.</li><li>  <strong>Trap Vector Setup</strong>: The kernel writes the virtual address of the assembly routine <code>uservec</code> to the <code>stvec</code> register before returning to user space.</li><li>  <strong>Hardware Trap Handling</strong>: When a trap triggers, hardware writes user PC to <code>sepc</code>, the trap cause to <code>scause</code>, extra info (like page fault address) to <code>stval</code>, switches to S Mode, and jumps to <code>stvec</code>.</li>"}, {"id": 6, "relativeId": "M2.2", "module": "M2", "moduleName": "Traps & System Calls", "color": "#7D8F7B", "title": "Assembly Trampoline Page (`kernel/trampoline.S`)", "body": "<li>  <strong>Trampoline Page mapping</strong>: The <code>TRAMPOLINE</code> page is mapped at the identical high address <code>0x3FFFFFF000</code> in both kernel and user page tables. This allows the PC to execute instructions continuously while switching the page table base register <code>satp</code>.</li><li>  <strong>uservec flow</strong>:</li><li>1. Uses <code>csrrw</code> to swap <code>a0</code> and <code>sscratch</code> (which holds a pointer to the process's user-mapped <code>trapframe</code>), releasing a register.</li><li>2. Saves all user general registers (<code>ra</code>, <code>sp</code>, <code>gp</code>, <code>tp</code>, <code>t0-t6</code>, <code>a1-a7</code>, <code>s0-s11</code>) into the <code>trapframe</code>.</li><li>3. Loads kernel page directory <code>kernel_satp</code>, kernel stack pointer <code>kernel_sp</code>, and <code>usertrap()</code> handler address.</li><li>4. Writes <code>satp</code> with <code>kernel_satp</code>, flushes TLB via <code>sfence.vma</code>, and jumps to <code>usertrap()</code>.</li>"}, {"id": 7, "relativeId": "M2.3", "module": "M2", "moduleName": "Traps & System Calls", "color": "#7D8F7B", "title": "Process Trapframe Structure (`struct trapframe` / `kernel/proc.h`)", "body": "<li>  <strong>Structure Details</strong>: A dedicated page mapped at <code>TRAPFRAME</code> in the user space (just below <code>TRAMPOLINE</code>) containing saved registers.</li><li>  <strong>Core Fields</strong>:</li><li>  <code>kernel_satp</code>: Address of the kernel root page table.</li><li>  <code>kernel_sp</code>: The process's private kernel stack pointer.</li><li>  <code>kernel_trap</code>: Virtual address of the kernel <code>usertrap</code> entry point.</li><li>  <code>epc</code>: Saved PC when the trap occurred.</li><li>  <code>regs[32]</code>: Saved user registers.</li>"}, {"id": 8, "relativeId": "M2.4", "module": "M2", "moduleName": "Traps & System Calls", "color": "#7D8F7B", "title": "Trap Handler & System Call Routing (`usertrap()` / `kernel/trap.c`)", "body": "<li>  <strong>Trap Router</strong>: <code>usertrap()</code> disables interrupts and sets <code>stvec</code> to <code>kernelvec</code> (to handle interrupts occurring inside kernel space).</li><li>  <strong>Syscall Dispatching</strong>: If <code>scause == 8</code> (System Call):</li><li>1. Check if the process is killed, increment <code>p->trapframe->epc</code> by 4 (to resume past the <code>ecall</code> instruction).</li><li>2. Re-enable interrupts to keep the kernel responsive to hardware events.</li><li>3. Invoke <code>syscall()</code> to execute the system call mapped to <code>p->trapframe->a7</code>.</li><li>4. Save the return code to <code>p->trapframe->a0</code>.</li><li>5. Return via <code>usertrapret()</code> which jumps back to U Mode.</li>"}, {"id": 9, "relativeId": "M2.5", "module": "M2", "moduleName": "Traps & System Calls", "color": "#7D8F7B", "title": "PLIC & UART Interrupt Dispatching (`kernel/plic.c` / `kernel/uart.c`)", "body": "<li>  <strong>PLIC Routing</strong>: The Platform-Level Interrupt Controller manages routing of external hardware interrupts (e.g. disk, keyboard input).</li><li>  <strong>Claim/Complete Loop</strong>:</li><li>  S Mode hardware interrupt triggers <code>devintr()</code> (when <code>scause</code> indicates an external interrupt).</li><li>  <code>devintr()</code> claims the interrupt by reading the PLIC Claim register, which yields the interrupt ID.</li><li>  If ID equals UART0, calls <code>uartintr()</code> to process characters; if it equals VIRTIO0, routes to the disk driver.</li><li>  Writes the processed ID to PLIC Complete register to acknowledge completion.</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "Virtual Memory & Page Tables", "color": "#9E828A", "title": "SV39 Translation & Page Walk (`walk()` / `kernel/vm.c`)", "body": "<li>  <strong>SV39 layout</strong>: 39-bit Virtual Address is split into L2 index (9 bits), L1 index (9 bits), L0 index (9 bits), and offset (12 bits).</li><li>  <strong>Page Table Walk Simulation</strong>: <code>walk(pagetable, va, alloc)</code> mimics hardware MMU translation:</li><li>1. Extracts page directory indices.</li><li>2. If the Page Table Entry (PTE) valid bit <code>PTE_V</code> is 0, the next-level page directory is missing. If <code>alloc</code> is true, calls <code>kalloc()</code> to allocate a page, clears it, and writes the base PPN to the PTE.</li><li>3. Extracts PPN from PTE, multiplies by 4096 to get the next page table physical base address, and repeats.</li><li>4. Returns the pointer to the L0 PTE for <code>va</code>.</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "Virtual Memory & Page Tables", "color": "#9E828A", "title": "Kernel Memory Static Mapping (`kvminit()` / `kernel/vm.c`)", "body": "<li>  <strong>Static Layout</strong>: <code>kvminit()</code> builds the global kernel page table <code>kernel_pagetable</code> mapping:</li><li>  Hardware registers: Maps <code>UART0</code> (0x10000000) and <code>PLIC</code> (0x0C000000) direct-mapped (VA == PA).</li><li>  Physical memory: Maps RAM starting from <code>KERNBASE</code> (0x80000000) to <code>PHYSTOP</code> (0x86400000) with direct mapping (VA == PA).</li><li>  Trampoline Page: Maps the physical <code>trampoline</code> instructions to <code>TRAMPOLINE</code> virtual address.</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "Virtual Memory & Page Tables", "color": "#9E828A", "title": "User Address Space & Allocation (`uvm.c` / `kernel/vm.c`)", "body": "<li>  <strong>User space layout</strong>: Begins at virtual address 0. Page 0 holds code and data, followed by user stack, a Guard Page (mapped invalid, no <code>PTE_U</code> flag to prevent stack overflows), and heap pages (grown via <code>sbrk</code>).</li><li>  <strong>Allocation</strong>:</li><li>  <code>uvmalloc(pagetable, oldsz, newsz)</code>: Allocates pages via <code>kalloc()</code> and maps them using <code>mappages()</code> with flags <code>PTE_U | PTE_W | PTE_R | PTE_V</code>.</li><li>  <code>uvmdealloc(pagetable, oldsz, newsz)</code>: Clears the PTE mappings and frees physical pages.</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "Virtual Memory & Page Tables", "color": "#9E828A", "title": "Copy-on-Write Page Faults (`copy-on-write` Optimization)", "body": "<li>  <strong>Fork Optimization</strong>: In <code>fork()</code>, instead of copying all user memory pages immediately, child and parent page tables are mapped to the identical physical pages.</li><li>  <strong>Write protection</strong>: Clears the <code>PTE_W</code> flag on both page tables and sets a custom flag <code>PTE_COW</code>.</li><li>  <strong>Fault Resolution</strong>: When a write is attempted, the CPU raises a Store Page Fault exception (<code>scause == 15</code>) handled in <code>usertrap()</code>:</li><li>1. Checks if the fault address is a COW page (<code>PTE_COW</code> set).</li><li>2. Queries page reference counter. If count > 1, calls <code>kalloc()</code> to allocate a page, copies contents, maps the page as writable (<code>PTE_W</code> set), and decrements the old page reference count.</li><li>3. If count == 1, directly sets <code>PTE_W</code> and clears <code>PTE_COW</code>.</li><li>4. Decrements <code>sepc</code> by 4 and retries the instruction.</li>"}, {"id": 14, "relativeId": "M4.1", "module": "M4", "moduleName": "Locks & Synchronization", "color": "#B58A7D", "title": "Spinlocks & Atomic Instructions (`kernel/spinlock.c` / `kernel/spinlock.h`)", "body": "<li>  <strong>Spinlock Acquisition</strong>: <code>acquire()</code> performs a loop testing and setting lock state:</li><p><code></code><code>c</p><p>while(__sync_lock_test_and_set(&lk->locked, 1) != 0);</p><p></code><code></code></p><p>This translates to the atomic RISC-V instruction <code>amoswap.w.aq</code> which guarantees read-modify-write safety at the hardware level.</p><li>  <strong>Interrupt Disabling</strong>: <code>acquire()</code> disables local CPU interrupts (<code>push_off()</code>) before waiting, preventing a deadlock where a local interrupt handler attempts to acquire the lock held by the interrupted thread.</li>"}, {"id": 15, "relativeId": "M4.2", "module": "M4", "moduleName": "Locks & Synchronization", "color": "#B58A7D", "title": "Sleeplocks & Block Protection (`kernel/sleeplock.c`)", "body": "<li>  <strong>Disk Lock Protection</strong>: Spinlocks cannot be held while yielding the CPU (which occurs during block I/O). Sleeplocks allow yielding.</li><li>  <strong>Sleeplock Structure</strong>: Wraps a spinlock <code>lk</code> and a boolean <code>locked</code>.</li><li>  <strong>Locking operations</strong>:</li><li>  <code>acquiresleep(lk)</code> acquires the inner spinlock. If <code>lk->locked</code> is true, releases the spinlock and sleeps on the channel: <code>sleep(lk, &lk->lk)</code>.</li><li>  <code>releasesleep(lk)</code> sets <code>lk->locked = 0</code> and calls <code>wakeup(lk)</code> to reschedule threads.</li>"}, {"id": 16, "relativeId": "M4.3", "module": "M4", "moduleName": "Locks & Synchronization", "color": "#B58A7D", "title": "Sleep/Wakeup Synchronization (`sleep()` & `wakeup()` / `kernel/proc.c`)", "body": "<li>  <strong>Condition Variables</strong>: <code>sleep(chan, lk)</code> suspends the thread on a pointer value <code>chan</code> (wait channel).</li><li>  <strong>Lost Wakeup Prevention</strong>: Symmetrically manages lock handover:</li><li>1. Acquires <code>p->lock</code> (process lock).</li><li>2. Releases the resource lock <code>lk</code>.</li><li>3. Sets state to <code>SLEEPING</code> and sets <code>p->chan = chan</code>.</li><li>4. Calls <code>sched()</code> to run the scheduler and yield the CPU.</li><li>  <strong>Wakeup routing</strong>: <code>wakeup(chan)</code> acquires each process's <code>p->lock</code>. If <code>p->state == SLEEPING</code> and <code>p->chan == chan</code>, sets state to <code>RUNNABLE</code>.</li>"}, {"id": 17, "relativeId": "M4.4", "module": "M4", "moduleName": "Locks & Synchronization", "color": "#B58A7D", "title": "Process Termination & Zombies (`exit()` & `wait()` / `kernel/proc.c`)", "body": "<li>  <strong>Resource Cleanup</strong>:</li><li>  <code>exit(status)</code> closes all open files, releases directory inode references, reparents active children to <code>initproc</code> (PID 1), sets state to <code>ZOMBIE</code>, wakes up the parent, and yields.</li><li>  <code>wait(addr)</code> scans the global proc table. If a <code>ZOMBIE</code> child is found, frees its <code>trapframe</code> page, calls <code>freepagetable()</code> to release its page table and associated physical frames, reclaims PID, and returns.</li>"}, {"id": 18, "relativeId": "M5.1", "module": "M5", "moduleName": "Block Cache & Logging", "color": "#5F7582", "title": "Buffer Cache & LRU Eviction (`kernel/bio.c` / `kernel/buf.h`)", "body": "<li>  <strong>bcache structure</strong>: Tracks 30 memory sector buffers (<code>struct buf</code>) in a doubly-linked circular list protected by <code>bcache.lock</code>.</li><li>  <strong>Cache Allocation</strong>:</li><li>  <strong>Cache Hit</strong>: <code>bget()</code> searches the list for a buffer matching the target <code>dev</code> and <code>blockno</code>. If found, increments <code>refcnt</code> and returns.</li><li>  <strong>Cache Miss</strong>: Scans backwards from <code>bcache.head</code> for a buffer with <code>refcnt == 0</code> (LRU candidate). If found, claims it, re-assigns the block number, increments <code>refcnt</code>, and returns.</li><li>  <code>brelse(b)</code> releases reference and moves the buffer to the head of the list, keeping the tail as the least recently used pool.</li>"}, {"id": 19, "relativeId": "M5.2", "module": "M5", "moduleName": "Block Cache & Logging", "color": "#5F7582", "title": "Write-Ahead Logging (WAL) Model (`kernel/log.c`)", "body": "<li>  <strong>WAL Principle</strong>: Writes modified metadata pages to a dedicated log area on disk (journal) before committing them to their home directories.</li><li>  <strong>Transaction Guard</strong>: <code>begin_op()</code> monitors concurrent writes:</li><li>  Sleeps if a log commit is underway or if the current transaction plus active transactions exceed the maximum log block capacity.</li><li>  Increments <code>log.outstanding</code> to merge multiple concurrent system call modifications (e.g. concurrent <code>create()</code> calls) into a single disk log transaction.</li>"}, {"id": 20, "relativeId": "M5.3", "module": "M5", "moduleName": "Block Cache & Logging", "color": "#5F7582", "title": "Log Block Sequential Write (`kernel/log.c`)", "body": "<li>  <strong>Log writing</strong>: When <code>end_op()</code> decrements <code>log.outstanding</code> to 0, it initiates the transaction commit phase.</li><li>  <strong>Physical serialization</strong>: <code>write_log()</code> loops through the dirty block list tracked in memory (<code>log.lh</code>):</li><li>1. Reads the memory buffer from the bcache.</li><li>2. Writes data sequentially into the disk log block region (starting at sector 2).</li><li>3. Updates <code>log.lh</code> mapping with the target sector mapping table.</li>"}, {"id": 21, "relativeId": "M5.4", "module": "M5", "moduleName": "Block Cache & Logging", "color": "#5F7582", "title": "Log Commit & Atomicity (`kernel/log.c`)", "body": "<li>  <strong>Atomic Boundary</strong>: The write-head call is the critical transition point.</li><li>  <strong>Commit sequence</strong>: <code>write_head()</code> writes the memory log header structure (<code>log.lh.n</code> representing count and block mappings) to log sector 1.</li><li>  <strong>Durability guarantee</strong>: If the system crashes before the header sector write completes, the transaction is discarded on reboot. If it crashes after, the transaction is replayed from the log blocks during startup.</li>"}, {"id": 22, "relativeId": "M5.5", "module": "M5", "moduleName": "Block Cache & Logging", "color": "#5F7582", "title": "Log Installation to Home Blocks (`kernel/log.c`)", "body": "<li>  <strong>Sector Copying</strong>: After the log header write completes, the transaction is officially committed, and <code>install_trans()</code> is invoked.</li><li>  <strong>Copy routine</strong>: Reads blocks from the log region, writes them to their true physical sectors on disk (Home Blocks), and updates bcache statuses.</li><li>  <strong>Transaction Completion</strong>: Clears dirty flags on bcache blocks after the copy completes.</li>"}, {"id": 23, "relativeId": "M5.6", "module": "M5", "moduleName": "Block Cache & Logging", "color": "#5F7582", "title": "Log Recovery on Reboot (`kernel/log.c`)", "body": "<li>  <strong>Recovery Hook</strong>: During boot, <code>initlog()</code> calls <code>recover_from_log()</code>.</li><li>  <strong>Replay routine</strong>:</li><li>1. Reads the log header sector.</li><li>2. If the block count <code>n > 0</code>, it indicates a crash occurred after commit but before install finished.</li><li>3. Replays the transaction by copying log blocks to home blocks (re-executing <code>install_trans()</code>).</li><li>4. Writes <code>n = 0</code> to log header sector and flushes to disk to prevent redundant recovery.</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "File System & Pipes", "color": "#BFA88F", "title": "Inode Layout & In-Memory Cache (`kernel/fs.c` / `kernel/fs.h`)", "body": "<li>  <strong>Disk Inode (<code>struct dinode</code>)</strong>: Fixed structure containing type, link count, size, 12 direct block pointers, and 1 indirect block pointer (supports up to $12 + 1024 = 1036$ blocks, approx. 512KB).</li><li>  <strong>Memory Inode (<code>struct inode</code>)</strong>: Extends disk inode with reference count <code>ref</code> and a sleeplock.</li><li>  <strong>Cache allocation</strong>:</li><li>  <code>iget(dev, inum)</code> returns the inode matching <code>inum</code>. If cached, increments <code>ref</code>.</li><li>  <code>iput(ip)</code> decrements <code>ref</code>. If both <code>ref</code> and <code>nlink</code> (disk link count) reach 0, frees all associated disk blocks and clears the inode on disk.</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "File System & Pipes", "color": "#BFA88F", "title": "Directory Lookups & Links (`kernel/fs.c`)", "body": "<li>  <strong>Directory Layout</strong>: Directories are files containing arrays of <code>struct dirent</code> (directories entries mapping <code>inum</code> and <code>name</code>).</li><li>  <code>dirlookup(dp, name, poff)</code> reads directory file blocks and searches for a matching name, returning <code>iget(dp->dev, de.inum)</code> on hit.</li><li>  <strong>Linking</strong>: <code>dirlink(dp, name, inum)</code> appends a new <code>struct dirent</code> directory record. Creating a hard link increments the target inode <code>nlink</code> count and writes a new directory entry.</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "File System & Pipes", "color": "#BFA88F", "title": "File Descriptor Table & File abstraction (`struct file` / `kernel/file.c`)", "body": "<li>  <strong>Unified Abstraction</strong>:</li><li>1. <strong>Process Space</strong>: <code>p->ofile[fd]</code> is a process-private array of pointers indexable by file descriptors.</li><li>2. <strong>Global Table</strong>: Points to a global file table <code>ftable</code> containing <code>struct file</code> entries tracking offset <code>off</code> and global reference count <code>ref</code>.</li><li>3. <strong>Underlying File Type</strong>: An open file can wrap an INODE (normal file/device) or a PIPE.</li><li>  <strong>Management</strong>: <code>filealloc()</code> scans <code>ftable</code> to allocate a file entry. <code>fileclose()</code> decrements <code>ref</code> and dispatches <code>iput()</code> or <code>pipeclose()</code>.</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "File System & Pipes", "color": "#BFA88F", "title": "Pipe Ring Buffers & Synchronization (`kernel/pipe.c`)", "body": "<li>  <strong>Ring Buffer</strong>: <code>struct pipe</code> manages a 512-byte ring buffer (<code>PIPESIZE</code>) with pointers <code>nread</code> and <code>nwrite</code>.</li><li>  <strong>Pipe Read/Write Sync</strong>:</li><li>  <code>pipewrite(pipe, addr, n)</code> writes bytes sequentially. If the buffer fills (<code>nwrite == nread + PIPESIZE</code>), calls <code>wakeup(&pipe->nread)</code> to awake readers and sleeps on <code>sleep(&pipe->nwrite, &pipe->lock)</code>.</li><li>  <code>piperead(pipe, addr, n)</code> reads bytes. If the buffer empties (<code>nread == nwrite</code>), calls <code>wakeup(&pipe->nwrite)</code> to awake writers and sleeps on <code>sleep(&pipe->nread, &pipe->lock)</code>.</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "File System & Pipes", "color": "#BFA88F", "title": "Syscall Parameters & Boundary Check (`kernel/sysfile.c` / `kernel/syscall.c`)", "body": "<li>  <strong>Kernel Boundary Protection</strong>: User programs pass pointers via registers which can be arbitrarily configured, requiring strict validation.</li><li>  <strong>Extraction & Validation</strong>:</li><li>  <code>argint(n, &val)</code> and <code>argaddr(n, &val)</code> extract integers or address pointers from registers <code>a0 - a5</code>.</li><li>  <code>argstr(n, buf, max)</code> copies a null-terminated string from user space. It invokes <code>fetchstr(addr, buf, max)</code> which reads bytes sequentially, verifying the address is strictly less than the process size <code>p->sz</code> to prevent memory disclosure.</li>"}];
+        let activeModule = 'ALL';
+
+        function renderCards() {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = '';
+            const query = document.getElementById('search').value.toLowerCase();
+
+            cards.forEach(c => {
+                const matchesSearch = c.title.toLowerCase().includes(query) || c.body.toLowerCase().includes(query);
+                const matchesModule = activeModule === 'ALL' || c.module === activeModule;
+
+                if (matchesSearch && matchesModule) {
+                    const el = document.createElement('div');
+                    el.className = 'card';
+                    el.style.borderLeft = `4px solid ${c.color}`;
+                    el.innerHTML = `
+                        <div class="card-header">
+                            <span class="card-id" style="background-color: ${c.color}22; color: ${c.color}">${c.relativeId}</span>
+                            <h3 class="card-title">${c.title}</h3>
+                        </div>
+                        <div class="card-body">
+                            ${c.body}
+                        </div>
+                        <div class="card-footer">
+                            <span>${c.moduleName}</span>
+                            <span style="color: ${c.color}">Card #${c.id}</span>
+                        </div>
+                    `;
+                    grid.appendChild(el);
+                }
+            });
+        }
+
+        function filterModule(mod) {
+            activeModule = mod;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.innerText.includes(mod) || (mod === 'ALL' && btn.innerText === 'ALL')) {
+                    btn.classList.add('active');
+                }
+            });
+            renderCards();
+        }
+
+        document.getElementById('search').addEventListener('input', renderCards);
+        renderCards();
+    </script>
+</body>
+</html>

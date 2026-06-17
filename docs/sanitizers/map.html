@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanitizers 运行时内存与并发检测知识图谱</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --m1-color: #4B5F7A;
+            --m2-color: #9C6666;
+            --m3-color: #6B8272;
+            --m4-color: #7A7A7A;
+            --m5-color: #9A825A;
+            --m6-color: #755B77;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .ladder-section {
+            max-width: 1400px;
+            margin: 0 auto 2.5rem auto;
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .ladder-block {
+            margin-bottom: 1.2rem;
+        }
+
+        .ladder-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .ladder-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.4rem;
+        }
+
+        .ladder-content {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        .ladder-content code {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #1e293b;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #f472b6;
+            word-break: break-all;
+        }
+
+        .controls {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .search-box {
+            flex-grow: 1;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            padding: 0.6rem 1rem;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-color);
+        }
+
+        .cards-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 0.8rem;
+        }
+
+        .card-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.3;
+        }
+
+        .card-body {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+            flex-grow: 1;
+            white-space: pre-wrap;
+        }
+
+        .card-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Sanitizers 运行时检测与分析知识大图</h1>
+        <p>LLVM Pass 编译器插桩、ASan 影子内存与红区隔离、TSan 向量时钟与数据竞争、MSan 比特级影子映射与 Origin 来源追踪 28 张高密核心卡片</p>
+    </header>
+
+    <section class="ladder-section">
+        <div class="ladder-block">
+            <div class="ladder-title">L0 一句话本质</div>
+            <div class="ladder-content">Sanitizers 是一套集编译器插桩 (Compiler Instrumentation) 与运行时库 (Runtime Library) 于一体的动态程序分析套件，利用影子内存映射 (Shadow Memory) 追踪状态、向量时钟 (Vector Clocks) 维护偏序关系、比特影子比特追踪初始化，以低于传统解释虚拟机的开销，在运行期精确检测内存越界/释放后使用、数据竞争、未初始化读取及未定义行为。</div>
+        </div>
+        <div class="ladder-block">
+            <div class="ladder-title">L1 四句话逻辑</div>
+            <div class="ladder-content">1.  **插桩拦截与符号解构**: 编译器 LLVM Pass 在 IR 级别插入状态检查代码，运行时拦截器劫持关键 libc 系统调用，配合 llvm-symbolizer 实现高精度符号化和栈帧回溯。
+    2.  **影子毒化与隔离防御**: ASan 以 8:1 比例建立影子内存，通过“毒化”插桩对象前后的红色区域 (Redzones) 拦截越界，并通过隔离区 (Quarantine) 延迟物理堆块重分配以捕捉释放后使用 (UAF)。
+    3.  **向量时钟与影子竞争**: TSan 通过向量时钟跟踪线程间 Happens-Before 关系，结合每个 8 字节应用内存对应的影子状态（记录写线程、Epoch 和操作范围），在不加锁的情况下实现无竞争检测。
+    4.  **比特追踪与保守扫描**: MSan 通过 1:1 比特级影子内存追踪初始化状态，配以来源追踪链定位根源；LSan 利用类似保守垃圾回收的根集合扫描，在程序退出时检索不可达内存实现泄漏报警。</div>
+        </div>
+        <div class="ladder-block">
+            <div class="ladder-title">L2 核心数据流转</div>
+            <div class="ladder-content"><code>*   `Compile C/C++ Code` ➜ `LLVM IR` ➜ `ASan/TSan/MSan Pass` ➜ `Insert Instrumentation Checks` ➜ `Link Runtime Library (libclang_rt)` ➜ `Application Startup` ➜ `Interceptors Hijack malloc()/free()` ➜ `Heap Allocation` ➜ `Poison Redzones (Shadow Memory set to 0xf1-0xf8)` ➜ `Application Write/Read` ➜ `Compile-Time Instrumented Check: (Addr >> 3) + Offset` ➜ `Shadow Byte Value != 0?` ➜ `Crash Report (ASan Global/Stack OOB)` ➜ `Free Object` ➜ `Move Page/Block to Quarantine (Poison Shadow Memory to 0xfd)` ➜ `Application Use-After-Free Access` ➜ `Shadow Byte == 0xfd Check` ➜ `Symbolic Stack Unwinding` ➜ `Report ASan UAF` ➜ `Thread A Write` ➜ `Record Vector Clock & Epoch` ➜ `Update TSan Shadow Cell (Thread, Epoch, Lock)` ➜ `Thread B Read (No happens-before link)` ➜ `Compare current Epoch with Vector Clock ➜ Data Race detected!` ➜ `Deadlock Check: Lock dependency graph circular loop` ➜ `UBSan runtime check: Integer overflow check (llvm.sadd.with.overflow)` ➜ `LSan Scan: Sweep stack/registers for pointers to allocated blocks ➜ Report memory leak`.</code></div>
+        </div>
+    </section>
+
+    <div class="controls">
+        <div class="filter-group">
+            <button class="filter-btn active" data-mod="all">全部模块</button>
+            <button class="filter-btn" data-mod="M1">M1: 编译器插桩机理</button> <button class="filter-btn" data-mod="M2">M2: ASan 影子内存与越界检测</button> <button class="filter-btn" data-mod="M3">M3: TSan 向量时钟与竞争检测</button> <button class="filter-btn" data-mod="M4">M4: MSan 未初始化读取检测</button> <button class="filter-btn" data-mod="M5">M5: UBSan 与 LSan 运行时检测</button> <button class="filter-btn" data-mod="M6">M6: Sanitizers 部署与故障诊断</button>
+        </div>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="搜索卡片关键字...">
+        </div>
+    </div>
+
+    <main class="cards-grid" id="cardsGrid"></main>
+
+    <script>
+        const cards = [{'num': 1, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': '内存与并发安全性痛点', 'body': 'C/C++ 等系统语言不提供运行期内存与并发安全保障，存在以下痛点：\n1.  **静态分析局限**: 静态漏洞扫描（如 Clang Static Analyzer）由于缺乏运行期上下文，指针别名分析（Pointer Aliasing）困难，且面临路径爆炸，极易产生大量假阳性与漏报。\n2.  **黑盒与解释开销**: 传统动态工具（如 Valgrind）采用完全指令集解释执行的方式运行二进制文件，带来 10x-50x 的 CPU 慢速与巨大的内存消耗，无法运行在压力测试与高并发测试中。\n3.  **动态检测需求**: 在编译期低损耗插桩、在运行期精准捕获越界、释放后使用（UAF）以及并发数据竞争，是现代硬核软件开发的核心工程底座。'}, {'num': 2, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': '编译器级别插桩机制', 'body': 'LLVM Sanitizers 的核心架构分为编译期转换（LLVM Pass）与运行时环境支持（compiler-rt）：\n1.  **编译期插桩**: Clang 编译器将源码转换为 LLVM 中间表示（IR）后，Sanitizers Pass 遍历 IR 的基本块（Basic Blocks）。对于每一个内存读写指令（Load/Store），Pass 自动在其前方插入合法性状态校验代码。\n2.  **运行时绑定**: 插桩代码在运行期与 compiler-rt 静态或动态库链接。运行时负责接管内存空间分配、维护影子内存（Shadow Memory）、初始化主线程拦截器。\n3.  **协同运行**: 编译期负责“在哪里检查”，运行时负责“怎么记录与拦截”，两者共同将动态分析损耗降到最低。'}, {'num': 3, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': '系统函数拦截与重写', 'body': '运行期安全检测需要全面透视应用程序对 libc 等标准库函数的交互：\n1.  **劫持机制 (LD_PRELOAD)**: 在 Linux 平台下，运行时库利用动态链接器的加载顺序优势，或通过 LD_PRELOAD 预加载机制，使得运行时库中的同名包装函数优先被调用。\n2.  **弱符号覆盖**: 针对静态链接，利用 libc 中大部分标准函数的弱符号（Weak Symbols）定义，运行时库使用同名强符号在链接阶段直接覆盖目标函数。\n3.  **包装器 (Interceptors)**: Interceptor（拦截器）在执行诸如 `memcpy`, `strcpy`, `pthread_create` 时，先校验入参地址范围的影子内存状态，确认无越界或冲突后再通过 `dlsym(RTLD_NEXT, ...)` 调用底层原始函数。'}, {'num': 4, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': '运行时符号化与栈回溯', 'body': 'Sanitizer 触发故障时必须输出人类可读的代码上下文信息：\n1.  **栈回溯 (Stack Unwinding)**: 运行时库在错误点捕获指令指针寄存器（PC）。为了提取完整的调用帧，使用快速回溯（Fast Unwinder，依赖 Frame Pointer 的 RBP 链，需 `-fno-omit-frame-pointer`）或慢速回溯（Slow Unwinder，依赖 DWARF 的 `.eh_frame` 段）。\n2.  **符号化引擎**: 运行时库通过管道（Pipe）与独立的守护进程 `llvm-symbolizer` 进行通信。将捕获的 PC 物理地址发送给符号化引擎，由其检索 ELF DWARF 调试元数据。\n3.  **信息格式化**: 引擎反查出对应的源文件名、行号及函数名称，输出结构化的排查堆栈报告。'}, {'num': 5, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': '优化与开销折衷机制', 'body': 'Sanitizers 虽然高效，但也需要配合适当的编译器优化选项以控制开销：\n1.  **开销物理源**: 每一个 Load/Store 前插入的影子内存映射计算、地址读取与分支判断，都会打破 CPU 本身的乱序执行，带来 CPU 指令流水线 stall 停顿。\n2.  **优化级别选项**:\n    *   `-O0`: 无优化，Pass 会对所有的内存读写进行无差别插桩，性能退化严重。\n    *   `-O1` / `-O2`: 启用 LLVM 优化 Pass，执行死代码消除（DCE）与局部性多余校验合并（如同一指针的多次读写仅插桩第一次），CPU 慢速可以收敛在 2x 左右。\n3.  **调试折衷**: 较高优化级别可能会将小函数执行“内联 (Inline)”，导致报错符号堆栈中的调用关系出现丢失或源码行偏移。'}, {'num': 6, 'moduleId': 'M2', 'moduleColor': '#9C6666', 'title': '影子内存映射算法', 'body': 'AddressSanitizer 使用线性映射将应用内存空间状态投射到影子内存（Shadow Memory）中：\n1.  **一对八物理映射**: 每 8 字节的应用内存对应 1 字节的影子内存，映射比例为 8:1。\n2.  **映射计算公式**:\n    $$\\text{ShadowAddr} = (\\text{AppAddr} \\gg 3) + \\text{Offset}$$\n    在 Linux x86_64 平台，Offset 常数为 `0x7fff8000`。\n3.  **影子字节编码含义**:\n    *   `0x00`: 8 个应用字节全部可读写（Clean）。\n    *   `0x01` - `0x07`: 前 $k$ 字节可读写，后 $8-k$ 字节被毒化（Poisoned，禁止访问）。\n    *   负数 / 特殊值（如 `0xf1` - `0xf8`）: 表示各类型的保护边界红区（Redzones）。\n    *   `0xfd`: 隔离区已释放堆块（Freed Memory / Heap Quarantine）。'}, {'num': 7, 'moduleId': 'M2', 'moduleColor': '#9C6666', 'title': '红色区域 (Redzones) 与编译器插桩', 'body': '为了捕获缓冲区溢出（Buffer Overflow），ASan 在物理内存周围设计了受保护的红区：\n1.  **栈与全局变量插桩**: 编译期 LLVM Pass 修改局部变量与全局变量的字节布局。在变量的前后插入填充字段（Redzones），并毒化对应的影子内存。例如：栈左侧红区置为 `0xf1`，中间红区置为 `0xf2`，右侧置为 `0xf3`。\n2.  **越界拦截断言**: 对于普通应用访问：\n    ```c\n    char *p = malloc(10);\n    // 编译期插入：\n    char *shadow_addr = (p >> 3) + 0x7fff8000;\n    if (*shadow_addr != 0) {\n        ReportError(p);\n    }\n    ```\n    一旦访问指针越界偏入 Redzone，该处影子字节不为 0，程序立即中断抛出越界崩溃报告。'}, {'num': 8, 'moduleId': 'M2', 'moduleColor': '#9C6666', 'title': '释放后使用 (Use-After-Free) 隔离防御', 'body': 'Use-After-Free (UAF) 的本质是由于指针保留导致的悬空指针（Dangling Pointer）写回：\n1.  **释放劫持**: 运行时包装器劫持 `free(ptr)`，它不把内存还给系统，而是将其影子内存全部置为 `0xfd`（Poisoned Heap）。\n2.  **隔离区队列 (Quarantine)**: 释放的堆块被推入运行时维护的先进先出（FIFO）隔离队列中，并限制隔离区大小（如 256MB）。在隔离队列期间，该堆块物理地址不允许被重复分配。\n3.  **拦截检测**: 当程序通过野指针访问该段已被释放的内存时，ASan 读取影子字节，发现值为 `0xfd`，瞬间判定为 UAF 越权访问，触发拦截崩溃。当隔离区溢出时，最旧的堆块才解除毒化并归还系统。'}, {'num': 9, 'moduleId': 'M2', 'moduleColor': '#9C6666', 'title': '堆内存分配劫持', 'body': 'ASan 使用特制的运行时分配器 `asan_allocator` 接管底层物理内存的管理：\n1.  **申请重构**: `malloc(size)` 被拦截后，分配器实际向系统申请的大小为 `Header_Size + Left_Redzone + size + Right_Redzone`，满足 16 字节对齐。\n2.  **元数据 Header**: 块头部的 Header 部分（毒化状态）存储着分配元数据，包含：分配时的线程 ID、分配调用栈的指针哈希等。\n3.  **红区隔离**: 分配器将 Left/Right Redzone 区域的影子字节毒化为 `0xfa` / `0xfb`。这套物理管理实现了哪怕大范围越界，也只会在红区被阻断，从而保护了真实系统的数据不被踩内存污染。'}, {'num': 10, 'moduleId': 'M2', 'moduleColor': '#9C6666', 'title': '栈上释放后使用 (UAR) 与作用域外使用 (UAS)', 'body': '局部变量的生命周期在函数退出或作用域结束时终止，但指针逃逸会导致安全风险：\n1.  **UAR 检测机理 (Use-After-Return)**: 编译期 LLVM Pass 改变栈分配方式。启用 `ASAN_OPTIONS=detect_stack_use_after_return=1` 后，原本物理栈帧的分配被修改为从运行期堆（Fake Stack）中动态申请。当函数返回时，这块 Fake Stack 的影子字节被全部毒化为 `0xf5`。外部悬空指针再次访问时即被捕获。\n2.  **UAS 检测机理 (Use-After-Scope)**: 在函数体内部的块作用域（如 `{ char tmp[10]; ... }`）退出时，编译器在 IR 级别自动插入 `__asan_poison_stack_memory` 运行时调用，将 `tmp` 局部栈空间对应的影子内存毒化为 `0xf8`。跳出作用域后若继续读取，触发报错。'}, {'num': 11, 'moduleId': 'M3', 'moduleColor': '#6B8272', 'title': '数据竞争与 Happens-Before 关系', 'body': '数据竞争是多线程编程中由于缺乏同步约束导致的致命并发安全行为：\n1.  **竞争定义**: 两个或多个线程并发访问同一块物理内存，其中至少有一个访问是写操作（Write），且这些访问之间没有用同步锁、原子变量建立先后顺序。\n2.  **Happens-Before 偏序关系**: 如果操作 $A \\rightarrow B$（Happens-Before），说明 $A$ 产生的数据修改对 $B$ 而言是完全同步和安全的。\n3.  **无竞争条件**: 发生并发读写的两个事件 $E_1$ 和 $E_2$，必须满足 $E_1 \\rightarrow E_2$ 或 $E_2 \\rightarrow E_1$ 偏序关系，否则即被 TSan 判定为并发数据竞争冲突。'}, {'num': 12, 'moduleId': 'M3', 'moduleColor': '#6B8272', 'title': '向量时钟 (Vector Clocks) 状态追踪', 'body': 'TSan 在内核态通过向量时钟追踪 Happens-Before 的数学时序演进：\n1.  **向量定义**: 每个线程 $i$ 内部维护一个大小为 $N$（总线程数）的整型数组 $VC_i$。$VC_i[j]$ 代表线程 $i$ 当前所知的线程 $j$ 的最新逻辑时钟代数（Epoch）。\n2.  **本地事件递增**: 线程 $i$ 每次执行读写或事件，本地分量自增：\n    $$VC_i[i] = VC_i[i] + 1$$\n3.  **同步合并**: 当线程 $i$ 释放互斥锁时，锁 $L$ 复制时钟：$VC_L = VC_i$。当线程 $j$ 随后获取该锁时，执行最大值同步合并：\n    $$VC_j = \\max(VC_j, VC_L)$$\n    这样就建立了 Happens-Before 的偏序传导通路。'}, {'num': 13, 'moduleId': 'M3', 'moduleColor': '#6B8272', 'title': '影子状态 (Shadow State) 压缩存储', 'body': 'TSan 需要高频对比历史内存读写事件，为此设计了高密度的影子映射：\n1.  **一对四影子槽**: 应用内存的每 8 字节单元，在 TSan 影子空间对应 4 个影子存储槽（Shadow Cells，共 32 字节，映射比例为 4:1）。\n2.  **滚动历史槽**: 这 4 个 Slots 组成一个环形缓存区，记录对该 8 字节区域最近发生的 4 次内存读写事件。\n3.  **64 位压缩编码**: 每个 Shadow Cell 仅占 8 字节，压缩定义如下：\n    *   `Thread ID` (13 bits): 执行访问的线程。\n    *   `Epoch` (16 bits): 发生访问时该线程的逻辑时钟代数。\n    *   `Access Range` (8 bits): 访问范围在 8 字节块内的相对偏移与宽度。\n    *   `IsWrite` (1 bit): 读写标志位。'}, {'num': 14, 'moduleId': 'M3', 'moduleColor': '#6B8272', 'title': '锁操作与状态流转同步', 'body': '运行时拦截器是锁同步状态传递的桥梁：\n1.  **劫持同步 API**: TSan 拦截 `pthread_mutex_lock/unlock`, `pthread_cond_wait`, `sem_post` 等。\n2.  **时钟同步桥接**:\n    *   在 `pthread_mutex_unlock` 时，当前线程的时钟向量 $VC_{\\text{thread}}$ 完全写入互斥锁的内部影子状态 $VC_{\\text{lock}}$。\n    *   在 `pthread_mutex_lock` 时，获取锁的线程将本地 $VC$ 与锁的 $VC_{\\text{lock}}$ 执行合并。\n3.  **竞争比对断言**: 对于任意内存访问，TSan 会将当前的 Epoch 与对应影子槽中保存的 4 个历史事件 Epoch 进行 happens-before 对比。如果历史 Epoch 小于合并后的向量时钟分量，说明历史事件 happens-before 当前事件，安全；否则，抛出数据竞争异常。'}, {'num': 15, 'moduleId': 'M3', 'moduleColor': '#6B8272', 'title': '死锁 (Deadlock) 动态检测', 'body': '运行时锁顺序关系的拓扑分析能先于真实死锁爆发出预警：\n1.  **有向依赖图 (Lock Order Graph)**: TSan 在运行时维护一张全局锁获取有向图。顶点是各个互斥锁，边代表锁的获取路径。\n2.  **加锁路径边记录**: 如果线程在持有锁 $L_1$ 的情况下，请求获取锁 $L_2$，TSan 在图中记录一条有向边：$L_1 \\rightarrow L_2$。\n3.  **拓扑环路分析**: 每次新增依赖边时，TSan 运行时同步调用拓扑排序或有向图环路检测算法。如果发现图中存在环（如存在 $L_1 \\rightarrow L_2 \\rightarrow L_1$），哪怕本次运行因时序原因未触发真实死锁阻塞，TSan 也会立即发出死锁风险报告。'}, {'num': 16, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': '未初始化内存读取安全威胁', 'body': '未初始化内存读取是系统级 C/C++ 代码中隐蔽性最强且危害巨大的缺陷：\n1.  **随机脏数据残留**: 在物理页框循环使用中，堆和栈被释放重用后，其物理数据依然残留。新变量定义时若未赋值，其数值是不可预测的脏数据。\n2.  **信息泄漏**: 将未初始化的结构体（含内存对齐气泡）通过网络套接字 `send` 发出，会将邻近栈/堆上的敏感数据发送给对端，导致严重的系统级信息泄露。\n3.  **分支与劫持**: 脏数据一旦用于 `if` 条件分支判定，会导致控制流偏离，或者当脏数据被转为函数指针调用时，可能被利用实现劫持。'}, {'num': 17, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': '影子内存比特级映射 (Shadow Bit-Map)', 'body': '为了精确追踪每一个 Bit 的初始化状态，MSan 采取了高密度的 1:1 比特级映射：\n1.  **一对一物理映射**: 每 1 字节的应用内存，映射 1 字节的影子内存，比例为 1:1。\n2.  **映射公式**:\n    $$\\text{ShadowAddr} = \\text{AppAddr} \\oplus 0x200000000000$$\n3.  **比特影子标志位**: 影子字节中的每一位（Bit）指示应用内存中对应位的初始化状态：\n    *   `0`: 该位已被明确赋过值，状态为已初始化（Initialized）。\n    *   `1`: 该位尚未初始化，处于脏状态（Uninitialized）。\n4.  **影子传播**: 执行算术运算（如 `a = b + c`）时，MSan 编译器插桩代码会按位逻辑传播影子状态。如果 `b` 或 `c` 未初始化，其影子 `1` 会随之传导给 `a`。'}, {'num': 18, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': '来源追踪 (Origin Tracking) 技术', 'body': '在复杂的内存指针链式复制中，仅告知哪一行代码读了未初始化数据，很难精确定位是哪个源头忘了赋值：\n1.  **Origins 内存映射**: 编译时加入 `-fsanitize-memory-track-origins`，MSan 会额外开辟空间。每 4 字节的应用内存，对应 4 字节的 Origin 空间。\n2.  **32 位元数据 ID**: Origin 空间保存一个 32 位的 Origin ID。此 ID 关联到运行期的全局分配调用栈映射表。\n3.  **数据复制追溯**: 当未初始化内存被 `memcpy` 复制到新地址时，Origin 空间中的 ID 也会同步随之复制（Origin Propagation）。当最终发生未初始化读取报错时，MSan 能够打印出该脏内存最初是在哪一行代码定义、或由哪个堆分配栈申请的完整传递链路。'}, {'num': 19, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': '屏蔽未初始化漏报与检测盲区', 'body': '精确诊断需要将检查断言延迟到对控制流有决定性影响的“敏感边界”：\n1.  **延迟报错策略**: MSan 不会在每次 Load 时都报错，因为单纯的数据拷贝和搬运（未初始化数据）是合法的。报错仅在以下两个点被硬性断言触发：\n    *   **分支判断**: 未初始化的值被用于 `if/while` 等条件跳转。\n    *   **边界系统调用**: 数据作为参数传递给 `syscall` 系统调用。\n2.  **检测盲区**: MSan Pass 仅能对 LLVM IR 级别进行插桩。手写汇编（Inline Assembly）以及未被 MSan 编译插桩的第三方闭源动态链接库（如 libc.so），其内存修改行为无法被影子内存自动感应，构成检测盲区。'}, {'num': 20, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': '内存泄漏物理成因与检测逻辑', 'body': '内存泄漏是破坏系统长期可用性与导致进程 OOM 的首要成因：\n1.  **成因分析**: 在运行期通过 `malloc` 分配的堆内存块，在其生命周期结束后，程序丢失了所有指向该块起始地址的指针，导致操作系统无法回收，形成“内存孤岛”。\n2.  **LSan 保守 GC 检测机制**: LeakSanitizer 不使用开销巨大的对象生命周期引用计数计数，而是采用保守垃圾回收（Conservative Garbage Collection）技术。\n3.  **可达性假设**: 如果从应用程序的所有全局区域和运行活动区（根集合）开始，找不到任何保存着已分配内存地址的指针，则判定该堆块已经不可达，必然发生了内存泄漏。'}, {'num': 21, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'LSan 根集合保守扫描', 'body': 'LSan 通过特定的 Stop-The-World 暂停机制对全系统内存引用进行图论检索：\n1.  **根集合 (Root Set) 定义**: 包括全局可读写数据段（.data 与 .bss）、所有活动线程的 CPU 寄存器状态、以及当前所有线程的系统调用栈。\n2.  **指针粗筛**:\n    *   LSan 暂停（ptrace）所有线程，遍历全局已分配的堆块列表。\n    *   逐个字节扫描根集合，提取任意对齐的 8 字节值。如果该数值恰好落在某个已分配堆块的 `[start_addr, end_addr]` 范围内，则判定该堆块“可达”。\n3.  **递归着色**: 递归扫描可达堆块内部的数据，标记其内部指针指向的其他堆块。扫描结束后，遍历分配列表，未被标记为可达的堆块，即判定为内存泄漏，打印分配栈。'}, {'num': 22, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'UBSan 算术与空指针行为检测', 'body': 'UndefinedBehaviorSanitizer 精准定位由于违背语言规范带来的运行期不可预测行为：\n1.  **有符号整数溢出**: 在 C/C++ 中有符号数溢出是未定义行为。编译器前端会在编译期将算术指令（如加法）替换为 LLVM 的安全溢出检测指令（如 `llvm.sadd.with.overflow`）。一旦运行期结果越界，捕获错误并触发运行时 UBSan 报告。\n2.  **空指针解引用**: 在指针使用前，插桩指令自动注入 `if (ptr == nullptr)` 校验，防止引发硬性的 Segment Fault 崩溃，确保能够输出优雅的代码出错位置报告。\n3.  **未对齐访问 (Misaligned Access)**: 强行将非对齐地址（如奇数地址）转换为高精度对齐类型指针并进行读取，UBSan 会在转换前计算 `(uintptr_t)ptr % alignof(type) != 0` 断言。'}, {'num': 23, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'UBSan 对齐与越界校验', 'body': '动态数组边界检查与 C++ 多态安全是 UBSan 规避越界和踩内存的另一防线：\n1.  **数组边界校验**: 在编译期获取数组定义的静态界限，或针对 C99 可变长度数组（VLA）在运行时捕获其动态分配长度。每次以索引 `i` 读写时，自动在 IR 级插入 `if (i >= array_size)` 的崩溃保护代码。\n2.  **虚表指针 (vptr) 校验**: 在执行 C++ 多态虚函数调用前，UBSan 会在编译期为合法的虚函数表（vtable）地址建立元数据信任域。在运行时通过插桩检查对象的虚表指针是否落在该安全范围，防止因堆内存覆盖导致虚表被篡改而触发的任意代码执行攻击。'}, {'num': 24, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'UBSan 动态类型转换与 CFI 控制流完整性', 'body': '防范高阶漏洞需要介入类型安全以及运行时控制流拓扑约束：\n1.  **向下类型转换 (Downcast) 校验**: 强行将指向父类对象的指针转换为子类类型指针并试图调用子类成员，在 C++ 下会产生未定义行为。UBSan 利用编译期注入的运行时类型信息（RTTI）对比转换类型，捕获类型混淆漏洞（Type Confusion）。\n2.  **控制流完整性 (CFI)**:\n    *   编译期分析程序有向控制流图（CFG），标记所有的间接调用点（Indirect Calls）以及合法的目的函数入口集合。\n    *   运行时跳转前，在汇编级插入对目标 PC 地址的哈希查表校验。一旦跳转目标被缓冲区溢出等溢出攻击所破坏，偏离了合法的控制流图，CFI 立即强行熔断并终止进程。'}, {'num': 25, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': '运行时配置与黑名单过滤', 'body': 'Sanitizers 提供了高度灵活的动态过滤机制以适应复杂的遗留系统部署：\n1.  **环境变量配置**:\n    *   ASan: `ASAN_OPTIONS=quarantine_size_mb=64:detect_odr_violation=1`，用于调节内存隔离区大小或排查单一定义规则违背。\n    *   TSan: `TSAN_OPTIONS=history_size=7`，可以保留更长的线程事件历史。\n2.  **黑名单机制 (Suppressions)**:\n    *   运行时 Suppressions: 编写配置文件过滤由于第三方动态链接库（未插桩）引发的已知误报。例如：`race:libcrypto.so`。\n    *   编译期 Ignorelist: 编写忽略文件（`-fsanitize-ignorelist=ignorelist.txt`），在编译阶段让编译器对指定文件或高频敏感函数放弃插桩，规避不必要的开销。'}, {'num': 26, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': '典型 ASan 故障栈重建', 'body': 'ASan 的报错堆栈（Diagnostic Report）结构具有极佳的可读性，是快速故障定位的工具：\n1.  **第一段: 崩溃信息头**: 抛出诸如 `heap-use-after-free` / `stack-buffer-overflow`，指示触发 Crash 时的内存读/写性质（READ/WRITE of size N）以及发生此行为的当前线程 ID 和代码堆栈。\n2.  **第二段: 生命周期关联栈 (关键排查区)**:\n    *   对于 UAF: 会详细输出该内存地址最初被 `malloc` 分配时的堆栈，以及随后被 `free` 释放时的完整代码调用栈。\n3.  **第三段: 影子内存视图 (Memory Map View)**:\n    *   打印错误物理地址周围的影子内存字节。被中括号标记的即为出错点，如 `[fd]`（Freed Memory）或 `[fa]`（Left Redzone），提供完美的故障现场佐证。'}, {'num': 27, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': '典型 TSan 与 MSan 诊断故障排查', 'body': '在实际集成中，未插桩链接库与异步底层交互是导致诊断故障的主因：\n1.  **TSan 伪竞争误报**: 当应用程序利用手写汇编或自研原子屏障实现同步，而未使用标准的 pthread 锁时，TSan 无法捕获 happens-before 关系，会产生严重的竞争误报。解决方法是在自研同步代码处加入 TSan 专用的 API 注解（如 `ANNOTATE_HAPPENS_BEFORE`）。\n2.  **MSan 外部写漏报**:\n    *   通过系统调用（如 `ioctl`）直接向内存写入数据，或调用未插桩编译的 C 库（如 OpenSSL）写入数据，MSan 运行时无法感知其已初始化状态。\n    *   会导致随后的合法读取被误判并崩溃。开发者必须在外部写入完毕后，手动调用 `__msan_unpoison(addr, size)` 标记内存已就绪。'}, {'num': 28, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': '模糊测试与持续部署集成', 'body': 'Sanitizers 与测试阶段漏洞挖掘（Fuzzing）结合是保障现代工业级软件安全的最佳实践：\n1.  **Fuzzing 编译集成**: 用 ASan/UBSan 对目标代码进行插桩编译，作为动态二进制集成挂载至 libFuzzer 或 AFL++ 模糊测试引擎中。\n2.  **崩溃引导**: 模糊测试通过随机变异生成海量请求参数。当遇到深层 Bug 时，Sanitizers 的崩溃拦截会立刻终止进程，使得 Fuzzer 可以抓取到偶发性崩溃，大大提高了漏洞检出效率。\n3.  **金丝雀部署**: 在持续集成/持续部署（CI/CD）阶段，利用金丝雀分析（Canary Test），在小流量测试节点运行 Sanitizer 插桩编译的镜像，为微服务大盘诊断提供运行期安全守卫。'}];
+        const grid = document.getElementById('cardsGrid');
+        const searchInput = document.getElementById('searchInput');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+
+        let activeFilter = 'all';
+        let searchQuery = '';
+
+        function renderCards() {
+            grid.innerHTML = '';
+            const filtered = cards.filter(card => {
+                const matchesMod = activeFilter === 'all' || card.moduleId === activeFilter;
+                const matchesSearch = card.title.toLowerCase().includes(searchQuery) || card.body.toLowerCase().includes(searchQuery);
+                return matchesMod && matchesSearch;
+            });
+
+            filtered.forEach(card => {
+                const el = document.createElement('div');
+                el.className = 'card';
+                el.style.borderTop = `3px solid ${card.moduleColor}`;
+                el.innerHTML = `
+                    <div class="card-badge" style="background-color: ${card.moduleColor}"></div>
+                    <div class="card-header">
+                        <span class="card-num">Card ${card.num}</span>
+                        <div class="card-title">${card.title}</div>
+                    </div>
+                    <div class="card-body">${card.body}</div>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase();
+            renderCards();
+        });
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeFilter = btn.dataset.mod;
+                renderCards();
+            });
+        });
+
+        renderCards();
+    </script>
+</body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RocksDB LSM-Tree 存储引擎与压实合并模拟沙盒</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d0e12;
+            --panel-bg: #14161f;
+            --border-color: #262938;
+            --text-color: #d1d5db;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+            --accent-gold: #f59e0b;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, sans-serif;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        header h1 {
+            font-size: 2rem;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #10b981, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #6b7280;
+        }
+        
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        @media (max-width: 900px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .panel-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .option-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #9ca3af;
+        }
+        input, select, button {
+            background-color: #1e2130;
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        button {
+            background-color: var(--accent-green);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: none;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #059669;
+        }
+        
+        .code-display {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            background-color: #090a0f;
+            border: 1px solid #1c1e29;
+            padding: 1rem;
+            border-radius: 6px;
+            height: 180px;
+            overflow-y: auto;
+            color: #34d399;
+        }
+        
+        .compaction-playground {
+            height: 250px;
+            border: 1px dashed var(--border-color);
+            background-color: #0a0b10;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .level-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            height: 50px;
+        }
+        .level-lbl {
+            width: 60px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+        .files-container {
+            display: flex;
+            gap: 0.5rem;
+            flex-grow: 1;
+            align-items: center;
+        }
+        .sst-file {
+            height: 35px;
+            padding: 0 0.5rem;
+            background-color: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: #fff;
+            min-width: 60px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .sst-file-merged {
+            background-color: var(--accent-green);
+            border-color: #059669;
+            transform: scale(1.05);
+        }
+        
+        .block-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            font-family: 'Fira Code', monospace;
+        }
+        .block-table th, .block-table td {
+            border: 1px solid var(--border-color);
+            padding: 0.4rem;
+            text-align: left;
+        }
+        .block-table th {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>RocksDB LSM-Tree 存储与归并压实模拟器</h1>
+        <p>纯前端互动演示：LSM-Tree 前台顺序写与后台分层压实 (Compaction) 及块压缩控制</p>
+    </header>
+    
+    <div class="main-container">
+        <!-- Panel 1: Write Flow & Block Compression -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>[1] Block 前缀压缩与重启点二分机制</span>
+                <span style="font-size: 0.75rem; color: var(--accent-blue);">块布局模拟</span>
+            </div>
+            
+            <div class="option-group">
+                <label>写入一组排序键值对以生成 Data Block</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="keyInput" placeholder= + t1_placeholder +  style="flex-grow: 1;">
+                    <button id="addKeyBtn" style="width: 80px;">追加</button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="block-table" id="blockTable">
+                    <thead>
+                        <tr>
+                            <th>物理索引</th>
+                            <th>原始键 (Raw Key)</th>
+                            <th>前缀压缩编码 (Shared/Unshared)</th>
+                            <th>重启点 (Restart Point)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Inserted dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            <div style="font-size: 0.7rem; color: #64748b;">
+                * 注：当重启点间隔（默认设为 4）达到时，编码会强制写出完整的 Raw Key 阻断前缀压缩，用于折半二分扫描检索起点。
+            </div>
+        </div>
+        
+        <!-- Panel 2: Compaction Sim -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>[2] Leveled Compaction 级联归并压实</span>
+                <span style="font-size: 0.75rem; color: var(--accent-green);">后台压实合并模拟</span>
+            </div>
+            
+            <div class="compaction-playground">
+                <div class="level-row" id="l0-row">
+                    <div class="level-lbl">Level 0</div>
+                    <div class="files-container" id="l0-files">
+                        <!-- L0 SSTables -->
+                    </div>
+                </div>
+                
+                <div class="level-row" id="l1-row">
+                    <div class="level-lbl">Level 1</div>
+                    <div class="files-container" id="l1-files">
+                        <!-- L1 SSTables -->
+                    </div>
+                </div>
+                
+                <div class="level-row" id="l2-row">
+                    <div class="level-lbl">Level 2</div>
+                    <div class="files-container" id="l2-files">
+                        <!-- L2 SSTables -->
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button id="writePktBtn">前台写入并刷盘 (产生 L0 文件)</button>
+                <button id="compactionBtn" style="background-color: var(--accent-gold);">触发后台归并压实 (Compaction)</button>
+            </div>
+            
+            <div class="code-display" id="compactionLog" style="height: 120px;">点击下方按钮进行写数据或压实制造仿真...</div>
+        </div>
+    </div>
+    
+    <script>
+        // Sim 1: Block Compression
+        const blockTableBody = document.querySelector('#blockTable tbody');
+        const keyInput = document.getElementById('keyInput');
+        const addKeyBtn = document.getElementById('addKeyBtn');
+        
+        let insertedKeys = ["active_user_01", "active_user_02", "active_user_09", "admin_portal"];
+        
+        function renderBlockTable() {
+            blockTableBody.innerHTML = "";
+            insertedKeys.sort();
+            
+            let prevKey = "";
+            insertedKeys.forEach((key, index) => {
+                let shared = 0;
+                let unshared = key.length;
+                let restart = "false";
+                
+                if (index % 4 === 0) {
+                    restart = 'TRUE (重启点)';
+                } else if (prevKey) {
+                    let minLen = Math.min(prevKey.length, key.length);
+                    for (let i = 0; i < minLen; i++) {
+                        if (prevKey[i] === key[i]) shared++;
+                        else break;
+                    }
+                    unshared = key.length - shared;
+                }
+                
+                const tr = document.createElement('tr');
+                if (index % 4 === 0) {
+                    tr.style.backgroundColor = "rgba(59, 130, 246, 0.1)";
+                }
+                
+                tr.innerHTML = `
+                    <td>Slot #${index}</td>
+                    <td>${key}</td>
+                    <td><code>shared:${shared}, unshared:${unshared}, suffix:${key.substring(shared)}</code></td>
+                    <td style="color: ${index % 4 === 0 ? 'var(--accent-blue)' : '#64748b'}">${restart}</td>
+                `;
+                blockTableBody.appendChild(tr);
+                prevKey = key;
+            });
+        }
+        
+        addKeyBtn.addEventListener('click', () => {
+            const val = keyInput.value.trim();
+            if (val && !insertedKeys.includes(val)) {
+                insertedKeys.push(val);
+                renderBlockTable();
+                keyInput.value = "";
+            }
+        });
+        
+        renderBlockTable();
+        
+        // Sim 2: Compaction
+        const l0Files = document.getElementById('l0-files');
+        const l1Files = document.getElementById('l1-files');
+        const l2Files = document.getElementById('l2-files');
+        const writePktBtn = document.getElementById('writePktBtn');
+        const compactionBtn = document.getElementById('compactionBtn');
+        const compactionLog = document.getElementById('compactionLog');
+        
+        let l0Count = 0;
+        let l1Data = ["sst_l1_a [k001-k100]", "sst_l1_b [k101-k200]", "sst_l1_c [k201-k300]"];
+        let l2Data = ["sst_l2_all [k000-k999]"];
+        
+        function renderCompactionFiles() {
+            l0Files.innerHTML = "";
+            for (let i = 0; i < l0Count; i++) {
+                const sst = document.createElement('div');
+                sst.className = "sst-file";
+                sst.style.borderColor = "var(--accent-red)";
+                sst.innerHTML = `L0_${i}<br>[k${10 + i * 20}-k${90 + i * 20}]`;
+                l0Files.appendChild(sst);
+            }
+            
+            l1Files.innerHTML = "";
+            l1Data.forEach(name => {
+                const sst = document.createElement('div');
+                sst.className = "sst-file";
+                sst.style.borderColor = "var(--accent-blue)";
+                sst.innerHTML = name.replace(" ", "<br>");
+                l1Files.appendChild(sst);
+            });
+            
+            l2Files.innerHTML = "";
+            l2Data.forEach(name => {
+                const sst = document.createElement('div');
+                sst.className = "sst-file";
+                sst.style.borderColor = "var(--accent-gold)";
+                sst.innerHTML = name.replace(" ", "<br>");
+                l2Files.appendChild(sst);
+            });
+        }
+        
+        renderCompactionFiles();
+        
+        writePktBtn.addEventListener('click', () => {
+            if (l0Count >= 4) {
+                compactionLog.innerHTML = '>>> [Write Stall 警告] L0文件堆积已达阈值，写挂起中！请立即点击右侧触发 Compaction！\n';
+                compactionLog.style.color = "var(--accent-red)";
+                return;
+            }
+            l0Count++;
+            compactionLog.innerHTML = '>>> [用户写入] WriteBatch 顺序追加至 WAL ... 写入 MemTable 成功 \n>>> MemTable 满，Immutable 刷盘成功，产生 L0文件 L0_' + (l0Count-1) + ".sst\n";
+            compactionLog.style.color = "#34d399";
+            renderCompactionFiles();
+        });
+        
+        compactionBtn.addEventListener('click', () => {
+            if (l0Count === 0) {
+                compactionLog.innerHTML = '>>> L0层暂无数据文件，无需进行归并压实。\n';
+                compactionLog.style.color = "#94a3b8";
+                return;
+            }
+            
+            compactionLog.innerHTML = '>>> [压实开始] 唤醒后台压实线程... 计算各层 Score\n>>> L0 文件数已达阈值，启动 L0 -> L1 压实合并\n>>> 读入 L0_0 至 L0_' + (l0Count-1) + ' 与 L1 层重合的 sst_l1_a, sst_l1_b 进行归并排序...\n';
+            compactionLog.style.color = "var(--accent-gold)";
+            
+            document.querySelectorAll('#l0-files .sst-file').forEach(el => el.classList.add('sst-file-merged'));
+            document.querySelectorAll('#l1-files .sst-file').forEach(el => el.classList.add('sst-file-merged'));
+            
+            setTimeout(() => {
+                l0Count = 0;
+                l1Data = ["sst_l1_a_new [k001-k150]", "sst_l1_b_new [k151-k300]", "sst_l1_c_new [k301-k500]"];
+                compactionLog.innerHTML += '>>> [压实成功] 剔除旧的历史版本，释放死空间，写入新 SSTable 完毕！\n>>> 更新 MANIFEST 元数据索引并提交变更，VersionSet 更新。\n';
+                compactionLog.style.color = "var(--accent-green)";
+                renderCompactionFiles();
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

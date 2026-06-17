@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>BST & Cache eviction controller dual sandbox</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .input-text {
+            background-color: #0D1117;
+            border: 1px solid #24324F;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            width: 80px;
+        }
+        .btn {
+            background-color: #9C6666;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 250px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .bst-node {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            background-color: #4B5F7A;
+            border: 2px solid #E2E8F0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+        .bst-node.active {
+            background-color: #9C6666;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+        .cache-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            color: #E2E8F0;
+        }
+        .cache-table th, .cache-table td {
+            border: 1px solid #24324F;
+            padding: 6px;
+            text-align: center;
+        }
+        .cache-table th {
+            background-color: #242A38;
+        }
+        .cache-table tr.hit {
+            background-color: #1b4d3e;
+        }
+        .cache-table tr.miss {
+            background-color: #4d2323;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BST & Cache eviction controller dual sandbox</h1>
+        <div class="grid">
+            <!-- Sandbox 1: BST Simulator -->
+            <div class="card">
+                <h2>BST Recursive Traversal Sandbox</h2>
+                <div class="control-group">
+                    <input type="number" id="bst-input" class="input-text" value="50">
+                    <button class="btn" onclick="insertBSTNode()">Insert Value</button>
+                    <button class="btn" style="background-color:#6B8272;" onclick="animateDFS()">Animate DFS (In-Order)</button>
+                    <button class="btn" style="background-color:#755B77;" onclick="animateBFS()">Animate BFS (Level-Order)</button>
+                </div>
+                <div class="visualizer" id="bst-canvas">
+                    <!-- BST Nodes rendered dynamically -->
+                </div>
+                <div class="console" id="bst-console">
+                    [BST Log] Ready. Enter values (e.g. 50, 30, 70, 20, 40) to construct the search tree.
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Cache Controller Simulator -->
+            <div class="card">
+                <h2>CPU Cache Associative Eviction Controller</h2>
+                <div class="control-group">
+                    <input type="text" id="addr-input" class="input-text" style="width: 100px;" value="0x1A4F">
+                    <button class="btn" onclick="accessCache()">CPU Read Address</button>
+                    <select id="policy-select" class="input-text" style="width: 110px;">
+                        <option value="LRU">LRU (Age-based)</option>
+                        <option value="FIFO">FIFO (Queue)</option>
+                    </select>
+                </div>
+                <div class="visualizer" style="min-height: 250px; overflow-y: auto;">
+                    <table class="cache-table">
+                        <thead>
+                            <tr>
+                                <th>Line #</th>
+                                <th>Tag (Address)</th>
+                                <th>Valid Bit</th>
+                                <th>LRU Age / FIFO Index</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cache-table-body">
+                            <!-- Cache Lines generated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="console" id="cache-console">
+                    [Cache Monitor] 4 Cache lines. Policy: LRU. 64-byte Cache Lines.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // BST Simulation Code
+        class BSTNode {
+            constructor(val, x, y, level) {
+                this.val = val;
+                this.x = x;
+                this.y = y;
+                this.level = level;
+                this.left = null;
+                this.right = null;
+            }
+        }
+
+        let bstRoot = null;
+        const canvas = document.getElementById('bst-canvas');
+
+        function insertBSTNode() {
+            const val = parseInt(document.getElementById('bst-input').value);
+            const consoleBox = document.getElementById('bst-console');
+            if (isNaN(val)) return;
+
+            bstRoot = insertNode(bstRoot, val, 150, 30, 1);
+            consoleBox.innerHTML = `[BST Insert] Inserted Node: \${val}.\n`;
+            renderBST();
+        }
+
+        function insertNode(root, val, x, y, level) {
+            if (!root) {
+                return new BSTNode(val, x, y, level);
+            }
+            const offset = 100 / (level + 0.5);
+            if (val < root.val) {
+                root.left = insertNode(root.left, val, root.x - offset, root.y + 45, level + 1);
+            } else if (val > root.val) {
+                root.right = insertNode(root.right, val, root.x + offset, root.y + 45, level + 1);
+            }
+            return root;
+        }
+
+        function renderBST() {
+            canvas.innerHTML = '';
+            drawTreeNodes(bstRoot);
+        }
+
+        function drawTreeNodes(node) {
+            if (!node) return;
+            // Draw node div
+            const div = document.createElement('div');
+            div.className = 'bst-node';
+            div.id = 'bst-node-' + node.val;
+            div.style.left = `${node.x}px`;
+            div.style.top = `${node.y}px`;
+            div.innerText = node.val;
+            canvas.appendChild(div);
+
+            drawTreeNodes(node.left);
+            drawTreeNodes(node.right);
+        }
+
+        // DFS Traversal (In-Order) Animation
+        function animateDFS() {
+            const order = [];
+            inOrderWalk(bstRoot, order);
+            runTraversalAnimation(order, "DFS In-Order");
+        }
+
+        function inOrderWalk(node, list) {
+            if (!node) return;
+            inOrderWalk(node.left, list);
+            list.push(node.val);
+            inOrderWalk(node.right, list);
+        }
+
+        // BFS Traversal Animation
+        function animateBFS() {
+            if (!bstRoot) return;
+            const order = [];
+            const queue = [bstRoot];
+            while (queue.length > 0) {
+                let node = queue.shift();
+                order.push(node.val);
+                if (node.left) queue.push(node.left);
+                if (node.right) queue.push(node.right);
+            }
+            runTraversalAnimation(order, "BFS Level-Order");
+        }
+
+        function runTraversalAnimation(order, typeName) {
+            const consoleBox = document.getElementById('bst-console');
+            consoleBox.innerHTML = `[BST Traversal] Running \${typeName} Animation...\nOrder: \${order.join(' ➜ ')}\n`;
+            
+            order.forEach((val, idx) => {
+                setTimeout(() => {
+                    // Clear previous actives
+                    document.querySelectorAll('.bst-node').forEach(n => n.classList.remove('active'));
+                    const activeNode = document.getElementById('bst-node-' + val);
+                    if (activeNode) activeNode.classList.add('active');
+                }, idx * 800);
+            });
+        }
+
+        // Cache Eviction Simulation Code
+        let cacheLines = [
+            { line: 0, tag: "0x0000", valid: 0, age: 0, status: "Clean" },
+            { line: 1, tag: "0x0000", valid: 0, age: 0, status: "Clean" },
+            { line: 2, tag: "0x0000", valid: 0, age: 0, status: "Clean" },
+            { line: 3, tag: "0x0000", valid: 0, age: 0, status: "Clean" }
+        ];
+        let accessCount = 0;
+
+        function updateCacheVisual() {
+            const tbody = document.getElementById('cache-table-body');
+            tbody.innerHTML = '';
+            cacheLines.forEach(cl => {
+                tbody.innerHTML += `
+                    <tr class="\${cl.lastStatus === 'HIT' ? 'hit' : cl.lastStatus === 'MISS' ? 'miss' : ''}">
+                        <td>\${cl.line}</td>
+                        <td>\${cl.valid ? cl.tag : '---'}</td>
+                        <td>\${cl.valid ? 1 : 0}</td>
+                        <td>\${cl.age}</td>
+                        <td>\${cl.status}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function accessCache() {
+            accessCount++;
+            const addrInput = document.getElementById('addr-input').value;
+            const policy = document.getElementById('policy-select').value;
+            const consoleBox = document.getElementById('cache-console');
+
+            // Parse hex address to fake tag (keep it simple by taking high bits of address)
+            let tag = addrInput;
+            let hitIdx = -1;
+
+            // Clear previous highlighting status
+            cacheLines.forEach(cl => cl.lastStatus = "");
+
+            // Look for cache hit
+            for (let i = 0; i < cacheLines.length; i++) {
+                if (cacheLines[i].valid && cacheLines[i].tag === tag) {
+                    hitIdx = i;
+                    break;
+                }
+            }
+
+            if (hitIdx !== -1) {
+                // Cache HIT
+                cacheLines[hitIdx].lastStatus = "HIT";
+                cacheLines[hitIdx].status = "HIT";
+                if (policy === "LRU") {
+                    cacheLines[hitIdx].age = accessCount; // refresh age
+                }
+                consoleBox.innerHTML = `[Cache Read] Address \${addrInput} -> HIT! Cache Line \${hitIdx} loaded. Policy: \${policy}\n`;
+            } else {
+                // Cache MISS (needs eviction if full)
+                let emptyIdx = cacheLines.findIndex(cl => cl.valid === 0);
+                if (emptyIdx !== -1) {
+                    // Place directly in empty slot
+                    cacheLines[emptyIdx].valid = 1;
+                    cacheLines[emptyIdx].tag = tag;
+                    cacheLines[emptyIdx].age = accessCount;
+                    cacheLines[emptyIdx].lastStatus = "MISS";
+                    cacheLines[emptyIdx].status = "LOADED (MISS)";
+                    consoleBox.innerHTML = `[Cache Read] Address \${addrInput} -> MISS. Loaded directly to empty Cache Line \${emptyIdx}.\n`;
+                } else {
+                    // Eviction triggered
+                    let evictIdx = 0;
+                    if (policy === "LRU") {
+                        // Find oldest accessed (min age)
+                        let minAge = Infinity;
+                        for (let i = 0; i < cacheLines.length; i++) {
+                            if (cacheLines[i].age < minAge) {
+                                minAge = cacheLines[i].age;
+                                evictIdx = i;
+                            }
+                        }
+                    } else { // FIFO
+                        // Find oldest loaded (lowest queue value/first in)
+                        let minAge = Infinity;
+                        for (let i = 0; i < cacheLines.length; i++) {
+                            if (cacheLines[i].age < minAge) {
+                                minAge = cacheLines[i].age;
+                                evictIdx = i;
+                            }
+                        }
+                    }
+
+                    let oldTag = cacheLines[evictIdx].tag;
+                    cacheLines[evictIdx].tag = tag;
+                    cacheLines[evictIdx].age = accessCount;
+                    cacheLines[evictIdx].lastStatus = "MISS";
+                    cacheLines[evictIdx].status = `EVICTED (\${oldTag})`;
+                    consoleBox.innerHTML = `[Cache Evict] Address \${addrInput} -> MISS! Evicted oldest line \${evictIdx} (\${oldTag}) using \${policy}.\n`;
+                }
+            }
+            updateCacheVisual();
+        }
+
+        // Initialize table
+        updateCacheVisual();
+    </script>
+</body>
+</html>

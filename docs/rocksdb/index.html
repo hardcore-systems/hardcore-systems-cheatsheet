@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>facebook / rocksdb LSM 存储引擎物理内幕知识图谱</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #161820;
+            --text-color: #e2e8f0;
+            --accent-color: #10b981;
+            --border-color: #2a2d3d;
+            --moss-green: #7D8F7B;
+            --slate-blue: #7A8B99;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --plum-rose: #9E828A;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #10b981, #5f7582);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.8rem 1.5rem;
+            text-align: center;
+            min-width: 120px;
+        }
+        .stat-val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .stat-lbl {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .module-col {
+            background-color: rgba(22, 24, 32, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .module-header {
+            font-size: 1.1rem;
+            font-weight: 700;
+            padding-bottom: 0.8rem;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .module-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .item-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .item-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--theme-color, var(--accent-color));
+        }
+        .item-card:hover {
+            transform: translateY(-2px);
+            border-color: #10b981;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .card-id {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--theme-color);
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+        
+        /* Modal Window */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        .modal-content {
+            background-color: #161822;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            padding: 2rem;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            color: #94a3b8;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        .close-btn:hover {
+            color: #fff;
+        }
+        .modal-header {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .modal-body {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+        }
+        .modal-body p {
+            margin-bottom: 1rem;
+        }
+        .modal-body li {
+            margin-bottom: 0.5rem;
+            margin-left: 1.2rem;
+        }
+        .modal-body code {
+            background-color: rgba(0, 0, 0, 0.3);
+            color: #34d399;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>facebook / rocksdb LSM 存储引擎物理内幕图谱</h1>
+        <p>基于 2026 最新物理存储模型与调优规范的高密度嵌入式 KV 引擎速查体系</p>
+    </header>
+    
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-val">28</div>
+            <div class="stat-lbl">核心速查卡片</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">6</div>
+            <div class="stat-lbl">技术分类模块</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">L0-L2</div>
+            <div class="stat-lbl">三层知识过滤</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">3</div>
+            <div class="stat-lbl">Zone T 调优实验室</div>
+        </div>
+    </div>
+    
+    <div class="map-grid" id="mapGrid"></div>
+    
+    <!-- Modal -->
+    <div class="modal" id="cardModal">
+        <div class="modal-content">
+            <button class="close-btn" id="closeModal">&times;</button>
+            <div class="modal-header">
+                <span class="card-id" id="modalCardId">M1.1</span>
+                <h2 class="modal-title" id="modalCardTitle">Title</h2>
+            </div>
+            <div class="modal-body" id="modalCardBody">Body</div>
+        </div>
+    </div>
+    
+    <script>
+        const cardsData = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "写入流与MemTable", "color": "#7D8F7B", "title": "写入链路与 WAL 日志 (Write Flow & WAL)", "body": "<li>  <strong>物理链路</strong>：用户写请求（<code>Put</code>/<code>Delete</code>）到达后，首先以追加方式顺序写入磁盘的预写日志（WAL）。随后该修改被同步应用到内存中的 <strong>MemTable</strong>。一旦完成这两步，写操作即宣告成功。</li><li>  <strong>同步参数</strong>：通过 <code>WriteOptions.sync</code> 参数控制落盘时机。若设为 <code>true</code>，每次写入强制调用 <code>fsync</code> 确保数据在磁盘盘片或固态闪存上持久化，防止突然掉电导致 Page Cache 脏数据丢失。</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "写入流与MemTable", "color": "#7D8F7B", "title": "MemTable 无锁跳表机制 (SkipList MemTable)", "body": "<li>  <strong>跳表结构</strong>：默认的 MemTable 实现是基于内存的并发无锁跳表（SkipList）。利用指针的多层索引结构，实现 $O(\\log N)$ 的极速定位与范围扫描。</li><li>  <strong>CAS并发</strong>：跳表层级指针修改使用基于 Compare-And-Swap (CAS) 的乐观无锁并发控制，多线程写入无需加全局排他锁。配合 <code>Arena</code> 分配器预先从操作系统申请大块连续物理内存，自行管理行级空间小分配，有效规避了标准 <code>malloc</code> 带来的严重内存碎片。</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "写入流与MemTable", "color": "#7D8F7B", "title": "MemTable 物理分类选型 (MemTable Types)", "body": "<li>  <strong>分类选型</strong>：</li><li><code>SkipListMemTab</code>（默认）：通用型，支持高并发读写及高效的区间扫表；</li><li><code>VectorMemTab</code>：底层为 C++ <code>std::vector</code>，无并发写入能力。仅适合大批量离线数据一次性单线程载入，其检索依靠全表排序后二分；</li><li><code>HashSkipList</code> / <code>HashLinkList</code>：在跳表之上加了一层 Hash 桶。针对有固定前缀（Prefix）的键，可极大加速点查询（Point Lookup）并支持前缀限定扫描。</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "写入流与MemTable", "color": "#7D8F7B", "title": "Immutable MemTable 与 Flush 刷盘 (Immutable MemTable & Flush)", "body": "<li>  <strong>状态冻结</strong>：当活跃的 MemTable 写入量达到 <code>write_buffer_size</code> 限额时，它会被标记为只读的 <strong>Immutable MemTable</strong>（不可变内存表），同时分配一个新的活跃 MemTable 继续接收写流量。</li><li>  <strong>Flush 链路</strong>：后台单线程 <code>Flush</code> 调度器被唤醒，将 Immutable MemTable 中的数据按顺序持久化输出到磁盘的 L0 层（Level 0）SSTable 文件中。刷盘完成后，对应的 WAL 空间被标记回收。</li>"}, {"id": 5, "relativeId": "M1.5", "module": "M1", "moduleName": "写入流与MemTable", "color": "#7D8F7B", "title": "Write Stall 写入限速挂起机制 (Write Stall)", "body": "<li>  <strong>限速机制</strong>：LSM 引擎的核心自卫系统。当后台 <code>Flush</code> 或 <code>Compaction</code> 线程速度赶不上客户端写入速度时，为防内存爆满或磁盘完全跑挂，RocksDB 会主动减缓甚至暂停客户端写入。</li><li>  <strong>触发红线</strong>：</li><li>L0 层 SSTable 文件数达到 <code>level0_slowdown_writes_trigger</code>（默认 20，开始限制写吞吐）；</li><li>达到 <code>level0_stop_writes_trigger</code>（默认 30，写完全挂起冻结）；</li><li>待压实字节数（Pending Compaction Bytes）超限。</li>"}, {"id": 6, "relativeId": "M2.1", "module": "M2", "moduleName": "SSTable磁盘布局", "color": "#7A8B99", "title": "SSTable 整体物理架构 (SSTable Block-Based Table)", "body": "<li>  <strong>物理布局</strong>：磁盘上的 SSTable 采用块结构（Block-based Table Format）。数据按顺序划分为多个固定大小的 <strong>Data Block</strong>（默认 4KB）。文件末尾包含 <strong>Filter Block</strong>（布隆过滤器）、<strong>Index Block</strong>（索引块）、<strong>MetaIndex Block</strong> 及 48 字节固定大小的 <strong>Footer</strong>（尾锚定区）。</li><li>  <strong>读取路径</strong>：读取时，首先读取 Footer，Footer 指向 MetaIndex Block，再由 MetaIndex 指向 Index 和 Filter 块，进而精确定位数据块，防止全表扫描。</li>"}, {"id": 7, "relativeId": "M2.2", "module": "M2", "moduleName": "SSTable磁盘布局", "color": "#7A8B99", "title": "Block 内部结构与前缀压缩 (Block Format & Restart Points)", "body": "<li>  <strong>前缀共享</strong>：Block 内部的键是严格排序的。为节省空间，后续键只存储与前一个键不相同的后缀，以 <code>shared_bytes</code>/<code>unshared_bytes</code>/<code>value</code> 的形式进行前缀共享存储。</li><li>  <strong>重启点二分</strong>：为了能在 Block 内进行随机检索，每隔固定个键（例如 16 个）就会中断前缀共享，写入一个完整的键作为 <strong>Restart Point</strong>（重启点）。Block 末尾存有所有重启点的物理偏移数组。检索时，对重启点数组进行折半二分定位，再在 16 个键内顺序扫描。</li>"}, {"id": 8, "relativeId": "M2.3", "module": "M2", "moduleName": "SSTable磁盘布局", "color": "#7A8B99", "title": "布隆过滤器 (Bloom Filter) 布局 (Bloom Filters)", "body": "<li>  <strong>排重过滤</strong>：布隆过滤器利用多个哈希函数将键映射到位图数组中。通过 $O(1)$ 的位运算，在访问磁盘 Block 前判定“该键是否绝对不存在”。</li><li>  <strong>布局版本</strong>：</li><li><code>Block-based Filter</code>（旧版）：为每个 2KB 的数据块独立生成布隆过滤器，缺点是无法对全文件进行一次性过滤定位；</li><li><code>Full Filter</code>（新版，生产首选）：为整个 SSTable 文件只生成一个连续的全局过滤器，对文件级点查询可减少一次物理 I/O。</li>"}, {"id": 9, "relativeId": "M2.4", "module": "M2", "moduleName": "SSTable磁盘布局", "color": "#7A8B99", "title": "Index Block 与二分检索 (Index Block)", "body": "<li>  <strong>索引边界</strong>：Index Block 存放了指向各个 Data Block 的索引项。每个索引项的 Key 是对应 Data Block 中最大 Key 的一个紧凑“前缀分割线”（Shortest Separator Key），Value 是该 Data Block 在文件中的物理偏移与长度。</li><li>  <strong>哈希二分</strong>：支持 <code>Binary Search</code>（标准二分查找索引）与 <code>Hash Search</code>（前缀哈希二分，利用前缀 Bloom Filter 先行过滤，消除在 Index 块中盲目二分的时间）。</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "Compaction压实机制", "color": "#B58A7D", "title": "Size-Tiered Compaction 机制 (Size-Tiered Compaction)", "body": "<li>  <strong>机制原理</strong>：将大小相似的 SSTable 文件归为一组（Tier）。当该组文件数达到设定阈值时，后台线程将它们读入并进行多路归并排序，合并输出为一个更大体积的 SSTable 移入下一组。</li><li>  <strong>放大折中</strong>：写入放大（Write Amplification）最低（只需顺序合并）；但空间放大（Space Amplification）极高，且在合并大文件时，需要至少一倍于数据的磁盘空闲临时空间，易引发“磁盘满死锁”。</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "Compaction压实机制", "color": "#B58A7D", "title": "Leveled Compaction 机制 (Leveled Compaction)", "body": "<li>  <strong>分层设计</strong>：磁盘空间严格划分为 Level 0 至 Level Max。L0 的 SSTable 文件间键范围允许重叠，其它各层（L1-LMax）文件内部严格有序且文件间键范围绝不重叠。每层总大小设定为 10 倍级联递增（如 L1=256MB, L2=2.5GB）。</li><li>  <strong>合并流转</strong>：当 $L_n$ 层总字节数超限时，选择该层一个 SSTable，与 $L_{n+1}$ 层中与其键范围重叠的所有 SSTable 进行多路归并排序合并，在每一层消除脏数据和墓碑标记。空间利用紧凑，空间放大极低；但写放大非常高（通常为 10-30）。</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "Compaction压实机制", "color": "#B58A7D", "title": "Compaction Pick 压实选择策略 (Compaction Scores)", "body": "<li>  <strong>计分公式</strong>：RocksDB 后台线程通过计算每一层的 <strong>Compaction Score</strong> 决定对哪一层进行压实合并：</li><li>对于 L0，<code>Score = 当前L0文件数 / level0_file_num_compaction_trigger</code>；</li><li>对于 $L_n (n \\ge 1)$，<code>Score = 当前层实际大小 / 该层最大容量限制</code>。</li><li>  <strong>调度执行</strong>：挑选 Score 最大的层级。并在该层级内优先选择生存时间长、或与下一层重叠度最小的 SSTable 执行合并，以最小化 I/O 开销。</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "Compaction压实机制", "color": "#B58A7D", "title": "Write/Space/Read Amplification 放大定理 (Amplification Law)", "body": "<li>  <strong>读写空间折中</strong>：LSM-Tree 引擎底层的物理宿命。</li><li><strong>写放大 (WA)</strong>：写入 1 字节数据导致实际写入磁盘的总字节数。WA 高会缩短 SSD 寿命并引发 stall；</li><li><strong>空间放大 (SA)</strong>：磁盘实际占用空间与有用数据逻辑体积的比值。SA 高导致物理容量开销大；</li><li><strong>读放大 (RA)</strong>：单次 Get 操作实际读取的物理字节与逻辑键值的比值。RA 高拖累读取 QPS。Leveled 用高 WA 换取了极佳的 SA 与稳定的 RA。</li>"}, {"id": 14, "relativeId": "M3.5", "module": "M3", "moduleName": "Compaction压实机制", "color": "#B58A7D", "title": "FIFO Compaction 与时序存储 (FIFO Compaction)", "body": "<li>  <strong>时序极速</strong>：最纯粹的极速压实策略。SSTable 仅在 L0 层存在，所有新刷盘的文件按时间顺序排列。一旦所有文件总容量超过 <code>max_table_size_definition</code>，直接物理删除最老的 SSTable 文件。</li><li>  <strong>零放大</strong>：写放大严格等于 1，完全没有后台归并排序的磁盘 I/O 损耗。只适用于允许过期自动丢弃的时序监控、事件埋点及定长数据缓存场景。</li>"}, {"id": 15, "relativeId": "M4.1", "module": "M4", "moduleName": "缓冲与缓存治理", "color": "#5F7582", "title": "Block Cache 块缓存架构 (Block Cache)", "body": "<li>  <strong>内存对象缓存</strong>：用于缓存从磁盘 SSTable 解压读取出来的 Data Block 结构。默认提供 <code>LRUCache</code>（最小最近未使用算法，底层为双向链表+哈希表）与 <code>ClockCache</code>（环形指针扫描，并发度更高）。</li><li>  <strong>锁分离设计</strong>：为防止多线程并发读取缓存引发全局互斥锁的自旋等待瓶颈，Block Cache 采用 Sharding（分片）设计（默认分 16 片），通过哈希将 Key 分流到不同片区，大幅降低锁粒度。</li>"}, {"id": 16, "relativeId": "M4.2", "module": "M4", "moduleName": "缓冲与缓存治理", "color": "#5F7582", "title": "Compressed Block Cache 选型 (Compressed Cache)", "body": "<li>  <strong>二级缓存</strong>：位于 Block Cache 与物理磁盘之间的中转站。Compressed Block Cache 直接在内存中缓存从磁盘加载出来的“原始压缩字节块”（未解压）。</li><li>  <strong>权衡机制</strong>：</li><li>Uncompressed Cache（Block Cache）：直接存储 C++ 对象，省去 CPU 解压算力，但内存占用大；</li><li>Compressed Cache：内存占用小（能存更多块），但每次命中读取需要消耗 CPU 执行解压计算。仅当系统 CPU 算力富余而物理内存极度紧张时开启。</li>"}, {"id": 17, "relativeId": "M4.3", "module": "M4", "moduleName": "缓冲与缓存治理", "color": "#5F7582", "title": "Row Cache 行缓存机制 (Row Cache)", "body": "<li>  <strong>行级高速路</strong>：比 Block Cache 更上一层的缓存。它直接缓存逻辑键值对（Key-Value），而非物理磁盘块。</li><li>  <strong>检索分流</strong>：读取时，首先检索 Row Cache。若命中，可直接返回结果，彻底免除在 Block Cache 内进行 Block 索引二分查找的 CPU 计算开销。若未命中，则回退到 Block Cache 进行标准 Block 查找，并在读取后将结果回写 Row Cache。</li>"}, {"id": 18, "relativeId": "M4.4", "module": "M4", "moduleName": "缓冲与缓存治理", "color": "#5F7582", "title": "Index/Filter 内存 Pinning 锁定 (Pinning Index & Filters)", "body": "<li>  <strong>读穿透防护</strong>：由于 SSTable 的 Index 和 Filter 块体积很大，如果被 Block Cache 的 LRU 淘汰置换出内存，会导致下一次点查询时发生 2-3 次随机磁盘 I/O 物理读取。</li><li>  <strong>锁定常驻</strong>：必须在 <code>BlockBasedTableOptions</code> 中配置 <code>pin_l0_filter_and_index_blocks_in_cache=true</code>，甚至开启 <code>pin_top_level_index_and_filter</code>，将 L0 文件以及其它各层 SSTable 的顶级元数据强行 Pin（锁死）在物理内存中，绝不参与 LRU 淘汰，捍卫读时延稳定。</li>"}, {"id": 19, "relativeId": "M5.1", "module": "M5", "moduleName": "事务与并发控制", "color": "#9E828A", "title": "ReadOptions Snapshot 快照机制 (Snapshots & MVCC)", "body": "<li>  <strong>版本视图</strong>：RocksDB 内部对每次写操作都会递增全局唯一的 <strong>Sequence Number</strong>（序列号）。创建快照时，数据库分配当前的 Sequence Number 给该快照。</li><li>  <strong>快照可见性</strong>：之后的 <code>Get</code>/<code>Iterator</code> 读请求携带该 Snapshot，可见性判定规则为：只可读取到 <code>SequenceNumber_record <= SequenceNumber_snapshot</code> 的已提交记录。读请求完全不加任何锁，实现高性能快照读。</li>"}, {"id": 20, "relativeId": "M5.2", "module": "M5", "moduleName": "事务与并发控制", "color": "#9E828A", "title": "WriteBatch 原子写机制 (WriteBatch & Group Commit)", "body": "<li>  <strong>写入并轨</strong>：用户并发写入时，写请求在内部被塞入一个全局的 <code>WriteThread</code> 队列。通过“并轨合并（Group Commit）”，队列的第一个线程被选为 Leader，其它线程为 Follower。</li><li>  <strong>独占落盘</strong>：Leader 线程获取排他写锁，将自己以及所有 Follower 的 Batch 串联起来，一次性顺序写入 WAL，并代表大家统一进行 Flush。随后，各个 Follower 线程并发地将自己 Batch 内的数据并行写入各自的 MemTable，在保障原子性的同时消除了线程调度切换开销。</li>"}, {"id": 21, "relativeId": "M5.3", "module": "M5", "moduleName": "事务与并发控制", "color": "#9E828A", "title": "Optimistic Transaction 乐观事务 (Optimistic Transactions)", "body": "<li>  <strong>冲突检测</strong>：在执行 <code>Put</code>/<code>Delete</code> 时不加行级锁，而是记录当前事务开始时的 <code>Read Snapshot SequenceNumber</code>。</li><li>  <strong>提交回滚</strong>：当事务尝试 <code>Commit</code> 时，在内部锁保护下，利用 <code>Conflict Detection</code> 机制检查这些 Key 从事务启动到提交之间是否产生过更高的 Sequence Number 写入。若有，代表发生了并发冲突，回滚整个 <code>WriteBatch</code>。适合写争用较低、冲突较少的场景。</li>"}, {"id": 22, "relativeId": "M5.4", "module": "M5", "moduleName": "事务与并发控制", "color": "#9E828A", "title": "Pessimistic Transaction 悲观事务 (Pessimistic Transactions)", "body": "<li>  <strong>行级加锁</strong>：通过行锁管理器（<code>LockManager</code>）在写入或显式读取（<code>GetForUpdate</code>）时对 Key 加独占行级锁（<code>Exclusive Lock</code>）。</li><li>  <strong>死锁图排查</strong>：多线程并发等待行锁时，若在设定时延内未获取锁，会触发 <code>Deadlock Detector</code> 运行。它在内存中构建“等待持有图”（Wait-For Graph），一旦检测到有向环路（死锁），强制回滚其中某一个代价最小的事务以释放锁。</li>"}, {"id": 23, "relativeId": "M5.5", "module": "M5", "moduleName": "事务与并发控制", "color": "#9E828A", "title": "Two-Phase Commit (2PC) 分布式事务 (Two-Phase Commit)", "body": "<li>  <strong>分布式协调</strong>：当 RocksDB 作为外部分布式引擎（如 TiDB / CockroachDB）的底层存储时，支持两阶段提交（2PC）。</li><li>  <strong>Prepare落盘</strong>：第一阶段，将事务的 <code>Prepare</code> 状态及数据写入 WAL 并生成特定的 <code>Prepare Marker</code>，此时数据不可见；第二阶段，待分布式协调器发送 Commit 指令后，写入 <code>Commit Marker</code>，数据正式对其它 Snapshot 可见。</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "运维调优与诊断", "color": "#BFA88F", "title": "Column Families 列族隔离 (Column Families)", "body": "<li>  <strong>逻辑分库</strong>：将一个物理 RocksDB 实例划分为多个独立的逻辑分区（列族，如 Metadata 列族、Data 列族）。列族之间共享同一个全局 WAL 顺序日志以保证崩溃恢复原子性。</li><li>  <strong>独立控制</strong>：每个列族拥有自己独立的 MemTable、SSTable 磁盘文件、Block Cache 缓存以及 Compaction 压实合并调度策略，实现多业务在单实例内的资源按需精细化隔离。</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "运维调优与诊断", "color": "#BFA88F", "title": "SST File Writer 离线批量导入 (SSTFileWriter)", "body": "<li>  <strong>旁路提速</strong>：针对千万级甚至亿级数据的大规模批量数据加载（Bulk Loading），绕过 RocksDB 昂贵的前台写入链（WAL、MemTable 锁竞争、并发冲突及后台 Flush）。</li><li>  <strong>直接写入</strong>：在应用内使用 <code>SSTFileWriter</code> 在内存直接生成完全排序的 SSTable 物理文件，然后调用 <code>IngestExternalFile</code> 接口将文件硬链接或移动到 RocksDB 磁盘目录下。引擎只需修改 MANIFEST 元数据即可挂载数据，导入速率提升十倍以上。</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "运维调优与诊断", "color": "#BFA88F", "title": "Rate Limiter 磁盘吞吐限速 (Rate Limiter)", "body": "<li>  <strong>吞吐护栏</strong>：后台多线程压实（Compaction）和内存刷盘（Flush）在大规模并发下会吃满物理磁盘的 Write I/O 吞吐，导致前台客户端的读写时延产生数十毫秒的刺突（Latency Spikes）。</li><li>  <strong>平滑限速</strong>：通过配置全局 <code>RateLimiter</code>，强行限制后台 Flush 和 Compaction 每秒能写入的最大字节数，将磁盘 I/O 资源平滑分配，确保前台读写操作的时延绝对稳定。</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "运维调优与诊断", "color": "#BFA88F", "title": "Stats Dump 性能指标审计 (Stats Dump)", "body": "<li>  <strong>日志自省</strong>：RocksDB 在后台定时输出或支持主动 API 调用获取详细的运行性能统计大表（Stats Dump）。</li><li>  <strong>关键诊断点</strong>：通过分析输出，重点诊断：</li><li><strong>Compaction Stats</strong>：各层级读、写放大倍数与 I/O 带宽占用；</li><li><strong>Cache Hit Rate</strong>：Index Block 与 Data Block 在 Block Cache 的命中百分比；</li><li><strong>Stall Duration</strong>：由于文件堆积导致的写入挂起（Write Stall）总耗时比例，是线上调优的第一数据源。</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "运维调优与诊断", "color": "#BFA88F", "title": "表空间损坏与 MANIFEST 修复 (Manifest Recovery)", "body": "<li>  <strong>元数据控制</strong>：<code>MANIFEST</code> 文件是整个 LSM 数据库的元数据大本营，记录了当前各层级分别有哪些活跃的 SSTable 文件，以及版本控制链（VersionSet）。</li><li>  <strong>修复防线</strong>：若 MANIFEST 文件在物理断电下损坏，会导致数据库无法启动。防线：通过解析数据库目录下的物理 <code>.sst</code> 文件的 Header 元数据，结合残留日志重建 VersionSet 拓扑，重新恢复 MANIFEST 索引大图。</li>"}];
+        const modules = [
+            { id: "M1", name: '写入流与MemTable', color: "var(--moss-green)" },
+            { id: "M2", name: 'SSTable磁盘布局', color: "var(--slate-blue)" },
+            { id: "M3", name: 'Compaction压实机制', color: "var(--terracotta)" },
+            { id: "M4", name: '缓冲与缓存治理', color: "var(--indigo)" },
+            { id: "M5", name: '事务与并发控制', color: "var(--plum-rose)" },
+            { id: "M6", name: '运维调优与诊断', color: "var(--antique-gold)" }
+        ];
+        
+        const grid = document.getElementById('mapGrid');
+        
+        const moduleMap = {};
+        modules.forEach(m => {
+            moduleMap[m.id] = [];
+        });
+        
+        cardsData.forEach(card => {
+            if (moduleMap[card.module]) {
+                moduleMap[card.module].push(card);
+            }
+        });
+        
+        modules.forEach(m => {
+            const col = document.createElement('div');
+            col.className = 'module-col';
+            
+            const header = document.createElement('div');
+            header.className = 'module-header';
+            header.innerHTML = `<span>${m.name}</span><span class="module-dot" style="background-color: ${m.color}"></span>`;
+            col.appendChild(header);
+            
+            moduleMap[m.id].forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'item-card';
+                cardEl.style.setProperty('--theme-color', m.color);
+                cardEl.innerHTML = `
+                    <div class="card-top">
+                        <span class="card-id" style="color: ${m.color}">${card.relativeId}</span>
+                    </div>
+                    <div class="card-title">${card.title}</div>
+                `;
+                
+                cardEl.addEventListener('click', () => openModal(card));
+                col.appendChild(cardEl);
+            });
+            
+            grid.appendChild(col);
+        });
+        
+        const modal = document.getElementById('cardModal');
+        const closeModal = document.getElementById('closeModal');
+        
+        function openModal(card) {
+            document.getElementById('modalCardId').innerText = card.relativeId;
+            document.getElementById('modalCardId').style.color = card.color;
+            document.getElementById('modalCardTitle').innerText = card.title;
+            document.getElementById('modalCardBody').innerHTML = card.body;
+            modal.style.display = 'flex';
+        }
+        
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

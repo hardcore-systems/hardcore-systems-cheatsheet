@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eBPF bcc Linux Kernel Programmability & System Diagnostics Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #161820;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #2a2d3d;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.8rem 1.5rem;
+            text-align: center;
+            min-width: 120px;
+        }
+        .stat-val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .stat-lbl {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .module-col {
+            background-color: rgba(22, 24, 32, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .module-header {
+            font-size: 1.1rem;
+            font-weight: 700;
+            padding-bottom: 0.8rem;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .module-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .item-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .item-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--theme-color, var(--accent-color));
+        }
+        .item-card:hover {
+            transform: translateY(-2px);
+            border-color: #60a5fa;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .card-id {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--theme-color);
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+        
+        /* Modal Window */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        .modal-content {
+            background-color: #161822;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            padding: 2rem;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            color: #94a3b8;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        .close-btn:hover {
+            color: #fff;
+        }
+        .modal-header {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .modal-body {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+        }
+        .modal-body p {
+            margin-bottom: 1rem;
+        }
+        .modal-body li {
+            margin-bottom: 0.5rem;
+            margin-left: 1.2rem;
+        }
+        .modal-body code {
+            background-color: rgba(0, 0, 0, 0.3);
+            color: #38bdf8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>eBPF bcc Linux Kernel Programmability & System Diagnostics Map</h1>
+        <p>High-Density System Programming & Performance Optimization Reference System based on Latest Kernels and CO-RE</p>
+    </header>
+    
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-val">28</div>
+            <div class="stat-lbl">Core Cards</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">6</div>
+            <div class="stat-lbl">Category Modules</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">L0-L2</div>
+            <div class="stat-lbl">3-Level Filtering</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">3</div>
+            <div class="stat-lbl">Zone T Diagnostic Labs</div>
+        </div>
+    </div>
+    
+    <div class="map-grid" id="mapGrid"></div>
+    
+    <!-- Modal -->
+    <div class="modal" id="cardModal">
+        <div class="modal-content">
+            <button class="close-btn" id="closeModal">&times;</button>
+            <div class="modal-header">
+                <span class="card-id" id="modalCardId">M1.1</span>
+                <h2 class="modal-title" id="modalCardTitle">Title</h2>
+            </div>
+            <div class="modal-body" id="modalCardBody">Body</div>
+        </div>
+    </div>
+    
+    <script>
+        const cardsData = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "Sandbox & VM", "color": "#7A8B99", "title": "eBPF Registers & CPU Model", "body": "<li>  <strong>Register Constraints</strong>: eBPF virtual CPU defines 11 64-bit hardware registers. <code>R0</code> stores helper return values and exit status; <code>R1-R5</code> pass arguments to helper functions; <code>R6-R9</code> are callee-saved (restored via BPF stack); <code>R10</code> is a read-only Frame Pointer pointing to the stack base.</li><li>  <strong>Physical Limits</strong>: The stack size is strictly limited to <strong>512 bytes</strong>. Exceeding this limit causes immediate verifier rejection. Large objects or complex contexts must be stored in BPF Maps instead of local stack variables.</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "Sandbox & VM", "color": "#7A8B99", "title": "Bytecode & JIT Compilation", "body": "<li>  <strong>Compilation Flow</strong>: C source code is compiled via LLVM with <code>-target bpf</code> to produce an ELF binary containing BPF bytecode. Upon loading, the kernel <strong>JIT (Just-In-Time) Compiler</strong> (e.g., x86_64 JIT) translates bytecode directly into native instructions (e.g., x86 <code>MOV/JMP</code>).</li><li>  <strong>Production Check</strong>: Ensure <code>/proc/sys/net/core/bpf_jit_enable</code> is set to <code>1</code> (JIT enabled) and <code>bpf_jit_harden</code> is set to <code>2</code> (harden against JIT spraying) to guarantee native execution speeds.</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "Sandbox & VM", "color": "#7A8B99", "title": "Verifier Static Analysis", "body": "<li>  <strong>Verification Flow</strong>: The verifier works in two phases. Phase 1 runs a Depth First Search (DFS) on the Control Flow Graph (CFG) to reject loops and unreachable code. Phase 2 simulates execution to track register \"type states\" (e.g., <code>SCALAR_VALUE</code>, <code>PTR_TO_STACK</code>) and bounds.</li><li>  <strong>Defense Strategy</strong>: Any pointer arithmetic without NULL checks or out-of-bounds stack access will trigger rejection. \"State pruning\" is used to merge evaluation paths and reduce CPU overhead during verification.</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "Sandbox & VM", "color": "#7A8B99", "title": "Helper Functions", "body": "<li>  <strong>Interface Bounds</strong>: eBPF programs cannot call arbitrary kernel functions (e.g., <code>printk</code> or internal symbols) to protect the kernel call stack. All external interactions must go through static, pre-defined Helper Functions (e.g., <code>bpf_map_lookup_elem</code>, <code>bpf_ktime_get_ns</code>).</li><li>  <strong>Permission Control</strong>: Each program type (e.g., <code>BPF_PROG_TYPE_KPROBE</code> vs <code>BPF_PROG_TYPE_SOCKET_FILTER</code>) has a restricted whitelist of allowed helpers. Blocking or sleeping helpers are strictly prohibited in driver-level packet hooks.</li>"}, {"id": 5, "relativeId": "M1.5", "module": "M1", "moduleName": "Sandbox & VM", "color": "#7A8B99", "title": "BPF LSM Security Hooks", "body": "<li>  <strong>Security Framework</strong>: BPF LSM allows developers to attach eBPF programs to Linux Security Module (LSM) hooks (e.g., <code>path_mkdir</code>, <code>file_permission</code>, <code>task_alloc</code>).</li><li>  <strong>Fine-Grained Auditing</strong>: When a system operation triggers, the BPF program inspects subject/object metadata and returns <code>0</code> (allow) or non-zero (e.g., <code>-EACCES</code>, deny), acting as a dynamic, hot-swappable security engine.</li>"}, {"id": 6, "relativeId": "M2.1", "module": "M2", "moduleName": "Kernel Tracing", "color": "#7D8F7B", "title": "Kprobes & Kretprobes", "body": "<li>  <strong>Instrumentation</strong>: <code>kprobe</code> dynamically rewrites the first instruction of a target kernel function to a breakpoint instruction (e.g., <code>int3</code> on x86), trapping execution to the BPF handler. <code>kretprobe</code> hijacks the return address to capture exit parameters and function execution time.</li><li>  <strong>Overhead Penalty</strong>: Due to soft interrupts, each probe costs thousands of CPU cycles. Do not use dynamic <code>kprobes</code> on hot scheduling paths (<code>schedule</code>) or high-frequency hardware interrupt handlers.</li>"}, {"id": 7, "relativeId": "M2.2", "module": "M2", "moduleName": "Kernel Tracing", "color": "#7D8F7B", "title": "Tracepoints", "body": "<li>  <strong>Static Probes</strong>: Stable hooks pre-defined by kernel developers at critical sub-system locations (e.g., <code>sched_switch</code>, <code>sys_enter_read</code>). They offer stable ABI structures across different kernel versions.</li><li>  <strong>Zero-Disabled Cost</strong>: When inactive, a tracepoint is merely a NOP instruction (zero CPU overhead). Once enabled, it jumps to execute the attached BPF program, calling much faster than <code>kprobe</code>.</li>"}, {"id": 8, "relativeId": "M2.3", "module": "M2", "moduleName": "Kernel Tracing", "color": "#7D8F7B", "title": "Raw Tracepoints", "body": "<li>  <strong>Performance Bypassing</strong>: Standard <code>tracepoint</code> structures utilize format adapters to serialize parameters into readable structures. <code>raw_tracepoint</code> bypasses this formatting layer, passing raw arguments (e.g., <code>struct pt_regs</code> or raw pointers) directly to BPF.</li><li>  <strong>High-Throughput Use</strong>: Ideal for massive traffic networks or disk IO tracing, saving parameter conversion costs and raising tracing throughput limits by over 15%.</li>"}, {"id": 9, "relativeId": "M2.4", "module": "M2", "moduleName": "Kernel Tracing", "color": "#7D8F7B", "title": "fentry / fexit & BPF Trampoline", "body": "<li>  <strong>Direct Call</strong>: Introduced in kernel 5.5. BPF Trampoline dynamically generates assembly bridges to call BPF programs directly before/after kernel functions.</li><li>  <strong>Performance Jump</strong>: By completely avoiding the soft-interrupt context-saving overhead of <code>kprobe</code> (no <code>int3</code> trap), <code>fentry/fexit</code> executes as fast as static tracepoints.</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "User Tracing", "color": "#9E828A", "title": "Uprobes & Uretprobes", "body": "<li>  <strong>Instrumentation</strong>: Modifies virtual memory of user-space processes (e.g., <code>malloc</code> in <code>libc.so</code>) by injecting breakpoint instructions. Execution shifts to kernel space when the instruction is hit.</li><li>  <strong>Context Switch Cost</strong>: Since it triggers \"user $\\rightarrow$ kernel $\\rightarrow$ user\" mode switches, each <code>uprobe</code> call incurs a 1-2 microsecond delay. Never place <code>uprobe</code> hooks inside high-frequency loops in C++/Rust programs.</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "User Tracing", "color": "#9E828A", "title": "USDT Probes", "body": "<li>  <strong>User-Space Static Tracing</strong>: Statically defined tracepoints embedded in applications (e.g., MySQL, JVM, Node.js) via <code>DTRACE_PROBE</code> macros.</li><li>  <strong>Dynamic Patching</strong>: Compiled as a NOP instruction and cataloged in the ELF <code>.note.stapsdt</code> section. Once tracing starts, the kernel patches the NOP to a breakpoint trap, capturing events with minimal application overhead.</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "User Tracing", "color": "#9E828A", "title": "Symbol Resolution & DWARF", "body": "<li>  <strong>Symbol Mapping</strong>: BPF trace captures user stack frames as virtual memory addresses (e.g., <code>0x7fff81a2f10b</code>). Tracing tools (BCC/Golang) must parse the process's ELF <code>.symtab</code>/<code>.dynsym</code> sections to map addresses to function names.</li><li>  <strong>Debug Info</strong>: If the binary is <code>stripped</code>, external DWARF debug symbols are required. For JITed runtimes (Java, V8 JIT), parse <code>/tmp/perf-<pid>.map</code> generated by the runtime.</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "User Tracing", "color": "#9E828A", "title": "Memory Leak Tracing", "body": "<li>  <strong>Leak Detection</strong>: In BCC's <code>memleak</code>, we trace memory allocations (<code>malloc</code>/<code>calloc</code>) using <code>uprobes</code> (or <code>fentry</code> for kernel-level slabs) and record pointer addresses and callstacks into a BPF Hash Map.</li><li>  <strong>Trace Delta</strong>: We trace <code>free</code> using another probe and delete the pointer key from the map. Residual keys in the map after execution represent leaking memory buffers and their allocation traces.</li>"}, {"id": 14, "relativeId": "M4.1", "module": "M4", "moduleName": "Networking & Bypass", "color": "#B58A7D", "title": "XDP (eXpress Data Path)", "body": "<li>  <strong>Early Ingest</strong>: XDP runs at the earliest point in the network driver RX loop (before allocating <code>sk_buff</code> structures or invoking the host network stack).</li><li>  <strong>Verdict Codes</strong>: Decisions: <code>XDP_DROP</code> (discard immediately, perfect for DDoS mitigation), <code>XDP_TX</code> (bounce back out the same interface), <code>XDP_REDIRECT</code> (bypass routing to send to another NIC or user space <code>AF_XDP</code> socket) within nanoseconds.</li>"}, {"id": 15, "relativeId": "M4.2", "module": "M4", "moduleName": "Networking & Bypass", "color": "#B58A7D", "title": "TC (Traffic Control) Clsact", "body": "<li>  <strong>Dual Ingress/Egress</strong>: BPF attached to the TC <code>clsact</code> queuing discipline can process packets in both inbound (Ingress) and outbound (Egress) directions.</li><li>  <strong>Access Detail</strong>: TC programs parse and rewrite the full <code>struct __sk_buff</code> metadata, including VLAN tags and headers, making it the base for container firewalls, load balancers, and QoS shapers.</li>"}, {"id": 16, "relativeId": "M4.3", "module": "M4", "moduleName": "Networking & Bypass", "color": "#B58A7D", "title": "Socket Filters", "body": "<li>  <strong>Socket Attachment</strong>: Attached directly to sockets via <code>setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, ...)</code>.</li><li>  <strong>Application Sandbox</strong>: The classic cBPF interface. It passively mirrors and filters packet payloads without modifying them, commonly used for tcpdump-like traffic mirroring and auditing.</li>"}, {"id": 17, "relativeId": "M4.4", "module": "M4", "moduleName": "Networking & Bypass", "color": "#B58A7D", "title": "Sockmap & Sockhash Socket Redirect", "body": "<li>  <strong>Loopback Shortcuts</strong>: <code>BPF_MAP_TYPE_SOCKMAP</code> stores active socket file descriptors. When attached to <code>sk_msg</code>, data written to one socket's transmit queue is copied directly into the read queue of the destination socket.</li><li>  <strong>Stack Bypass</strong>: Bypasses the IP and TCP layers. For local loopback traffic (<code>localhost</code> / inter-container calls), it reduces latency by over 50%.</li>"}, {"id": 18, "relativeId": "M4.5", "module": "M4", "moduleName": "Networking & Bypass", "color": "#B58A7D", "title": "Container Network Acceleration", "body": "<li>  <strong>Virtual Path Bottleneck</strong>: Standard Kubernetes networking routes packets through veth-pairs twice (Pod stack $\\rightarrow$ Host stack $\\rightarrow$ Destination Pod), degrading performance.</li><li>  <strong>Cilium Solution</strong>: Cilium identifies CNI topologies using eBPF and maps container sockets. Packets bypass virtual adapters and routing tables, jumping directly between socket ring buffers.</li>"}, {"id": 19, "relativeId": "M5.1", "module": "M5", "moduleName": "Maps & Data Flow", "color": "#5F7582", "title": "BPF Maps", "body": "<li>  <strong>Type Selection</strong>:</li><li><code>BPF_MAP_TYPE_HASH</code>: Dynamic KV map for general sparse lookups;</li><li><code>BPF_MAP_TYPE_ARRAY</code>: Fixed-size pre-allocated array with lowest lookup latency;</li><li><code>BPF_MAP_TYPE_LRU_HASH</code>: Evicts oldest elements, preventing memory exhaustion under traffic spikes.</li><li>  <strong>Concurrency</strong>: Under high-concurrency writes, use <code>Per-CPU</code> maps (e.g., <code>BPF_MAP_TYPE_PERCPU_HASH</code>). Each CPU core owns a private data segment, enabling lockless writes and preventing CPU cache thrashing.</li>"}, {"id": 20, "relativeId": "M5.2", "module": "M5", "moduleName": "Maps & Data Flow", "color": "#5F7582", "title": "Perf Ring Buffer", "body": "<li>  <strong>Per-CPU Ring</strong>: The traditional channel for sending events to user space. The kernel allocates circular buffers per CPU core.</li><li>  <strong>Event Drop Penalty</strong>: If one CPU core spikes and the user-space thread lag, its local buffer overflows, discarding events. Events are also out-of-order in user space due to the multi-ring structure.</li>"}, {"id": 21, "relativeId": "M5.3", "module": "M5", "moduleName": "Maps & Data Flow", "color": "#5F7582", "title": "BPF Ring Buffer", "body": "<li>  <strong>Global MPSC</strong>: Introduced in kernel 5.8. A globally shared, lockless Multi-Producer Single-Consumer (MPSC) ring buffer across all CPU cores.</li><li>  <strong>Zero-Copy API</strong>: Supports <code>bpf_ringbuf_reserve</code> to allocate space directly in the shared buffer. The program writes data in place and commits with <code>bpf_ringbuf_commit</code>, avoiding copying from kernel stack to ring.</li>"}, {"id": 22, "relativeId": "M5.4", "module": "M5", "moduleName": "Maps & Data Flow", "color": "#5F7582", "title": "Map Operations & User Sync", "body": "<li>  <strong>System Call Bounds</strong>: User-space processes interact with maps via the <code>bpf(BPF_MAP_LOOKUP_ELEM, ...)</code> system call. Polling maps inside a loop induces heavy syscall overhead.</li><li>  <strong>Event-Driven</strong>: BPF Ring Buffers have built-in epoll fds. The user-space consumer sleeps on <code>epoll_wait</code> and wakes up only when new data crosses the ring buffer's watermark, keeping idle CPU usage near zero.</li>"}, {"id": 23, "relativeId": "M5.5", "module": "M5", "moduleName": "Maps & Data Flow", "color": "#5F7582", "title": "Map Pinning & bpffs", "body": "<li>  <strong>FD Lifecycle</strong>: By default, BPF maps are bound to the program fd. Once the daemon exits and the eBPF program is unloaded, maps and their historical metrics are cleaned up.</li><li>  <strong>State Pinning</strong>: Pin maps to the virtual BPF filesystem <code>bpffs</code> (typically <code>/sys/fs/bpf/</code>). This allows maps to survive restarts and enables different eBPF programs or user daemons to share state.</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "CO-RE & Operations", "color": "#BFA88F", "title": "BPF CO-RE (Compile Once – Run Everywhere)", "body": "<li>  <strong>Offsets Challenge</strong>: Offsets of fields within kernel structures (like <code>struct task_struct</code>) change across kernel versions, causing BPF binaries compiled on machine A to read corrupt offsets on machine B.</li><li>  <strong>Relocation Solution</strong>: Compile BPF code with debugging symbols. Relocation macros (<code>__builtin_preserve_access_index()</code>) generate relocation records. At load time, <code>libbpf</code> matches local kernel BTF definitions and patches offsets in bytecode.</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "CO-RE & Operations", "color": "#BFA88F", "title": "BTF (BPF Type Format)", "body": "<li>  <strong>Compact Debug Metadata</strong>: BTF is a compact, compressed format for kernel types (100x smaller than DWARF). It encodes structure fields, offset locations, and function definitions.</li><li>  <strong>Header Removal</strong>: Kernels export BTF via <code>/sys/kernel/btf/vmlinux</code>. Developers can generate <code>vmlinux.h</code> to access all kernel definitions, eliminating dependencies on external kernel headers.</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "CO-RE & Operations", "color": "#BFA88F", "title": "BCC vs libbpf-bootstrap", "body": "<li>  <strong>BCC Drawback</strong>: BCC embeds compiler runtimes (Clang/LLVM) to compile BPF C code on the target machine, requiring large containers and causing high CPU usage during launch.</li><li>  <strong>libbpf Advantage</strong>: <code>libbpf-bootstrap</code> compiles BPF code into static bytecode embedded directly inside the user-space C binary. The tool is lightweight (<100KB), has zero dependencies, and loads in milliseconds.</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "CO-RE & Operations", "color": "#BFA88F", "title": "bpftool Diagnostics", "body": "<li>  <strong>CLI Utility</strong>: The official CLI tool for managing and inspecting the kernel BPF subsystem.</li><li>  <strong>Key Diagnostics</strong>:</li><li>List active programs: <code>bpftool prog show</code>;</li><li>Dump JITed CPU instructions: <code>bpftool prog dump jited id <prog_id></code>;</li><li>Pin maps manually: <code>bpftool map pin id <map_id> /sys/fs/bpf/<map_name></code>.</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "CO-RE & Operations", "color": "#BFA88F", "title": "eBPF Production Safety & Verifier Tuning", "body": "<li>  <strong>Kernel Shield</strong>: The verifier blocks programs containing loops without static bounds, exceeding stack allocations, or dereferencing pointers without NULL checks, preventing kernel panics.</li><li>  <strong>Tuning Defenses</strong>: Unroll loops with `</li>"}];
+        const modules = [
+            { id: "M1", name: 'Sandbox & VM', color: "var(--slate-blue)" },
+            { id: "M2", name: 'Kernel Tracing', color: "var(--moss-green)" },
+            { id: "M3", name: 'User Tracing', color: "var(--plum-rose)" },
+            { id: "M4", name: 'Networking & Bypass', color: "var(--terracotta)" },
+            { id: "M5", name: 'Maps & Data Flow', color: "var(--indigo)" },
+            { id: "M6", name: 'CO-RE & Operations', color: "var(--antique-gold)" }
+        ];
+        
+        const grid = document.getElementById('mapGrid');
+        
+        const moduleMap = {};
+        modules.forEach(m => {
+            moduleMap[m.id] = [];
+        });
+        
+        cardsData.forEach(card => {
+            if (moduleMap[card.module]) {
+                moduleMap[card.module].push(card);
+            }
+        });
+        
+        modules.forEach(m => {
+            const col = document.createElement('div');
+            col.className = 'module-col';
+            
+            const header = document.createElement('div');
+            header.className = 'module-header';
+            header.innerHTML = `<span>${m.name}</span><span class="module-dot" style="background-color: ${m.color}"></span>`;
+            col.appendChild(header);
+            
+            moduleMap[m.id].forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'item-card';
+                cardEl.style.setProperty('--theme-color', m.color);
+                cardEl.innerHTML = `
+                    <div class="card-top">
+                        <span class="card-id" style="color: ${m.color}">${card.relativeId}</span>
+                    </div>
+                    <div class="card-title">${card.title}</div>
+                `;
+                
+                cardEl.addEventListener('click', () => openModal(card));
+                col.appendChild(cardEl);
+            });
+            
+            grid.appendChild(col);
+        });
+        
+        const modal = document.getElementById('cardModal');
+        const closeModal = document.getElementById('closeModal');
+        
+        function openModal(card) {
+            document.getElementById('modalCardId').innerText = card.relativeId;
+            document.getElementById('modalCardId').style.color = card.color;
+            document.getElementById('modalCardTitle').innerText = card.title;
+            document.getElementById('modalCardBody').innerHTML = card.body;
+            modal.style.display = 'flex';
+        }
+        
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

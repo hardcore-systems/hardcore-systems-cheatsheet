@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang= + map_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V8 引擎 JIT 优化与 GC 仿真实验室</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --theme-m1: #4B5F7A;
+            --theme-m2: #6B8272;
+            --theme-m3: #9C6666;
+            --theme-m4: #9A825A;
+            --theme-m5: #755B77;
+            --theme-m6: #A07E66;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1300px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            max-width: 900px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.6rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .sandbox-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            animation: tabFadeIn 0.3s ease-out;
+        }
+
+        .sandbox-container.active {
+            display: grid;
+        }
+
+        @keyframes tabFadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Panel Common */
+        .panel {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .panel h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .badge {
+            background-color: var(--border-color);
+            font-size: 0.72rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            color: #cbd5e1;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Panel Elements */
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #cbd5e1;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            border-color: var(--accent-color);
+            color: white;
+            background-color: #24324f;
+        }
+
+        .btn-accent {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background-color: #2563eb;
+            border-color: #2563eb;
+        }
+
+        .btn-danger {
+            background-color: #991b1b;
+            border-color: #991b1b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #b91c1c;
+            border-color: #b91c1c;
+        }
+
+        /* Memory visualizer */
+        .obj-struct {
+            border: 1px solid var(--border-color);
+            background-color: #111827;
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+        }
+
+        .obj-header-row {
+            color: #94a3b8;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 0.4rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .obj-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .obj-item:last-child {
+            border-bottom: none;
+        }
+
+        .obj-offset {
+            color: #f43f5e;
+        }
+
+        .obj-val {
+            color: #10b981;
+        }
+
+        .transition-tree-svg {
+            width: 100%;
+            height: 180px;
+            border: 1px solid var(--border-color);
+            background-color: #0b1220;
+            border-radius: 6px;
+        }
+
+        /* IC details */
+        .ic-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #111827;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .ic-status {
+            font-size: 1.1rem;
+            font-weight: 700;
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+        }
+
+        .ic-uninit { color: #64748b; background-color: rgba(100, 116, 139, 0.15); }
+        .ic-mono { color: #10b981; background-color: rgba(16, 185, 129, 0.15); }
+        .ic-poly { color: #f59e0b; background-color: rgba(245, 158, 11, 0.15); }
+        .ic-mega { color: #ef4444; background-color: rgba(239, 68, 68, 0.15); }
+
+        .ic-bar-container {
+            height: 12px;
+            background-color: #1e293b;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            margin-top: 0.5rem;
+        }
+
+        .ic-bar-value {
+            height: 100%;
+            background-color: #10b981;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Lab 2 specific layout */
+        .code-box {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            border-radius: 6px;
+            color: #93c5fd;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .bytecode-line {
+            display: flex;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .bytecode-line.active {
+            background-color: rgba(59, 130, 246, 0.25);
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .regs-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.8rem;
+        }
+
+        .reg-card {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            padding: 0.8rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .reg-label {
+            font-size: 0.68rem;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        .reg-val {
+            color: #60a5fa;
+            font-weight: 700;
+        }
+
+        .log-box {
+            background-color: #020617;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: #a7f3d0;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-line;
+        }
+
+        .deopt-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(239, 68, 68, 0.35);
+            backdrop-filter: blur(2px);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: white;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            animation: deoptBlink 0.4s infinite alternate;
+        }
+
+        @keyframes deoptBlink {
+            from { opacity: 0.2; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>V8 引擎 JIT 优化与 GC 仿真实验室</h1>
+        <p>通过两个独立的高仿真实验模块，深入演练 V8 引擎底层逻辑：第一关为对象属性添加与 IC 监控实验室，模拟隐藏类转换树构建与单态/多态/超态 IC 状态迁移；第二关为 JIT 编译器与 Deopt 实验室，展示 Ignition 字节码单步调试、TurboFan 循环加热优化生成汇编，以及传入错误类型触发 JIT 去优化（Deopt）并安全退役滑落至解释器的完整过程。</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(1)">第一关：隐藏类 (Map) 与内联缓存 (IC) 演练</button>
+        <button class="tab-btn" onclick="switchTab(2)">第二关：Ignition 虚拟机与 TurboFan JIT/Deopt 调试</button>
+    </div>
+
+    <!-- LAB 1 -->
+    <div class="sandbox-container active" id="lab1">
+        <div class="panel">
+            <h2>对象属性编辑器 <span class="badge">JSObject</span></h2>
+            <div class="btn-group">
+                <button class="btn btn-accent" onclick="addObjectProp('x')">Add .x</button>
+                <button class="btn btn-accent" onclick="addObjectProp('y')">Add .y</button>
+                <button class="btn btn-accent" onclick="addObjectProp('z')">Add .z</button>
+                <button class="btn btn-accent" onclick="addObjectProp('w')">Add .w</button>
+                <button class="btn btn-danger" onclick="deleteObjectProp()">Delete Prop</button>
+                <button class="btn" onclick="resetObject()">Reset/New Obj</button>
+            </div>
+            
+            <div class="obj-struct">
+                <div class="obj-header-row">JSObject Memory Representation</div>
+                <div id="objMem"></div>
+            </div>
+            
+            <div class="obj-struct">
+                <div class="obj-header-row">Hidden Class (Map) Properties Offset Mapping</div>
+                <div id="mapOffsets"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Map 转换树与内联缓存监控 <span class="badge">Map & IC</span></h2>
+            <svg class="transition-tree-svg" id="treeSvg"></svg>
+            
+            <div>
+                <h3>属性访问函数 getVal(obj) { return obj.x; } 调用点</h3>
+                <div style="margin-top:0.6rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button class="btn" onclick="callIC('A')">Call with {x}</button>
+                    <button class="btn" onclick="callIC('B')">Call with {y, x}</button>
+                    <button class="btn" onclick="callIC('C')">Call with {x, z}</button>
+                    <button class="btn" onclick="callIC('D')">Call with {x, w}</button>
+                    <button class="btn" onclick="callIC('E')">Call with {y, z, x}</button>
+                </div>
+                
+                <div class="ic-box" style="margin-top: 1rem;">
+                    <div>
+                        <div style="font-size:0.8rem; color:#94a3b8;">内联缓存当前状态</div>
+                        <div class="ic-status ic-uninit" id="icState">UNINITIALIZED</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size:0.8rem; color:#94a3b8;">属性寻址评估延迟</div>
+                        <div id="icLatency" style="font-weight:700; color:#3b82f6; font-size:1.1rem;">-</div>
+                    </div>
+                </div>
+                <div class="ic-bar-container">
+                    <div class="ic-bar-value" id="icBar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAB 2 -->
+    <div class="sandbox-container" id="lab2">
+        <div class="panel">
+            <h2>Ignition 字节码虚拟机调试 <span class="badge">Interpreter</span></h2>
+            <div class="code-box" id="bytecodeBox"></div>
+            
+            <div class="regs-grid">
+                <div class="reg-card">
+                    <span class="reg-label">Accumulator (acc)</span>
+                    <span class="reg-val" id="regAcc">0</span>
+                </div>
+                <div class="reg-card">
+                    <span class="reg-label">Register r0</span>
+                    <span class="reg-val" id="regR0">0</span>
+                </div>
+                <div class="reg-card">
+                    <span class="reg-label">arg a0 (val)</span>
+                    <span class="reg-val" id="regA0">0</span>
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-accent" id="btnStep" onclick="stepBytecode()">单步调试</button>
+                <button class="btn" onclick="resetBytecode()">重置</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>TurboFan JIT 编译器与去优化演示 <span class="badge">Compiler</span></h2>
+            <div>
+                <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:0.8rem;">
+                    通过循环迭代让代码变热以触发 JIT 优化生成原生指令，传入非预期类型则演示硬去优化。
+                </p>
+                <div class="btn-group">
+                    <button class="btn btn-accent" onclick="runHotLoop()">循环运行 20 次 (加热!)</button>
+                    <button class="btn btn-danger" onclick="triggerDeopt()">传入 String 触发 Deopt</button>
+                </div>
+            </div>
+            
+            <div class="obj-struct" style="flex-grow:1; display:flex; flex-direction:column; gap:0.5rem;">
+                <div class="obj-header-row">当前执行的底代码 (汇编)</div>
+                <div id="assemblyBox" style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:#93c5fd; white-space:pre-wrap; overflow-y:auto; flex-grow:1; max-height:220px;"></div>
+            </div>
+
+            <div class="log-box" id="deoptLog"></div>
+        </div>
+    </div>
+
+    <div class="deopt-animation" id="deoptAnim">DEOPTIMIZATION !</div>
+
+    <script>
+        // Tab switching
+        function switchTab(num) {
+            document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', idx === num - 1);
+            });
+            document.querySelectorAll('.sandbox-container').forEach((c, idx) => {
+                c.classList.toggle('active', idx === num - 1);
+            });
+            if (num === 1) drawTransitionTree();
+        }
+
+        // ==========================================
+        // LAB 1 STATE & LOGIC
+        // ==========================================
+        let objState = {
+            properties: {},
+            mapHistory: ["Map0"],
+            isSlowMode: false
+        };
+
+        const mapTree = {
+            "Map0": { id: "Map0", parent: null, addedProp: null, offsetMap: {}, transition: {} }
+        };
+        let mapCounter = 1;
+
+        const limitInObject = 2;
+
+        function getOrAddMap(parentMapId, propName) {
+            const parent = mapTree[parentMapId];
+            if (parent.transition[propName]) {
+                return parent.transition[propName];
+            }
+            const newMapId = "Map" + mapCounter++;
+            const newOffsetMap = { ...parent.offsetMap };
+            newOffsetMap[propName] = Object.keys(parent.offsetMap).length;
+            
+            mapTree[newMapId] = {
+                id: newMapId,
+                parent: parentMapId,
+                addedProp: propName,
+                offsetMap: newOffsetMap,
+                transition: {}
+            };
+            parent.transition[propName] = newMapId;
+            return newMapId;
+        }
+
+        function addObjectProp(name) {
+            if (objState.isSlowMode) {
+                objState.properties[name] = Math.floor(Math.random() * 100);
+                updateUI1();
+                return;
+            }
+            if (objState.properties[name] !== undefined) return;
+            
+            const currentMapId = objState.mapHistory[objState.mapHistory.length - 1];
+            const nextMapId = getOrAddMap(currentMapId, name);
+            objState.mapHistory.push(nextMapId);
+            objState.properties[name] = Math.floor(Math.random() * 100);
+            updateUI1();
+        }
+
+        function deleteObjectProp() {
+            const keys = Object.keys(objState.properties);
+            if (keys.length === 0) return;
+            const lastKey = keys[keys.length - 1];
+            
+            delete objState.properties[lastKey];
+            if (!objState.isSlowMode) {
+                // Degrading to dictionary slow properties mode upon deletion
+                objState.isSlowMode = true;
+            }
+            updateUI1();
+        }
+
+        function resetObject() {
+            objState = {
+                properties: {},
+                mapHistory: ["Map0"],
+                isSlowMode: false
+            };
+            updateUI1();
+        }
+
+        function updateUI1() {
+            // Render JSObject memory
+            const objMem = document.getElementById('objMem');
+            const mapOffsets = document.getElementById('mapOffsets');
+            
+            if (objState.isSlowMode) {
+                let html = `<div style="color:#f59e0b;">[SLOW MODE] Properties stored in properties hashtable (Dictionary)</div>`;
+                html += `<div class="obj-item"><span style="color:#64748b;">[Map Pointer]</span><span>null (Dictionary Type)</span></div>`;
+                Object.entries(objState.properties).forEach(([k, v]) => {
+                    html += `<div class="obj-item"><span>Hash Entry: <strong>"${k}"</strong></span><span class="obj-val">${v}</span></div>`;
+                });
+                objMem.innerHTML = html;
+                mapOffsets.innerHTML = `<div style="color:#94a3b8;">No Offset Mapping. Access requires slow dictionary search.</div>`;
+            } else {
+                const currentMapId = objState.mapHistory[objState.mapHistory.length - 1];
+                const activeMap = mapTree[currentMapId];
+                
+                let html = `<div class="obj-item"><span style="color:#64748b;">[Map Pointer]</span><span style="color:#38bdf8; font-weight:700;">${currentMapId}</span></div>`;
+                
+                let inObjCount = 0;
+                Object.entries(objState.properties).forEach(([k, v]) => {
+                    const offset = activeMap.offsetMap[k];
+                    if (inObjCount < limitInObject) {
+                        html += `<div class="obj-item"><span>In-Object Slot <strong class="obj-offset">${offset}</strong> ("${k}")</span><span class="obj-val">${v}</span></div>`;
+                        inObjCount++;
+                    } else {
+                        html += `<div class="obj-item"><span>External Properties Array [${offset - limitInObject}] ("${k}")</span><span class="obj-val">${v}</span></div>`;
+                    }
+                });
+                objMem.innerHTML = html;
+
+                // Render Map offset mapping
+                let offsetHtml = ``;
+                if (Object.keys(activeMap.offsetMap).length === 0) {
+                    offsetHtml = `<div style="color:#64748b;">Empty Map</div>`;
+                } else {
+                    Object.entries(activeMap.offsetMap).forEach(([k, v]) => {
+                        offsetHtml += `<div class="obj-item"><span>Property <strong>"${k}"</strong></span><span>➜ Offset <strong class="obj-offset">${v}</strong></span></div>`;
+                    });
+                }
+                mapOffsets.innerHTML = offsetHtml;
+            }
+            drawTransitionTree();
+        }
+
+        function drawTransitionTree() {
+            const svg = document.getElementById('treeSvg');
+            svg.innerHTML = '';
+            
+            // Draw nodes
+            let x = 40;
+            const y = 90;
+            const gap = 80;
+            
+            // Draw the current path in objState
+            objState.mapHistory.forEach((mapId, index) => {
+                const mapNode = mapTree[mapId];
+                
+                // Draw link
+                if (index > 0) {
+                    const prevX = x - gap + 25;
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", prevX);
+                    line.setAttribute("y1", y);
+                    line.setAttribute("x2", x - 25);
+                    line.setAttribute("y2", y);
+                    line.setAttribute("stroke", "#3b82f6");
+                    line.setAttribute("stroke-width", "2");
+                    svg.appendChild(line);
+                    
+                    // Draw transition label
+                    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    label.setAttribute("x", prevX + 10);
+                    label.setAttribute("y", y - 10);
+                    label.setAttribute("fill", "#60a5fa");
+                    label.setAttribute("font-size", "9px");
+                    label.setAttribute("font-family", "monospace");
+                    label.textContent = "+" + mapNode.addedProp;
+                    svg.appendChild(label);
+                }
+                
+                // Draw circle node
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", x);
+                circle.setAttribute("cy", y);
+                circle.setAttribute("r", "20");
+                const currentMapId = objState.mapHistory[objState.mapHistory.length - 1];
+                circle.setAttribute("fill", mapId === currentMapId ? "#1d4ed8" : "#1e293b");
+                circle.setAttribute("stroke", "#3b82f6");
+                circle.setAttribute("stroke-width", "2");
+                svg.appendChild(circle);
+                
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", x);
+                text.setAttribute("y", y + 4);
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("fill", "white");
+                text.setAttribute("font-size", "10px");
+                text.setAttribute("font-weight", "bold");
+                text.textContent = mapId;
+                svg.appendChild(text);
+                
+                x += gap;
+            });
+        }
+
+        // Inline Cache (IC) Simulation
+        let icState = "UNINITIALIZED";
+        const icHistoryMaps = new Set();
+        
+        function callIC(objType) {
+            let targetMap = "Map0";
+            let properties = {};
+            if (objType === 'A') { // {x}
+                getOrAddMap("Map0", "x");
+                targetMap = "Map1";
+                properties = {x: 42};
+            } else if (objType === 'B') { // {y, x}
+                const m = getOrAddMap("Map0", "y");
+                getOrAddMap(m, "x");
+                targetMap = "Map" + (mapCounter - 1);
+                properties = {y: 10, x: 88};
+            } else if (objType === 'C') { // {x, z}
+                const m = getOrAddMap("Map0", "x");
+                getOrAddMap(m, "z");
+                targetMap = "Map" + (mapCounter - 1);
+                properties = {x: 77, z: 99};
+            } else if (objType === 'D') { // {x, w}
+                const m = getOrAddMap("Map0", "x");
+                getOrAddMap(m, "w");
+                targetMap = "Map" + (mapCounter - 1);
+                properties = {x: 12, w: 23};
+            } else if (objType === 'E') { // {y, z, x}
+                const m1 = getOrAddMap("Map0", "y");
+                const m2 = getOrAddMap(m1, "z");
+                getOrAddMap(m2, "x");
+                targetMap = "Map" + (mapCounter - 1);
+                properties = {y: 5, z: 6, x: 7};
+            }
+
+            icHistoryMaps.add(targetMap);
+            
+            const stateEl = document.getElementById('icState');
+            const latencyEl = document.getElementById('icLatency');
+            const barEl = document.getElementById('icBar');
+            
+            if (icHistoryMaps.size === 1) {
+                icState = "MONOMORPHIC";
+                stateEl.className = "ic-status ic-mono";
+                latencyEl.textContent = "0.1 ms (Monomorphic Fast Path)";
+                latencyEl.style.color = "#10b981";
+                barEl.style.width = "7%";
+                barEl.style.backgroundColor = "#10b981";
+            } else if (icHistoryMaps.size <= 3) {
+                icState = "POLYMORPHIC";
+                stateEl.className = "ic-status ic-poly";
+                latencyEl.textContent = `${(0.1 + icHistoryMaps.size * 0.1).toFixed(1)} ms (Polymorphic Branch Checks)`;
+                latencyEl.style.color = "#f59e0b";
+                barEl.style.width = `${10 + icHistoryMaps.size * 15}%`;
+                barEl.style.backgroundColor = "#f59e0b";
+            } else {
+                icState = "MEGAMORPHIC";
+                stateEl.className = "ic-status ic-mega";
+                latencyEl.textContent = "2.8 ms (Megamorphic Slow Dictionary Fallback)";
+                latencyEl.style.color = "#ef4444";
+                barEl.style.width = "100%";
+                barEl.style.backgroundColor = "#ef4444";
+            }
+            stateEl.textContent = icState;
+        }
+
+        // ==========================================
+        // LAB 2 JIT STATE & LOGIC
+        // ==========================================
+        const interpreterInstructions = [
+            { code: "LdaNamedProperty a0, [0], [0]", desc: "Load obj.val into accumulator (Feedback vector Slot 0)", size: 3 },
+            { code: "AddSmi [10], [1]", desc: "Add 10 to accumulator (Feedback vector Slot 1)", size: 2 },
+            { code: "Star r0", desc: "Store accumulator into local register r0", size: 2 },
+            { code: "Ldar r0", desc: "Load register r0 value back to accumulator", size: 2 },
+            { code: "Return", desc: "Return accumulator", size: 1 }
+        ];
+
+        let executionState = {
+            ip: 0,
+            acc: 0,
+            r0: 0,
+            a0: { val: 5, type: "Smi", map: "MAP_SMI" },
+            isOptimized: false,
+            feedbackVector: { slot0: "UNINITIALIZED", slot1: "UNINITIALIZED" }
+        };
+
+        const assemblyOptimizedCode = `; Generated by TurboFan (High Optimization)
+; Speculative Fast Path for MAP_SMI
+mov rsi, [rdi+8]        ; Load Map of a0
+cmp rsi, MAP_SMI        ; Map Check (speculative assertion)
+jne deopt_handler       ; Bailout to Interpreter if wrong type
+mov eax, [rdi+16]       ; Load obj.val directly from offset 16
+add eax, 10             ; Efficient integer addition
+ret                     ; Return result
+deopt_handler:          ; Bailout trigger
+jmp __v8_Deoptimizer    ; Restructure frame and return to Ignition`;
+
+        function renderBytecode() {
+            const box = document.getElementById('bytecodeBox');
+            box.innerHTML = '';
+            interpreterInstructions.forEach((inst, idx) => {
+                const line = document.createElement('div');
+                line.className = 'bytecode-line' + (executionState.ip === idx ? ' active' : '');
+                line.innerHTML = `<span style="color:#64748b; width:40px; display:inline-block;">0x0${idx * 2}</span> <strong style="width:200px; display:inline-block; color:#f1f5f9;">${inst.code}</strong> <span style="color:#64748b;">; ${inst.desc}</span>`;
+                box.appendChild(line);
+            });
+            
+            document.getElementById('regAcc').textContent = executionState.acc;
+            document.getElementById('regR0').textContent = executionState.r0;
+            document.getElementById('regA0').textContent = executionState.a0.val;
+            
+            const assBox = document.getElementById('assemblyBox');
+            if (executionState.isOptimized) {
+                assBox.textContent = assemblyOptimizedCode;
+            } else {
+                assBox.textContent = "; Interpreter Active (No Optimized JIT Code Generated Yet)\n; Run warm-up loop to compile.";
+            }
+        }
+
+        function stepBytecode() {
+            if (executionState.ip >= interpreterInstructions.length) return;
+            
+            const logs = document.getElementById('deoptLog');
+            
+            if (executionState.ip === 0) {
+                if (typeof executionState.a0.val === "string") {
+                    executionState.acc = executionState.a0.val;
+                    executionState.feedbackVector.slot0 = "MAP_STRING";
+                } else {
+                    executionState.acc = executionState.a0.val;
+                    executionState.feedbackVector.slot0 = "MAP_SMI";
+                }
+                logs.textContent += `[Ignition] Executed LdaNamedProperty: Loaded val ("${executionState.acc}") to acc.\n`;
+            } else if (executionState.ip === 1) {
+                if (typeof executionState.acc === "string") {
+                    executionState.acc = executionState.acc + "10";
+                    executionState.feedbackVector.slot1 = "StringConcat";
+                } else {
+                    executionState.acc = executionState.acc + 10;
+                    executionState.feedbackVector.slot1 = "SmiAdd";
+                }
+                logs.textContent += `[Ignition] Executed AddSmi: Added 10. acc is now "${executionState.acc}".\n`;
+            } else if (executionState.ip === 2) {
+                executionState.r0 = executionState.acc;
+                logs.textContent += `[Ignition] Executed Star: Saved acc to register r0.\n`;
+            } else if (executionState.ip === 3) {
+                executionState.acc = executionState.r0;
+                logs.textContent += `[Ignition] Executed Ldar: Reloaded register r0 to acc.\n`;
+            } else if (executionState.ip === 4) {
+                logs.textContent += `[Ignition] Executed Return: Returned "${executionState.acc}". Execution finished.\n`;
+            }
+            
+            executionState.ip++;
+            renderBytecode();
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function resetBytecode() {
+            executionState.ip = 0;
+            executionState.acc = 0;
+            executionState.r0 = 0;
+            renderBytecode();
+        }
+
+        function runHotLoop() {
+            const logs = document.getElementById('deoptLog');
+            logs.textContent += `\n[Host] Triggered Warm-up Loop: Calling function 20 times...\n`;
+            
+            // Loop heats up with Smi type
+            executionState.a0 = { val: 5, type: "Smi", map: "MAP_SMI" };
+            executionState.feedbackVector.slot0 = "MAP_SMI";
+            executionState.feedbackVector.slot1 = "SmiAdd";
+            
+            setTimeout(() => {
+                executionState.isOptimized = true;
+                logs.textContent += `[TurboFan] Function marked as HOT. Invoking optimizing JIT compiler...\n`;
+                logs.textContent += `[TurboFan] Optimization success! Map Check Elimination applied for MAP_SMI. Compiled native assembly code.\n`;
+                renderBytecode();
+            }, 600);
+        }
+
+        function triggerDeopt() {
+            const logs = document.getElementById('deoptLog');
+            if (!executionState.isOptimized) {
+                logs.textContent += `\n[Error] Cannot deoptimize. Function is not optimized yet. Run warm-up loop first!\n`;
+                return;
+            }
+            
+            logs.textContent += `\n[Host] Calling optimized calculate() with String argument: {val: "hello"}\n`;
+            
+            setTimeout(() => {
+                // Show red screen deopt animation
+                const anim = document.getElementById('deoptAnim');
+                anim.style.display = 'flex';
+                
+                setTimeout(() => {
+                    anim.style.display = 'none';
+                    executionState.isOptimized = false;
+                    executionState.a0 = { val: "hello", type: "String", map: "MAP_STRING" };
+                    executionState.ip = 0; // fallback to start of interpreter loop
+                    executionState.acc = 0;
+                    executionState.r0 = 0;
+                    
+                    logs.textContent += `[Hardware] Speculative Map check failed! Expected MAP_SMI, received MAP_STRING.\n`;
+                    logs.textContent += `[Deoptimizer] Eager Deoptimization (Bailout) triggered! Reason: kWrongMap.\n`;
+                    logs.textContent += `[Deoptimizer] Restructuring interpreter frame from machine registers...\n`;
+                    logs.textContent += `[Deoptimizer] Transition complete. Handed control back to Ignition interpreter.\n`;
+                    
+                    renderBytecode();
+                }, 1000);
+            }, 300);
+        }
+
+        window.onload = function() {
+            updateUI1();
+            resetBytecode();
+        };
+    </script>
+</body>
+</html>

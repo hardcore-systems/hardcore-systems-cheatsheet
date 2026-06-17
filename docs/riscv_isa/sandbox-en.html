@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RISC-V Architecture Interactive Sandbox Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .sandbox-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            display: none;
+        }
+
+        .sandbox-container.active {
+            display: block;
+        }
+
+        .desc-banner {
+            background-color: #1e293b;
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1.25fr 1fr;
+            gap: 2rem;
+        }
+
+        .panel {
+            background-color: #0b0f19;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel h3 {
+            font-size: 1.1rem;
+            color: #f1f5f9;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.88rem;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-danger {
+            background-color: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+
+        .btn-secondary {
+            background-color: #4b5563;
+        }
+
+        .btn-secondary:hover {
+            background-color: #374151;
+        }
+
+        .log-console {
+            background-color: #05070f;
+            border: 1px solid #1e293b;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 1rem;
+            font-size: 0.82rem;
+            height: 200px;
+            overflow-y: auto;
+            color: #38bdf8;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+        }
+
+        /* Pipeline specific styles */
+        .pipeline-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            margin-bottom: 1rem;
+        }
+
+        .pipeline-table th, .pipeline-table td {
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            text-align: center;
+        }
+
+        .pipeline-table th {
+            background-color: #1e293b;
+            color: #94a3b8;
+        }
+
+        .stage-active {
+            background-color: #22c55e;
+            color: #0b0f19;
+            font-weight: 700;
+            border-radius: 4px;
+        }
+
+        .stage-stall {
+            background-color: #eab308;
+            color: #0b0f19;
+            font-weight: 700;
+            border-radius: 4px;
+        }
+
+        /* MESI specific styles */
+        .mesi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .cpu-node {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .cache-line {
+            background-color: #0b0f19;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0.8rem;
+            margin-top: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .mesi-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-weight: 700;
+            color: #0b0f19;
+            margin-bottom: 0.5rem;
+        }
+
+        .state-M { background-color: #f87171; }
+        .state-E { background-color: #60a5fa; }
+        .state-S { background-color: #34d399; }
+        .state-I { background-color: #94a3b8; color: white; }
+
+        .mem-node {
+            background-color: #111827;
+            border: 2px dashed var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>RISC-V Architecture Interactive Sandbox Lab</h1>
+        <p>Hazards, Forwarding and Cache Coherence Protocol Visualizer</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('pipeline')">5-Stage Pipeline Hazards & Bypass</button>
+        <button class="tab-btn" onclick="switchTab('mesi')">Multi-Core MESI Cache Coherence</button>
+    </div>
+
+    <!-- PIPELINE SANDBOX -->
+    <div id="pipelineSandbox" class="sandbox-container active">
+        <div class="desc-banner">Simulate a classic RISC-V 5-stage pipeline (IF, ID, EX, MEM, WB). Toggle Bypass Forwarding to see how hardware solves RAW hazards, or test branch predictions.</div>
+        <div class="grid-2">
+            <div class="panel">
+                <h3>5-Stage Pipeline Status Grid</h3>
+                
+                <table class="pipeline-table">
+                    <thead>
+                        <tr>
+                            <th>Instruction</th>
+                            <th>IF</th>
+                            <th>ID</th>
+                            <th>EX</th>
+                            <th>MEM</th>
+                            <th>WB</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pipelineBody">
+                        <!-- Filled by JS -->
+                    </tbody>
+                </table>
+
+                <div style="margin-top: 1rem; font-size: 0.82rem; color: #94a3b8; line-height: 1.5;">
+                    <strong>Register Map (Architectural)</strong>
+                    <div id="regGrid" style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; margin-top:0.5rem; font-family:'JetBrains Mono'; background:#111827; padding:0.5rem; border-radius:4px; border:1px solid var(--border-color);">
+                        <div>x0: 0</div>
+                        <div>x1: 0</div>
+                        <div>x2: 0</div>
+                        <div>x3: 0</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1rem; font-size: 0.8rem; color: #94a3b8;">
+                    <strong>Branch Predictor Status (2-bit BHT)</strong>
+                    <div id="bhtState" style="margin-top:0.4rem; padding:0.5rem; background:#111827; border-radius:4px; border:1px solid var(--border-color); font-family:'JetBrains Mono'; color:#38bdf8;">
+                        BHT State: 01 (Weakly Not Taken)
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>Control & Code Input</h3>
+                <div class="actions">
+                    <label style="font-size:0.85rem; color:#94a3b8;">Select Assembly Workload:</label>
+                    <select id="workloadSelect" onchange="loadWorkload()">
+                        <option value="raw">RAW Hazard: addi x1,x0,5 -> add x2,x1,x1 -> sub x3,x2,x1</option>
+                        <option value="loaduse">Load-Use Hazard: lw x2,0(x1) -> add x3,x2,x2</option>
+                        <option value="branch">Branch Loop: loop: addi x1,x1,-1 -> bne x1,x0,loop</option>
+                    </select>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
+                        <span style="font-size:0.85rem; color:#94a3b8;">Bypass Forwarding:</span>
+                        <input type="checkbox" id="bypassToggle" checked style="width:18px; height:18px; cursor:pointer;">
+                    </div>
+
+                    <button class="btn" onclick="stepPipeline()">Step Next Cycle (1 Clock)</button>
+                    <button class="btn btn-secondary" onclick="resetPipeline()">Reset Pipeline</button>
+                </div>
+                <div class="log-console" id="pipelineConsole">=== Pipeline Execution Console ===</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MESI SANDBOX -->
+    <div id="mesiSandbox" class="sandbox-container">
+        <div class="desc-banner">Simulate cache status transitions (Modified, Exclusive, Shared, Invalid) using MESI bus snooping. Trigger read/write operations from CPU 0 and CPU 1.</div>
+        <div class="grid-2">
+            <div class="panel">
+                <h3>Multi-Core L1 Caches & L2 Memory</h3>
+                
+                <div class="mesi-grid">
+                    <div class="cpu-node">
+                        <strong style="color:#f1f5f9;">CPU Core 0</strong>
+                        <div class="cache-line" id="cacheCore0">
+                            <div class="mesi-badge state-I" id="badgeCore0">INVALID</div>
+                            <div style="color:#cbd5e1;">X = --</div>
+                        </div>
+                    </div>
+                    <div class="cpu-node">
+                        <strong style="color:#f1f5f9;">CPU Core 1</strong>
+                        <div class="cache-line" id="cacheCore1">
+                            <div class="mesi-badge state-I" id="badgeCore1">INVALID</div>
+                            <div style="color:#cbd5e1;">X = --</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mem-node">
+                    <strong style="color:#94a3b8;">L2 Shared Cache & Main Memory</strong>
+                    <div style="color:#38bdf8; font-size:1.2rem; margin-top:0.5rem;" id="memVal">X = 42</div>
+                </div>
+
+                <div style="margin-top: 1rem; font-size: 0.8rem; color: #94a3b8; line-height: 1.5;">
+                    <strong>MESI States Legend</strong><br>
+                    <span class="mesi-badge state-M" style="font-size:0.75rem; color:#0b0f19;">M</span> Modified (Dirty, exclusive to core) <br>
+                    <span class="mesi-badge state-E" style="font-size:0.75rem; color:#0b0f19;">E</span> Exclusive (Clean, exclusive to core) <br>
+                    <span class="mesi-badge state-S" style="font-size:0.75rem; color:#0b0f19;">S</span> Shared (Clean, present in other cores) <br>
+                    <span class="mesi-badge state-I" style="font-size:0.75rem; color:#ffffff;">I</span> Invalid (Stale copy, must be reloaded)
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>Bus Snooping Actions</h3>
+                <div class="actions">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">
+                        <button class="btn" onclick="mesiRead(0)">Core 0: Read X</button>
+                        <button class="btn" onclick="mesiWrite(0)">Core 0: Write X=99</button>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem; margin-top:0.5rem;">
+                        <button class="btn" onclick="mesiRead(1)">Core 1: Read X</button>
+                        <button class="btn" onclick="mesiWrite(1)">Core 1: Write X=200</button>
+                    </div>
+                    <div style="border-top:1px solid var(--border-color); margin: 0.5rem 0;"></div>
+                    <button class="btn btn-secondary" onclick="resetMesi()">Reset Caches</button>
+                </div>
+                <div class="log-console" id="mesiConsole">=== MESI Coherence Snooping Console ===</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.sandbox-container').forEach(c => c.classList.remove('active'));
+            if (tab === 'pipeline') {
+                document.querySelector('.tab-btn[onclick="switchTab('pipeline')"]').classList.add('active');
+                document.getElementById('pipelineSandbox').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn[onclick="switchTab('mesi')"]').classList.add('active');
+                document.getElementById('mesiSandbox').classList.add('active');
+            }
+        }
+
+        // =====================================================================
+        // Pipeline Core Simulation Code
+        // =====================================================================
+        let pipeState = {
+            cycle: 0,
+            instructions: [],
+            stages: { IF: -1, ID: -1, EX: -1, MEM: -1, WB: -1 },
+            registers: { x0: 0, x1: 0, x2: 0, x3: 0 },
+            stallsLeft: 0,
+            pc: 0,
+            bht: 1, // 01 (Weakly Not Taken)
+            loopCount: 3
+        };
+
+        const programs = {
+            raw: [
+                { text: "addi x1, x0, 5", op: "addi", rd: "x1", rs1: "x0", imm: 5 },
+                { text: "add x2, x1, x1", op: "add", rd: "x2", rs1: "x1", rs2: "x1" },
+                { text: "sub x3, x2, x1", op: "sub", rd: "x3", rs1: "x2", rs2: "x1" }
+            ],
+            loaduse: [
+                { text: "lw x2, 0(x1)", op: "lw", rd: "x2", rs1: "x1", imm: 0 },
+                { text: "add x3, x2, x2", op: "add", rd: "x3", rs1: "x2", rs2: "x2" }
+            ],
+            branch: [
+                { text: "addi x1, x0, 2", op: "addi", rd: "x1", rs1: "x0", imm: 2 },
+                { text: "addi x1, x1, -1", op: "addi", rd: "x1", rs1: "x1", imm: -1 },
+                { text: "bne x1, x0, -1", op: "bne", rs1: "x1", rs2: "x0", target: 1 }
+            ]
+        };
+
+        function logPipe(msg) {
+            const cons = document.getElementById('pipelineConsole');
+            cons.innerHTML += '\n' + msg;
+            cons.scrollTop = cons.scrollHeight;
+        }
+
+        function renderRegs() {
+            const grid = document.getElementById('regGrid');
+            grid.innerHTML = '';
+            for (let r = 0; r < 4; r++) {
+                grid.innerHTML += `<div>x${r}: ${pipeState.registers['x' + r]}</div>`;
+            }
+        }
+
+        function loadWorkload() {
+            resetPipeline();
+        }
+
+        function resetPipeline() {
+            const progKey = document.getElementById('workloadSelect').value;
+            pipeState = {
+                cycle: 0,
+                instructions: JSON.parse(JSON.stringify(programs[progKey])),
+                stages: { IF: -1, ID: -1, EX: -1, MEM: -1, WB: -1 },
+                registers: { x0: 0, x1: 0, x2: 0, x3: 0 },
+                stallsLeft: 0,
+                pc: 0,
+                bht: 1,
+                loopCount: 2
+            };
+            renderRegs();
+            renderPipelineTable();
+            document.getElementById('pipelineConsole').innerHTML = '=== Pipeline Execution Console ===';
+            logPipe("Pipeline reset complete. Loaded " + progKey.toUpperCase() + " workload.");
+        }
+
+        function renderPipelineTable() {
+            const body = document.getElementById('pipelineBody');
+            body.innerHTML = '';
+            pipeState.instructions.forEach((inst, idx) => {
+                let tr = `<tr><td><strong>${inst.text}</strong></td>`;
+                ['IF', 'ID', 'EX', 'MEM', 'WB'].forEach(stg => {
+                    if (pipeState.stages[stg] === idx) {
+                        const isStall = (pipeState.stallsLeft > 0 && stg === 'ID');
+                        const cls = isStall ? 'stage-stall' : 'stage-active';
+                        const text = isStall ? 'STALL' : stg;
+                        tr += `<td class="${cls}">${text}</td>`;
+                    } else {
+                        tr += `<td>-</td>`;
+                    }
+                });
+                tr += '</tr>';
+                body.innerHTML += tr;
+            });
+        }
+
+        function stepPipeline() {
+            pipeState.cycle++;
+            logPipe(`\n[Cycle ${pipeState.cycle}] ----------------------------------------`);
+            const bypass = document.getElementById('bypassToggle').checked;
+
+            // 1. WB Stage
+            const wbIdx = pipeState.stages.MEM;
+            pipeState.stages.WB = wbIdx;
+            if (wbIdx !== -1) {
+                const inst = pipeState.instructions[wbIdx];
+                if (inst.rd && inst.rd !== 'x0') {
+                    // Execute write back
+                    if (inst.op === 'addi') {
+                        if (inst.rs1 === 'x0') pipeState.registers[inst.rd] = inst.imm;
+                        else pipeState.registers[inst.rd] += inst.imm;
+                    } else if (inst.op === 'add') {
+                        pipeState.registers[inst.rd] = pipeState.registers[inst.rs1] + pipeState.registers[inst.rs2];
+                    } else if (inst.op === 'sub') {
+                        pipeState.registers[inst.rd] = pipeState.registers[inst.rs1] - pipeState.registers[inst.rs2];
+                    } else if (inst.op === 'lw') {
+                        pipeState.registers[inst.rd] = 100; // Simulated memory content
+                    }
+                    logPipe(`- [WB] Instruction "${inst.text}" writes back value ${pipeState.registers[inst.rd]} to ${inst.rd}.`);
+                }
+            }
+
+            // 2. MEM Stage
+            const memIdx = pipeState.stages.EX;
+            pipeState.stages.MEM = memIdx;
+            if (memIdx !== -1) {
+                logPipe(`- [MEM] Instruction "${pipeState.instructions[memIdx].text}" in MEM stage.`);
+            }
+
+            // 3. EX Stage
+            let exIdx = pipeState.stages.ID;
+            
+            // Check RAW Hazards in ID before pushing to EX
+            let rawHazard = false;
+            let neededReg = null;
+            let hazardSourceIdx = -1;
+
+            if (exIdx !== -1) {
+                const inst = pipeState.instructions[exIdx];
+                // Check if rs1 or rs2 matches any destination in EX/MEM/WB of flying instructions
+                ['rs1', 'rs2'].forEach(rs => {
+                    const reg = inst[rs];
+                    if (reg && reg !== 'x0') {
+                        // Check MEM stage flying instruction
+                        if (pipeState.stages.MEM !== -1 && pipeState.instructions[pipeState.stages.MEM].rd === reg) {
+                            rawHazard = true;
+                            neededReg = reg;
+                            hazardSourceIdx = pipeState.stages.MEM;
+                        }
+                        // Check EX stage flying instruction
+                        if (pipeState.stages.EX !== -1 && pipeState.instructions[pipeState.stages.EX].rd === reg) {
+                            rawHazard = true;
+                            neededReg = reg;
+                            hazardSourceIdx = pipeState.stages.EX;
+                        }
+                    }
+                });
+            }
+
+            if (rawHazard && exIdx !== -1) {
+                const inst = pipeState.instructions[exIdx];
+                const sourceInst = pipeState.instructions[hazardSourceIdx];
+                logPipe(`- [ID/EX Check] RAW Hazard detected on register ${neededReg}!`);
+                logPipe(`  Dependent: "${inst.text}", Source: "${sourceInst.text}"`);
+
+                if (bypass) {
+                    // Bypass is enabled. Can we forward?
+                    // Load-Use hazard cannot be fully bypassed (needs 1 stall)
+                    if (sourceInst.op === 'lw' && hazardSourceIdx === pipeState.stages.EX) {
+                        logPipe(`  ➜ [STALL] Source is LW in EX stage. Bypass requires 1-cycle stall for memory load latency.`);
+                        pipeState.stallsLeft = 1;
+                        pipeState.stages.EX = -1; // Inject bubble
+                    } else {
+                        logPipe(`  ➜ [FORWARD] Bypass enabled! Forwarding data directly to ALU input. No stalls.`);
+                        pipeState.stages.EX = exIdx;
+                    }
+                } else {
+                    logPipe(`  ➜ [STALL] Bypass disabled. Inserting NOP bubble into EX stage. ID stage locked.`);
+                    pipeState.stallsLeft = 2; // Insert stalls
+                    pipeState.stages.EX = -1;
+                }
+            } else {
+                pipeState.stages.EX = exIdx;
+                if (exIdx !== -1) {
+                    const inst = pipeState.instructions[exIdx];
+                    logPipe(`- [EX] Executing: "${inst.text}".`);
+                    
+                    // Branch instruction evaluation
+                    if (inst.op === 'bne') {
+                        const rs1_val = pipeState.registers[inst.rs1];
+                        const rs2_val = pipeState.registers[inst.rs2];
+                        const taken = (rs1_val !== rs2_val);
+                        
+                        logPipe(`- [Branch Evaluation] bne condition (x1 != x0): ${rs1_val} != ${rs2_val} ➜ Taken: ${taken}`);
+                        
+                        // Check Branch predictor (2-bit BHT)
+                        const predictedTaken = (pipeState.bht >= 2);
+                        logPipe(`  BHT Prediction: ${predictedTaken ? 'Taken' : 'Not Taken'} (BHT code: ${pipeState.bht.toString(2).padStart(2,'0')})`);
+
+                        if (taken === predictedTaken) {
+                            logPipe(`  ➜ [SUCCESS] Branch speculation succeeded. Continue pipeline.`);
+                            // update BHT state machine (saturating up)
+                            if (taken && pipeState.bht < 3) pipeState.bht++;
+                            if (!taken && pipeState.bht > 0) pipeState.bht--;
+                        } else {
+                            logPipe(`  ➜ [MISPREDICT / FLUSH] Misprediction! Flushing pipeline (2 cycles bubble). Redirecting PC to loop.`);
+                            // update BHT state machine (saturating down)
+                            if (taken && pipeState.bht < 3) pipeState.bht++;
+                            if (!taken && pipeState.bht > 0) pipeState.bht--;
+
+                            // Flush IF & ID
+                            pipeState.stages.IF = -1;
+                            pipeState.stages.ID = -1;
+                            
+                            // Redirect PC
+                            if (taken) {
+                                pipeState.pc = inst.target;
+                            }
+                        }
+                        document.getElementById('bhtState').innerText = `BHT State: ${pipeState.bht.toString(2).padStart(2,'0')} (${pipeState.bht >= 2 ? 'Taken Hint' : 'Not Taken Hint'})` ;
+                    }
+                }
+            }
+
+            // 4. ID Stage
+            if (pipeState.stallsLeft > 0) {
+                pipeState.stallsLeft--;
+                logPipe(`- [ID] Stalled. ID stage frozen.`);
+            } else {
+                pipeState.stages.ID = pipeState.stages.IF;
+                if (pipeState.stages.ID !== -1) {
+                    logPipe(`- [ID] Decoding: "${pipeState.instructions[pipeState.stages.ID].text}".`);
+                }
+            }
+
+            // 5. IF Stage
+            if (pipeState.stallsLeft > 0) {
+                logPipe(`- [IF] Frozen due to ID stall.`);
+            } else {
+                if (pipeState.pc < pipeState.instructions.length) {
+                    pipeState.stages.IF = pipeState.pc;
+                    logPipe(`- [IF] Fetching PC ${pipeState.pc}: "${pipeState.instructions[pipeState.pc].text}".`);
+                    pipeState.pc++;
+                } else {
+                    pipeState.stages.IF = -1;
+                }
+            }
+
+            renderRegs();
+            renderPipelineTable();
+        }
+
+        // =====================================================================
+        // MESI Core Simulation Code
+        // =====================================================================
+        let mesiState = {
+            l1: [
+                { state: 'I', val: null }, // Core 0
+                { state: 'I', val: null }  // Core 1
+            ],
+            l2: 42 // Memory
+        };
+
+        function logMesi(msg) {
+            const cons = document.getElementById('mesiConsole');
+            cons.innerHTML += '\n' + msg;
+            cons.scrollTop = cons.scrollHeight;
+        }
+
+        function updateMesiUI() {
+            // CPU 0
+            const badge0 = document.getElementById('badgeCore0');
+            badge0.className = `mesi-badge state-${mesiState.l1[0].state}`;
+            badge0.innerText = getMesiStateName(mesiState.l1[0].state);
+            document.getElementById('cacheCore0').querySelector('div:last-child').innerText = `X = ${mesiState.l1[0].val !== null ? mesiState.l1[0].val : '--'}`;
+
+            // CPU 1
+            const badge1 = document.getElementById('badgeCore1');
+            badge1.className = `mesi-badge state-${mesiState.l1[1].state}`;
+            badge1.innerText = getMesiStateName(mesiState.l1[1].state);
+            document.getElementById('cacheCore1').querySelector('div:last-child').innerText = `X = ${mesiState.l1[1].val !== null ? mesiState.l1[1].val : '--'}`;
+
+            // Memory
+            document.getElementById('memVal').innerText = `X = ${mesiState.l2}`;
+        }
+
+        function getMesiStateName(st) {
+            if (st === 'M') return 'MODIFIED';
+            if (st === 'E') return 'EXCLUSIVE';
+            if (st === 'S') return 'SHARED';
+            return 'INVALID';
+        }
+
+        function mesiRead(core) {
+            const other = 1 - core;
+            logMesi(`\n[CPU ${core} Action: Read X] ----------------------------------------`);
+            logMesi(`- Local Cache State is: ${mesiState.l1[core].state}`);
+
+            if (mesiState.l1[core].state === 'M' || mesiState.l1[core].state === 'E' || mesiState.l1[core].state === 'S') {
+                logMesi(`➜ [CACHE HIT] Read value ${mesiState.l1[core].val} directly from L1 Cache.`);
+                return;
+            }
+
+            logMesi(`➜ [CACHE MISS] Broadcast Bus Read (BusRd) request on Shared Bus.`);
+
+            if (mesiState.l1[other].state === 'M') {
+                logMesi(`  - Core ${other} snoops BusRd! It is Modified (Dirty).`);
+                logMesi(`  - Core ${other} writes back dirty value ${mesiState.l1[other].val} to L2/Memory.`);
+                mesiState.l2 = mesiState.l1[other].val;
+                logMesi(`  - Core ${other} downgrades state from Modified (M) to Shared (S).`);
+                mesiState.l1[other].state = 'S';
+
+                logMesi(`  - Core ${core} loads value ${mesiState.l2} from memory.`);
+                mesiState.l1[core].val = mesiState.l2;
+                mesiState.l1[core].state = 'S';
+            } else if (mesiState.l1[other].state === 'E') {
+                logMesi(`  - Core ${other} snoops BusRd! It is Exclusive.`);
+                logMesi(`  - Core ${other} downgrades state from Exclusive (E) to Shared (S).`);
+                mesiState.l1[other].state = 'S';
+
+                logMesi(`  - Core ${core} loads value ${mesiState.l2} from memory.`);
+                mesiState.l1[core].val = mesiState.l2;
+                mesiState.l1[core].state = 'S';
+            } else if (mesiState.l1[other].state === 'S') {
+                logMesi(`  - Core ${other} snoops BusRd! Already Shared.`);
+                logMesi(`  - Core ${core} loads value ${mesiState.l2} from memory.`);
+                mesiState.l1[core].val = mesiState.l2;
+                mesiState.l1[core].state = 'S';
+            } else {
+                logMesi(`  - No other cores hold copies. Memory read succeeds.`);
+                logMesi(`  - Core ${core} loads value ${mesiState.l2} exclusively.`);
+                mesiState.l1[core].val = mesiState.l2;
+                mesiState.l1[core].state = 'E';
+            }
+
+            updateMesiUI();
+        }
+
+        function mesiWrite(core) {
+            const other = 1 - core;
+            const writeVal = (core === 0) ? 99 : 200;
+            logMesi(`\n[CPU ${core} Action: Write X = ${writeVal}] ----------------------------------------`);
+            logMesi(`- Local Cache State is: ${mesiState.l1[core].state}`);
+
+            if (mesiState.l1[core].state === 'M') {
+                logMesi(`➜ [CACHE HIT] Already Modified (exclusive write access). Write value directly to Cache.`);
+                mesiState.l1[core].val = writeVal;
+                updateMesiUI();
+                return;
+            }
+
+            if (mesiState.l1[core].state === 'E') {
+                logMesi(`➜ [CACHE HIT] Cache state is Exclusive. Upgrade locally to Modified.`);
+                mesiState.l1[core].state = 'M';
+                mesiState.l1[core].val = writeVal;
+                updateMesiUI();
+                return;
+            }
+
+            if (mesiState.l1[core].state === 'S') {
+                logMesi(`➜ [UPGRADE NEEDED] Broadcast Bus Upgrade (BusUpgrade) on Shared Bus.`);
+                logMesi(`  - Core ${other} snoops BusUpgrade! Invalidating local copy.`);
+                mesiState.l1[other].state = 'I';
+                mesiState.l1[other].val = null;
+                
+                logMesi(`  - Core ${core} updates state from Shared (S) to Modified (M).`);
+                mesiState.l1[core].state = 'M';
+                mesiState.l1[core].val = writeVal;
+            } else {
+                // State is Invalid (I)
+                logMesi(`➜ [CACHE MISS] Broadcast Read with Intent to Write (BusRdX) on Shared Bus.`);
+                if (mesiState.l1[other].state === 'M') {
+                    logMesi(`  - Core ${other} snoops BusRdX! Writing back dirty value ${mesiState.l1[other].val} and invalidating.`);
+                    mesiState.l2 = mesiState.l1[other].val;
+                    mesiState.l1[other].state = 'I';
+                    mesiState.l1[other].val = null;
+                } else if (mesiState.l1[other].state === 'S' || mesiState.l1[other].state === 'E') {
+                    logMesi(`  - Core ${other} snoops BusRdX! Invalidating local copy.`);
+                    mesiState.l1[other].state = 'I';
+                    mesiState.l1[other].val = null;
+                }
+
+                logMesi(`  - Core ${core} updates state to Modified (M).`);
+                mesiState.l1[core].state = 'M';
+                mesiState.l1[core].val = writeVal;
+            }
+
+            updateMesiUI();
+        }
+
+        function resetMesi() {
+            mesiState = {
+                l1: [
+                    { state: 'I', val: null },
+                    { state: 'I', val: null }
+                ],
+                l2: 42
+            };
+            updateMesiUI();
+            document.getElementById('mesiConsole').innerHTML = '=== MESI Coherence Snooping Console ===';
+            logMesi("Cache coherence states reset successfully.");
+        }
+
+        // Initial setup
+        resetPipeline();
+        resetMesi();
+    </script>
+</body>
+</html>

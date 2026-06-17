@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang= + map_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive distributed systems playground for donnemartin/system-design-primer cheatsheets.">
+    <title>donnemartin / system-design-primer Interactive Architecture Simulation Sandbox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --color-active: #10b981;
+            --color-warn: #f59e0b;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #7A8B99, #BFA88F);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .grid-labs {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 2rem;
+        }
+        @media (max-width: 1200px) {
+            .grid-labs {
+                grid-template-columns: 1fr;
+            }
+        }
+        .lab-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .lab-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: #60a5fa;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+        .lab-description {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .input-group label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .input-ctrl {
+            background-color: #0b111e;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.5rem 0.8rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn:hover {
+            background-color: #2563eb;
+        }
+        .btn-secondary {
+            background-color: #475569;
+        }
+        .btn-secondary:hover {
+            background-color: #334155;
+        }
+        .btn:disabled {
+            background-color: #1e293b;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+        
+        /* Consistent Hash Lab Styles */
+        .hashing-visualizer-container {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            .hashing-visualizer-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        .ring-canvas-box {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            position: relative;
+        }
+        .stats-panel {
+            background-color: #0b111e;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 0.4rem;
+        }
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        .node-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: bold;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.75rem;
+        }
+        
+        /* Caching Lab Styles */
+        .caching-visualizer {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            height: 220px;
+            position: relative;
+            overflow: hidden;
+        }
+        .node-box {
+            position: absolute;
+            width: 100px;
+            height: 70px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            background-color: #151d30;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: border-color 0.3s;
+        }
+        .node-box.active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+        }
+        .node-client { left: 40px; top: 75px; }
+        .node-cache { left: 240px; top: 15px; }
+        .node-db { left: 240px; top: 135px; }
+        .node-label {
+            font-size: 0.7rem;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+        .data-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            color: #10b981;
+        }
+        .path-line {
+            position: absolute;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            z-index: 0;
+        }
+        .line-c-c { left: 140px; top: 50px; width: 100px; height: 0; transform: rotate(-25deg); transform-origin: 0 0; }
+        .line-c-d { left: 140px; top: 110px; width: 100px; height: 0; transform: rotate(25deg); transform-origin: 0 0; }
+        .line-ca-d { left: 290px; top: 85px; width: 0; height: 50px; border-left: 2px dashed rgba(255, 255, 255, 0.1); }
+        
+        .animated-packet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #f59e0b;
+            border-radius: 50%;
+            z-index: 10;
+            display: none;
+            box-shadow: 0 0 8px #f59e0b;
+        }
+        
+        .latency-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            background-color: #0b111e;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .chart-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .chart-lbl {
+            width: 120px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .chart-bar-outer {
+            flex-grow: 1;
+            height: 18px;
+            background-color: #1e293b;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+            position: relative;
+        }
+        .chart-bar-inner {
+            height: 100%;
+            width: 0%;
+            background-color: #3b82f6;
+            transition: width 0.3s ease;
+        }
+        .chart-bar-inner.write-bar {
+            background-color: #e11d48;
+        }
+        .chart-val-overlay {
+            position: absolute;
+            right: 8px;
+            top: 1px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            font-weight: bold;
+        }
+
+        .log-terminal {
+            background-color: #05070c;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.75rem;
+            height: 140px;
+            overflow-y: auto;
+            color: #a7f3d0;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>donnemartin / system-design-primer Sandbox</h1>
+        <p>Experiment with Consistent Hashing Topology and Caching Write Strategies to understand data distribution and latency trade-offs.</p>
+    </header>
+
+    <div class="grid-labs">
+        <!-- Lab 1: Consistent Hashing -->
+        <div class="lab-panel">
+            <h2 class="lab-title">Lab 1: Consistent Hashing Ring Visualizer</h2>
+            <p class="lab-description">
+                Visualize consistent hashing topology. Toggle virtual nodes to see how data skewness and routing are affected. Add or remove nodes to see the re-mapping of hash slots dynamically.
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>Virtual Nodes Replicas</label>
+                    <select id="vnode-select" class="input-ctrl" onchange="toggleVirtualNodes()">
+                        <option value="0">Off (No Virtual Nodes)</option>
+                        <option value="3">3x Replicas</option>
+                        <option value="10">10x Replicas</option>
+                    </select>
+                </div>
+                <button class="btn btn-secondary" onclick="addHashNode()">+ ADD NODE</button>
+                <button class="btn btn-secondary" onclick="removeHashNode()">- REMOVE NODE</button>
+                <button class="btn" onclick="distributeKeys()">HASH RANDOM KEYS</button>
+            </div>
+
+            <div class="hashing-visualizer-container">
+                <div class="ring-canvas-box">
+                    <svg id="ring-svg" width="300" height="300" style="background:#0b111e; border-radius:50%">
+                        <circle cx="150" cy="150" r="120" stroke="#24324f" stroke-width="2" fill="none" />
+                    </svg>
+                </div>
+                <div class="stats-panel">
+                    <h4 style="font-size:0.85rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.4rem">
+                        Cluster Nodes Load
+                    </h4>
+                    <div id="nodes-stats-container" style="flex-grow:1; display:flex; flex-direction:column; gap:0.5rem">
+                        <!-- Dynamic node load bars -->
+                    </div>
+                </div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">Consistent Hashing Logs</h4>
+            <div class="log-terminal" id="log-hash">
+                -- Hash ring initialized with Nodes: Server-A, Server-B, Server-C. --
+            </div>
+        </div>
+
+        <!-- Lab 2: Caching Write Strategies -->
+        <div class="lab-panel">
+            <h2 class="lab-title">Lab 2: Distributed Caching Read/Write Strategies</h2>
+            <p class="lab-description">
+                Compare cache write strategies: Cache-aside, Write-through, and Write-behind. Trigger Read Hits, Read Misses, or Writes, and observe packets flow and total latency comparison.
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>Strategy Mode</label>
+                    <select id="cache-strategy" class="input-ctrl" onchange="changeStrategy()">
+                        <option value="cache-aside">Cache-aside (Read miss lazy update)</option>
+                        <option value="write-through">Write-through (Sync DB transaction)</option>
+                        <option value="write-behind">Write-behind (Async batch queue)</option>
+                    </select>
+                </div>
+                <button class="btn" id="btn-read" onclick="triggerCacheOp('read')">READ REQUEST</button>
+                <button class="btn btn-secondary" id="btn-write" onclick="triggerCacheOp('write')">WRITE REQUEST</button>
+            </div>
+
+            <div class="caching-visualizer">
+                <!-- Lines -->
+                <div class="path-line line-c-c" id="line-client-cache"></div>
+                <div class="path-line line-c-d" id="line-client-db"></div>
+                <div class="path-line line-ca-d" id="line-cache-db"></div>
+                
+                <!-- Packets -->
+                <div class="animated-packet" id="packet"></div>
+                
+                <!-- Nodes -->
+                <div class="node-box node-client" id="node-cl">
+                    <span class="node-label">Client</span>
+                    <span>App Server</span>
+                </div>
+                <div class="node-box node-cache" id="node-ca">
+                    <span class="node-label">Cache</span>
+                    <span>Redis</span>
+                    <span class="data-status" id="cache-val">val: 100</span>
+                </div>
+                <div class="node-box node-db" id="node-d">
+                    <span class="node-label">Database</span>
+                    <span>MySQL</span>
+                    <span class="data-status" id="db-val">val: 100</span>
+                </div>
+            </div>
+
+            <div class="latency-chart">
+                <h4 style="font-size:0.85rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.4rem; margin-bottom:0.5rem">
+                    End-to-End Latency Metrics
+                </h4>
+                <div class="chart-row">
+                    <span class="chart-lbl">Average Read</span>
+                    <div class="chart-bar-outer">
+                        <div class="chart-bar-inner" id="bar-read"></div>
+                        <div class="chart-val-overlay" id="val-read">0 ms</div>
+                    </div>
+                </div>
+                <div class="chart-row">
+                    <span class="chart-lbl">Average Write</span>
+                    <div class="chart-bar-outer">
+                        <div class="chart-bar-inner write-bar" id="bar-write"></div>
+                        <div class="chart-val-overlay" id="val-write">0 ms</div>
+                    </div>
+                </div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-top: 1rem; margin-bottom: 0.5rem; color:#94a3b8">Cache Engine Operation Logs</h4>
+            <div class="log-terminal" id="log-cache">
+                -- Select strategy and press Read/Write to test behavior. --
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Lab 1: Consistent Hashing Logic
+        // ==========================================
+        const logHashEl = document.getElementById('log-hash');
+        function logHash(msg) {
+            logHashEl.innerHTML += `<div>[HASH] ${msg}</div>`;
+            logHashEl.scrollTop = logHashEl.scrollHeight;
+        }
+
+        const colors = {
+            'Server-A': '#7A8B99', // Slate Blue
+            'Server-B': '#7D8F7B', // Moss Green
+            'Server-C': '#9E828A', // Plum Rose
+            'Server-D': '#B58A7D', // Terracotta
+            'Server-E': '#5F7582', // Indigo
+            'Server-F': '#BFA88F'  // Antique Gold
+        };
+
+        let activeNodes = ['Server-A', 'Server-B', 'Server-C'];
+        let poolNodes = ['Server-D', 'Server-E', 'Server-F'];
+        let keysList = [];
+        let numVirtuals = 0; // Off
+
+        const nodeBaseAngles = {
+            'Server-A': 45,
+            'Server-B': 165,
+            'Server-C': 285,
+            'Server-D': 105,
+            'Server-E': 225,
+            'Server-F': 345
+        };
+
+        function getVirtualNodeAngles(nodeName, count) {
+            let list = [];
+            let base = nodeBaseAngles[nodeName];
+            for (let i = 1; i <= count; i++) {
+                let angle = (base + (i * (360 / (count + 1)))) % 360;
+                list.push(angle);
+            }
+            return list;
+        }
+
+        function drawRing() {
+            const svg = document.getElementById('ring-svg');
+            const elements = svg.querySelectorAll('.dynamic-el');
+            elements.forEach(el => el.remove());
+
+            let ringNodes = [];
+            activeNodes.forEach(node => {
+                ringNodes.push({
+                    name: node,
+                    angle: nodeBaseAngles[node],
+                    isVirtual: false,
+                    color: colors[node]
+                });
+                
+                if (numVirtuals > 0) {
+                    let vAngles = getVirtualNodeAngles(node, numVirtuals);
+                    vAngles.forEach((angle, idx) => {
+                        ringNodes.push({
+                            name: `${node}#v${idx+1}`,
+                            parent: node,
+                            angle: angle,
+                            isVirtual: true,
+                            color: colors[node]
+                        });
+                    });
+                }
+            });
+
+            ringNodes.sort((a,b) => a.angle - b.angle);
+
+            ringNodes.forEach(node => {
+                const rad = (node.angle - 90) * Math.PI / 180;
+                const cx = 150 + 120 * Math.cos(rad);
+                const cy = 150 + 120 * Math.sin(rad);
+
+                if (node.isVirtual) {
+                    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    circle.setAttribute("cx", cx);
+                    circle.setAttribute("cy", cy);
+                    circle.setAttribute("r", 4);
+                    circle.setAttribute("fill", node.color);
+                    circle.setAttribute("stroke", "#0b111e");
+                    circle.setAttribute("stroke-width", "1");
+                    circle.setAttribute("class", "dynamic-el");
+                    svg.appendChild(circle);
+                } else {
+                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    g.setAttribute("class", "dynamic-el");
+
+                    const outerRing = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    outerRing.setAttribute("cx", cx);
+                    outerRing.setAttribute("cy", cy);
+                    outerRing.setAttribute("r", 12);
+                    outerRing.setAttribute("fill", "#0b111e");
+                    outerRing.setAttribute("stroke", node.color);
+                    outerRing.setAttribute("stroke-width", "3");
+                    g.appendChild(outerRing);
+
+                    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    dot.setAttribute("cx", cx);
+                    dot.setAttribute("cy", cy);
+                    dot.setAttribute("r", 5);
+                    dot.setAttribute("fill", node.color);
+                    g.appendChild(dot);
+
+                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    text.setAttribute("x", cx + (cx > 150 ? 12 : -12));
+                    text.setAttribute("y", cy + (cy > 150 ? 12 : -12));
+                    text.setAttribute("fill", "white");
+                    text.setAttribute("font-size", "9px");
+                    text.setAttribute("font-family", "monospace");
+                    text.setAttribute("font-weight", "bold");
+                    text.setAttribute("text-anchor", cx > 150 ? "start" : "end");
+                    text.textContent = node.name.replace("Server-", "");
+                    g.appendChild(text);
+
+                    svg.appendChild(g);
+                }
+            });
+
+            let nodeKeyCounts = {};
+            activeNodes.forEach(n => nodeKeyCounts[n] = 0);
+
+            keysList.forEach(k => {
+                let assignedNode = null;
+                let minDiff = 360;
+
+                ringNodes.forEach(node => {
+                    let diff = node.angle - k.angle;
+                    if (diff < 0) diff += 360;
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        assignedNode = node.isVirtual ? node.parent : node.name;
+                    }
+                });
+
+                k.node = assignedNode;
+                nodeKeyCounts[assignedNode]++;
+
+                const rad = (k.angle - 90) * Math.PI / 180;
+                const kx = 150 + 105 * Math.cos(rad);
+                const ky = 150 + 105 * Math.sin(rad);
+
+                const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                const points = `${kx},${ky-4} ${kx-4},${ky+4} ${kx+4},${ky+4}`;
+                poly.setAttribute("points", points);
+                poly.setAttribute("fill", "#f59e0b");
+                poly.setAttribute("stroke", "#0b111e");
+                poly.setAttribute("stroke-width", "0.5");
+                poly.setAttribute("class", "dynamic-el");
+                svg.appendChild(poly);
+
+                let targetNodeObj = ringNodes.find(n => n.name === k.node || (n.isVirtual && n.parent === k.node && n.angle === (k.angle + minDiff)%360));
+                if (!targetNodeObj) {
+                    targetNodeObj = ringNodes.find(n => n.name === k.node || (n.isVirtual && n.parent === k.node));
+                }
+                if (targetNodeObj) {
+                    const nRad = (targetNodeObj.angle - 90) * Math.PI / 180;
+                    const nx = 150 + 120 * Math.cos(nRad);
+                    const ny = 150 + 120 * Math.sin(nRad);
+                    
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", kx);
+                    line.setAttribute("y1", ky);
+                    line.setAttribute("x2", nx);
+                    line.setAttribute("y2", ny);
+                    line.setAttribute("stroke", "rgba(245, 158, 11, 0.4)");
+                    line.setAttribute("stroke-width", "1");
+                    line.setAttribute("stroke-dasharray", "2,2");
+                    line.setAttribute("class", "dynamic-el");
+                    svg.appendChild(line);
+                }
+            });
+
+            updateStats(nodeKeyCounts);
+        }
+
+        function updateStats(counts) {
+            const container = document.getElementById('nodes-stats-container');
+            container.innerHTML = '';
+            const totalKeys = keysList.length;
+            
+            activeNodes.forEach(node => {
+                const count = counts[node] || 0;
+                const percent = totalKeys > 0 ? ((count / totalKeys) * 100).toFixed(0) : 0;
+                const color = colors[node];
+
+                container.innerHTML += `
+                    <div style="margin-bottom:0.25rem">
+                        <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:0.15rem">
+                            <span class="node-badge" style="background-color:${color}">${node}</span>
+                            <span style="font-family:monospace; color:#94a3b8">${count} Keys (${percent}%)</span>
+                        </div>
+                        <div style="height:6px; background:#1e293b; border-radius:3px; overflow:hidden">
+                            <div style="width:${percent}%; height:100%; background-color:${color}; border-radius:3px"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleVirtualNodes() {
+            numVirtuals = parseInt(document.getElementById('vnode-select').value);
+            logHash(`Virtual nodes updated. Replicas per physical node: ${numVirtuals}.`);
+            drawRing();
+        }
+
+        function addHashNode() {
+            if (poolNodes.length === 0) {
+                alert("Maximum nodes limit reached.");
+                return;
+            }
+            const newNode = poolNodes.shift();
+            activeNodes.push(newNode);
+            logHash(`Added new server [${newNode}] to the cluster ring. Re-evaluating slot boundaries...`);
+            drawRing();
+        }
+
+        function removeHashNode() {
+            if (activeNodes.length <= 2) {
+                alert("Minimum 2 physical nodes required to visualize hashing ring.");
+                return;
+            }
+            const removedNode = activeNodes.pop();
+            poolNodes.unshift(removedNode);
+            logHash(`Removed server [${removedNode}]. Key migration triggered for impacted slot ranges.`);
+            drawRing();
+        }
+
+        function distributeKeys() {
+            keysList = [];
+            for (let i = 0; i < 15; i++) {
+                keysList.push({
+                    name: `Key#${i+1}`,
+                    angle: Math.floor(Math.random() * 360)
+                });
+            }
+            logHash("Distributed 15 keys randomly onto the consistent hashing ring. Tracing clockwise to parent nodes.");
+            drawRing();
+        }
+
+        distributeKeys();
+
+        // ==========================================
+        // Lab 2: Caching Write Strategies Logic
+        // ==========================================
+        const logCacheEl = document.getElementById('log-cache');
+        function logCache(msg) {
+            logCacheEl.innerHTML += `<div>[CACHE] ${msg}</div>`;
+            logCacheEl.scrollTop = logCacheEl.scrollHeight;
+        }
+
+        let cacheVal = 100;
+        let dbVal = 100;
+        let selectedStrategy = 'cache-aside';
+
+        let stats = {
+            readCount: 0,
+            readTotalLatency: 0,
+            writeCount: 0,
+            writeTotalLatency: 0
+        };
+
+        function changeStrategy() {
+            selectedStrategy = document.getElementById('cache-strategy').value;
+            logCache(`Switched strategy to: [${selectedStrategy.toUpperCase()}]`);
+        }
+
+        function animatePacket(fromId, toId, color, callback) {
+            const p = document.getElementById('packet');
+            const fromEl = document.getElementById(fromId);
+            const toEl = document.getElementById(toId);
+
+            const containerRect = document.querySelector('.caching-visualizer').getBoundingClientRect();
+            const fromRect = fromEl.getBoundingClientRect();
+            const toRect = toEl.getBoundingClientRect();
+
+            const xStart = fromRect.left - containerRect.left + fromRect.width / 2 - 6;
+            const yStart = fromRect.top - containerRect.top + fromRect.height / 2 - 6;
+            const xEnd = toRect.left - containerRect.left + toRect.width / 2 - 6;
+            const yEnd = toRect.top - containerRect.top + toRect.height / 2 - 6;
+
+            p.style.display = 'block';
+            p.style.backgroundColor = color;
+            p.style.boxShadow = `0 0 8px ${color}`;
+            p.style.left = `${xStart}px`;
+            p.style.top = `${yStart}px`;
+
+            let start = null;
+            const duration = 600;
+
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                const progress = Math.min((timestamp - start) / duration, 1);
+                
+                const curX = xStart + (xEnd - xStart) * progress;
+                const curY = yStart + (yEnd - yStart) * progress;
+
+                p.style.left = `${curX}px`;
+                p.style.top = `${curY}px`;
+
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    p.style.display = 'none';
+                    if (callback) callback();
+                }
+            }
+            window.requestAnimationFrame(step);
+        }
+
+        function updateLatencyUI() {
+            const avgRead = stats.readCount > 0 ? (stats.readTotalLatency / stats.readCount).toFixed(1) : 0;
+            const avgWrite = stats.writeCount > 0 ? (stats.writeTotalLatency / stats.writeCount).toFixed(1) : 0;
+
+            document.getElementById('val-read').innerText = `${avgRead} ms`;
+            document.getElementById('val-write').innerText = `${avgWrite} ms`;
+
+            const readBarWidth = Math.min((parseFloat(avgRead) / 100) * 100, 100);
+            const writeBarWidth = Math.min((parseFloat(avgWrite) / 100) * 100, 100);
+
+            document.getElementById('bar-read').style.width = `${readBarWidth}%`;
+            document.getElementById('bar-write').style.width = `${writeBarWidth}%`;
+        }
+
+        function triggerCacheOp(opType) {
+            const btnRead = document.getElementById('btn-read');
+            const btnWrite = document.getElementById('btn-write');
+
+            btnRead.disabled = true;
+            btnWrite.disabled = true;
+
+            if (opType === 'read') {
+                logCache("--> Incoming Client Read (GET) request received.");
+                document.getElementById('node-cl').classList.add('active');
+
+                animatePacket('node-cl', 'node-ca', '#3b82f6', () => {
+                    const isHit = (cacheVal !== null);
+                    document.getElementById('node-ca').classList.add('active');
+
+                    if (isHit) {
+                        logCache(`[CACHE HIT] Found value ${cacheVal} in Cache. Returning instantly.`);
+                        stats.readCount++;
+                        stats.readTotalLatency += 2;
+                        updateLatencyUI();
+
+                        animatePacket('node-ca', 'node-cl', '#10b981', () => {
+                            document.getElementById('node-cl').classList.remove('active');
+                            document.getElementById('node-ca').classList.remove('active');
+                            btnRead.disabled = false;
+                            btnWrite.disabled = false;
+                        });
+                    } else {
+                        logCache("[CACHE MISS] Key not found in Cache. Redirecting query to Database...");
+                        animatePacket('node-ca', 'node-d', '#f59e0b', () => {
+                            document.getElementById('node-d').classList.add('active');
+                            logCache(`[DB READ] Found value ${dbVal} in Database.`);
+                            
+                            cacheVal = dbVal;
+                            document.getElementById('cache-val').innerText = `val: ${cacheVal}`;
+                            document.getElementById('cache-val').style.color = '#10b981';
+
+                            logCache(`[LAZY POPULATE] Writing database value ${dbVal} back to Cache.`);
+                            
+                            animatePacket('node-d', 'node-ca', '#10b981', () => {
+                                stats.readCount++;
+                                stats.readTotalLatency += 15;
+                                updateLatencyUI();
+
+                                animatePacket('node-ca', 'node-cl', '#10b981', () => {
+                                    document.getElementById('node-cl').classList.remove('active');
+                                    document.getElementById('node-ca').classList.remove('active');
+                                    document.getElementById('node-d').classList.remove('active');
+                                    btnRead.disabled = false;
+                                    btnWrite.disabled = false;
+                                });
+                            });
+                        });
+                    }
+                });
+            } else {
+                stats.writeCount++;
+                const newWriteVal = Math.floor(Math.random() * 900) + 100;
+                logCache(`--> Incoming Client Write (SET) request. New value = ${newWriteVal}.`);
+                document.getElementById('node-cl').classList.add('active');
+
+                if (selectedStrategy === 'cache-aside') {
+                    logCache("[CACHE-ASIDE] Step 1: Writing directly to MySQL database...");
+                    animatePacket('node-cl', 'node-d', '#e11d48', () => {
+                        document.getElementById('node-d').classList.add('active');
+                        dbVal = newWriteVal;
+                        document.getElementById('db-val').innerText = `val: ${dbVal}`;
+                        logCache("[DB WRITE SUCCESS] MySQL transaction committed successfully.");
+
+                        logCache("[CACHE-ASIDE] Step 2: Invalidating (deleting) corresponding Cache key...");
+                        animatePacket('node-d', 'node-ca', '#f43f5e', () => {
+                            document.getElementById('node-ca').classList.add('active');
+                            cacheVal = null;
+                            document.getElementById('cache-val').innerText = "val: NULL";
+                            document.getElementById('cache-val').style.color = '#f43f5e';
+                            logCache("[CACHE EVICED] Key deleted from Redis cache to avoid dirty reads.");
+                            
+                            stats.writeTotalLatency += 45;
+                            updateLatencyUI();
+
+                            animatePacket('node-ca', 'node-cl', '#10b981', () => {
+                                document.getElementById('node-cl').classList.remove('active');
+                                document.getElementById('node-ca').classList.remove('active');
+                                document.getElementById('node-d').classList.remove('active');
+                                btnRead.disabled = false;
+                                btnWrite.disabled = false;
+                            });
+                        });
+                    });
+
+                } else if (selectedStrategy === 'write-through') {
+                    logCache("[WRITE-THROUGH] Step 1: Writing data packet directly to Cache (Redis)...");
+                    animatePacket('node-cl', 'node-ca', '#e11d48', () => {
+                        document.getElementById('node-ca').classList.add('active');
+                        cacheVal = newWriteVal;
+                        document.getElementById('cache-val').innerText = `val: ${cacheVal}`;
+                        document.getElementById('cache-val').style.color = '#10b981';
+                        logCache("[CACHE WRITE SUCCESS] Redis cache updated. Synchronously issuing DB write...");
+
+                        animatePacket('node-ca', 'node-d', '#e11d48', () => {
+                            document.getElementById('node-d').classList.add('active');
+                            dbVal = newWriteVal;
+                            document.getElementById('db-val').innerText = `val: ${dbVal}`;
+                            logCache("[DB WRITE SUCCESS] MySQL transaction completed synchronously.");
+                            
+                            stats.writeTotalLatency += 85;
+                            updateLatencyUI();
+
+                            animatePacket('node-d', 'node-cl', '#10b981', () => {
+                                document.getElementById('node-cl').classList.remove('active');
+                                document.getElementById('node-ca').classList.remove('active');
+                                document.getElementById('node-d').classList.remove('active');
+                                btnRead.disabled = false;
+                                btnWrite.disabled = false;
+                            });
+                        });
+                    });
+
+                } else if (selectedStrategy === 'write-behind') {
+                    logCache("[WRITE-BEHIND] Step 1: Writing to Cache. Client transaction returns instantly.");
+                    animatePacket('node-cl', 'node-ca', '#e11d48', () => {
+                        document.getElementById('node-ca').classList.add('active');
+                        cacheVal = newWriteVal;
+                        document.getElementById('cache-val').innerText = `val: ${cacheVal}`;
+                        document.getElementById('cache-val').style.color = '#10b981';
+                        
+                        stats.writeTotalLatency += 2;
+                        updateLatencyUI();
+
+                        animatePacket('node-ca', 'node-cl', '#10b981', () => {
+                            document.getElementById('node-cl').classList.remove('active');
+                            document.getElementById('node-ca').classList.remove('active');
+                            btnRead.disabled = false;
+                            btnWrite.disabled = false;
+
+                            logCache("[WRITE-BEHIND] Triggering asynchronous queue drain in background...");
+                            setTimeout(() => {
+                                logCache("[ASYNC WORKER] Background thread updating MySQL DB asynchronously...");
+                                animatePacket('node-ca', 'node-d', '#f59e0b', () => {
+                                    document.getElementById('node-d').classList.add('active');
+                                    dbVal = newWriteVal;
+                                    document.getElementById('db-val').innerText = `val: ${dbVal}`;
+                                    logCache("[SYNC COMPLETE] Database synced in background. Consistency restored.");
+                                    document.getElementById('node-d').classList.remove('active');
+                                });
+                            }, 1200);
+                        });
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+</html>

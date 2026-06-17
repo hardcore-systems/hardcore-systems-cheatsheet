@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux 内核架构、初始化与底层内存管理知识图谱</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --plum-rose: #9E828A;
+            --terracotta: #B58A7D;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .stat-badge {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .stat-badge span.num {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+        .filter-controls {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            width: 300px;
+            outline: none;
+        }
+        .search-box:focus {
+            border-color: var(--accent-color);
+        }
+        .filter-btn {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        .filter-btn:hover {
+            color: var(--text-color);
+            background-color: #1e293b;
+        }
+        .filter-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .card-id {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            flex: 1;
+            margin-left: 0.75rem;
+        }
+        .card-body {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+        }
+        .card-body p {
+            margin-bottom: 0.5rem;
+        }
+        .card-body li {
+            margin-left: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+        .card-body code {
+            background-color: rgba(0,0,0,0.3);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #f472b6;
+        }
+        .card-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Linux 内核底层机制图谱</h1>
+        <p>基于 64 位引导初始化、CFS 公平调度器、伙伴系统物理页帧分配、SLUB 局部无锁缓存对象、Page Cache 脏页刷盘与虚拟文件系统（VFS）的内核速查图谱</p>
+    </header>
+
+    <div class="stats-bar">
+        <div class="stat-badge">核心速查卡片: <span class="num">28</span></div>
+        <div class="stat-badge">技术分类模块: <span class="num">6</span></div>
+        <div class="stat-badge">三层知识过滤: <span class="num">L0➜L2</span></div>
+        <div class="stat-badge">Zone T 生产参数: <span class="num">Zone T</span></div>
+    </div>
+
+    <div class="filter-controls">
+        <input type="text" id="search" class="search-box" placeholder="Search cards (e.g. Buddy, CFS, SLUB)...">
+        <button class="filter-btn active" onclick="filterModule('ALL')">ALL</button>
+        <button class="filter-btn" onclick="filterModule('M1')">M1 Booting</button>
+        <button class="filter-btn" onclick="filterModule('M2')">M2 Scheduler</button>
+        <button class="filter-btn" onclick="filterModule('M3')">M3 Buddy</button>
+        <button class="filter-btn" onclick="filterModule('M4')">M4 SLUB</button>
+        <button class="filter-btn" onclick="filterModule('M5')">M5 Page Cache</button>
+        <button class="filter-btn" onclick="filterModule('M6')">M6 VFS I/O</button>
+    </div>
+
+    <div class="grid" id="cards-grid">
+        <!-- Rendered by JS -->
+    </div>
+
+    <script>
+        const cards = [{"id": 1, "relativeId": "M1.1", "module": "M1", "moduleName": "\u5185\u6838\u542f\u52a8\u4e0e\u65e9\u671f\u5f15\u5bfc\u9636\u6bb5", "color": "#7A8B99", "title": "x86 \u5f15\u5bfc\u6247\u533a\u8f7d\u5165\u4e0e\u5b9e\u6a21\u5f0f\u5411\u957f\u6a21\u5f0f\u5207\u6362 (Boot to Long Mode)", "body": "<li>  <strong>\u5f15\u5bfc\u72b6\u6001\u8df3\u8f6c</strong>\uff1aBIOS/UEFI \u8bfb\u53d6\u78c1\u76d8 MBR\uff0c\u8f7d\u5165\u5f15\u5bfc\u88c5\u8f7d\u7a0b\u5e8f\uff08\u5982 GRUB\uff09\uff0c\u5c06\u5185\u6838 bzImage \u8bfb\u53d6\u5230\u5185\u5b58\uff0c\u968f\u540e\u8df3\u8f6c\u81f3 <code>boot/header.S</code> \u6c47\u7f16\u5165\u53e3\u3002</li><li>  <strong>64\u4f4d\u957f\u6a21\u5f0f\u8fc7\u6e21</strong>\uff1a\u6267\u884c 16 \u4f4d\u5b9e\u6a21\u5f0f\u81ea\u68c0\u540e\uff0c\u5f00\u542f CR0 \u5bc4\u5b58\u5668\u7684 PE \u4f4d\u5207\u6362\u5230 32 \u4f4d\u4fdd\u62a4\u6a21\u5f0f\uff1b\u968f\u540e\u5efa\u7acb\u4e24\u7ea7\u4e34\u65f6\u7269\u7406\u6620\u5c04\u9875\u8868\uff0c\u5c06 CR4 \u5bc4\u5b58\u5668\u7684 PAE \u4f4d\u7f6e 1\uff0c\u4fee\u6539 EFER MSR \u5bc4\u5b58\u5668\uff0c\u6700\u7ec8\u8fdb\u5165 64 \u4f4d\u957f\u6a21\u5f0f\u3002</li>"}, {"id": 2, "relativeId": "M1.2", "module": "M1", "moduleName": "\u5185\u6838\u542f\u52a8\u4e0e\u65e9\u671f\u5f15\u5bfc\u9636\u6bb5", "color": "#7A8B99", "title": "head_64.S \u6c47\u7f16\u521d\u59cb\u5316\u4e0e C \u8bed\u8a00\u5165\u53e3 (head_64.S to start_kernel)", "body": "<li>  <strong>\u6c47\u7f16\u6bb5\u81ea\u4e3e</strong>\uff1aCPU \u8fdb\u5165 64 \u4f4d\u540e\uff0c\u8df3\u8f6c\u5230 <code>arch/x86/kernel/head_64.S</code>\u3002\u5728\u8fd9\u91cc\u6267\u884c\u6700\u521d\u7684\u6c47\u7f16\u4ee3\u7801\uff1a\u6e05\u9664 BSS \u6bb5\u3001\u8bbe\u7f6e\u6bb5\u5bc4\u5b58\u5668\u3001\u5206\u914d\u4e34\u65f6\u7684\u5185\u6838\u6808\uff08Kernel Stack\uff09\u5e76\u52a0\u8f7d\u6b63\u5f0f\u7684 GDT/IDT \u6307\u9488\u3002</li><li>  <strong>\u8df3\u8f6c start_kernel</strong>\uff1a\u4e00\u5207\u5c31\u7eea\u540e\uff0c\u901a\u8fc7 <code>jmp</code> \u6307\u4ee4\u98de\u8d8a\u7269\u7406\u8fb9\u754c\uff0c\u8fdb\u5165\u5185\u6838\u771f\u6b63\u7684 C \u8bed\u8a00\u521d\u59cb\u5316\u603b\u5165\u53e3 <code>start_kernel()</code>\u3002</li>"}, {"id": 3, "relativeId": "M1.3", "module": "M1", "moduleName": "\u5185\u6838\u542f\u52a8\u4e0e\u65e9\u671f\u5f15\u5bfc\u9636\u6bb5", "color": "#7A8B99", "title": "setup_arch() \u4e0e E820 \u5185\u5b58\u5e03\u5c40\u63a2\u67e5 (setup_arch & E820)", "body": "<li>  <strong>\u7269\u7406\u5185\u5b58\u63a2\u67e5</strong>\uff1a<code>setup_arch()</code> \u63a5\u6536\u6765\u81ea bootloader \u7684 <code>boot_params</code> \u53c2\u6570\u3002\u901a\u8fc7\u8bfb\u53d6 E820 \u7269\u7406\u5185\u5b58\u8868\uff0c\u638c\u63e1\u5bbf\u4e3b\u673a\u7269\u7406\u5185\u5b58\u7684\u7a7a\u95f2\u4e0e\u4fdd\u7559\u8fb9\u754c\u3002</li><li>  <strong>memblock \u4e34\u65f6\u5206\u914d\u5668</strong>\uff1a\u5728\u6b63\u5f0f\u7684\u4f19\u4f34\u7cfb\u7edf\u5efa\u7acb\u524d\uff0c\u4f7f\u7528 <code>memblock</code> \u7ed3\u6784\u4f53\u8fdb\u884c\u7c97\u7c92\u5ea6\u7684\u7269\u7406\u5185\u5b58\u7ba1\u7406\u4e0e\u4fdd\u7559\u533a\u5212\u5b9a\uff0c\u9632\u6b62\u521d\u59cb\u5316\u9636\u6bb5\u5185\u6838\u5185\u5b58\u88ab\u81ea\u6211\u8986\u76d6\u3002</li>"}, {"id": 4, "relativeId": "M1.4", "module": "M1", "moduleName": "\u5185\u6838\u542f\u52a8\u4e0e\u65e9\u671f\u5f15\u5bfc\u9636\u6bb5", "color": "#7A8B99", "title": "init_IRQ() \u4e0e\u5185\u6838\u65e9\u671f\u9875\u8868\u63a5\u7ba1 (init_IRQ & Kernel Page Tables)", "body": "<li>  <strong>\u4e2d\u65ad\u673a\u5236\u521d\u59cb\u5316</strong>\uff1a<code>init_IRQ()</code> \u521d\u59cb\u5316\u4e2d\u65ad\u63cf\u8ff0\u7b26\u8868\uff08IDT\uff09\uff0c\u5199\u5165\u5185\u6838\u6b63\u5f0f\u7684\u8f6f\u786c\u4ef6\u4e2d\u65ad\u95e8\uff08Interrupt Gates\uff09\u3002</li><li>  <strong>\u63a5\u7ba1\u65e9\u671f\u9875\u8868</strong>\uff1a\u9500\u6bc1 bootloader \u5efa\u7acb\u7684\u4e34\u65f6\u7269\u7406\u9875\u8868\uff0c\u5207\u6362\u5230\u7531\u5185\u6838\u7f16\u8bd1\u671f\u9759\u6001\u5b9a\u4e49\u7684 <code>swapper_pg_dir</code> \u9875\u8868\uff0c\u5f00\u542f\u5185\u6838\u865a\u5b9e\u5730\u5740\u7a7a\u95f4\u6620\u5c04\uff0c\u4e3a\u8fdb\u7a0b\u5206\u914d\u5960\u5b9a\u57fa\u7840\u3002</li>"}, {"id": 5, "relativeId": "M2.1", "module": "M2", "moduleName": "\u4e2d\u65ad\u5f02\u5e38\u4e0e\u5b8c\u5168\u516c\u5e73\u8c03\u5ea6\u5668", "color": "#7D8F7B", "title": "IDT \u4e2d\u65ad\u63cf\u8ff0\u7b26\u8868\u4e0e\u786c\u4ef6\u4e2d\u65ad\u7269\u7406\u538b\u6808 (IDT & Interrupt Stack)", "body": "<li>  <strong>IDT \u7269\u7406\u6784\u9020</strong>\uff1aIDT \u662f\u5185\u6838\u7ef4\u62a4\u7684 256 \u9879\u6570\u7ec4\uff0c\u6bcf\u9879\uff08Gate Descriptor\uff09\u5305\u542b 64 \u4f4d\u7684\u4e2d\u65ad\u670d\u52a1\u4f8b\u7a0b\uff08ISR\uff09\u5165\u53e3\u865a\u62df\u5730\u5740\u53ca\u7279\u6743\u7ea7\u3002</li><li>  <strong>CPU \u786c\u4ef6\u538b\u6808</strong>\uff1a\u5f53\u4e2d\u65ad\u53d1\u751f\u65f6\uff0cCPU \u786c\u4ef6\u81ea\u52a8\u6682\u505c\u6267\u884c\uff0c\u5c06\u5f53\u524d SS\u3001RSP\u3001RFLAGS\u3001CS\u3001RIP \u538b\u5165\u5f53\u524d\u8fdb\u7a0b\u7684\u5185\u6838\u6808\uff0c\u8bfb\u53d6 IDT \u5bf9\u5e94\u9879\uff0c\u5e76\u8df3\u8f6c\u81f3\u901a\u7528\u4e2d\u65ad\u5165\u53e3 <code>common_interrupt</code>\u3002</li>"}, {"id": 6, "relativeId": "M2.2", "module": "M2", "moduleName": "\u4e2d\u65ad\u5f02\u5e38\u4e0e\u5b8c\u5168\u516c\u5e73\u8c03\u5ea6\u5668", "color": "#7D8F7B", "title": "syscall \u786c\u4ef6\u6307\u4ee4\u4e0e\u7cfb\u7edf\u8c03\u7528\u8868\u5206\u53d1 (syscall & sys_call_table)", "body": "<li>  <strong>\u786c\u4ef6\u6307\u4ee4\u7279\u6743\u8f6c\u6362</strong>\uff1ax86_64 \u653e\u5f03\u4e86\u4f20\u7edf\u7684 <code>int 0x80</code> \u8f6f\u4ef6\u4e2d\u65ad\uff0c\u6539\u7528 <code>syscall</code> \u6307\u4ee4\u3002CPU \u8bfb\u53d6 <code>IA32_LSTAR</code> MSR \u5bc4\u5b58\u5668\uff0c\u77ac\u95f4\u5c06 RIP \u8bbe\u4e3a <code>entry_SYSCALL_64</code> \u5e76\u5207\u6362\u7279\u6743\u7ea7\u3002</li><li>  <strong>\u7cfb\u7edf\u8c03\u7528\u8868\u5206\u53d1</strong>\uff1a\u5728\u6c47\u7f16\u5165\u53e3\u4fdd\u5b58\u5bc4\u5b58\u5668\u540e\uff0c\u6839\u636e RAX \u4e2d\u7684\u8c03\u7528\u53f7\uff0c\u68c0\u7d22 <code>sys_call_table</code> \u51fd\u6570\u6307\u9488\u6570\u7ec4\uff0c\u8df3\u8f6c\u6267\u884c\u5177\u4f53\u7684\u5185\u6838\u670d\u52a1\u3002</li>"}, {"id": 7, "relativeId": "M2.3", "module": "M2", "moduleName": "\u4e2d\u65ad\u5f02\u5e38\u4e0e\u5b8c\u5168\u516c\u5e73\u8c03\u5ea6\u5668", "color": "#7D8F7B", "title": "\u8f6f\u4e2d\u65ad (softirq) \u4e0e\u5de5\u4f5c\u961f\u5217 (workqueue) \u5e95\u534a\u90e8 (Bottom Halves)", "body": "<li>  <strong>\u4e2d\u65ad\u4e0a\u4e0b\u6587\u5feb\u901f\u8ba9\u51fa</strong>\uff1a\u4e3a\u4e86\u9632\u6b62\u786c\u4e2d\u65ad\u963b\u585e\u7f51\u5361\u6216\u78c1\u76d8\uff0c\u5185\u6838\u5c06\u4e2d\u65ad\u5904\u7406\u5206\u4e3a\u4e24\u534a\u3002\u9876\u534a\u90e8\u53ea\u505a\u6700\u5c11\u5bc4\u5b58\u5668\u64cd\u4f5c\uff0c\u7136\u540e\u6302\u8d77\u8f6f\u4e2d\u65ad\u3002</li><li>  <strong>\u4e0b\u534a\u90e8\u5f02\u6b65\u5904\u7406</strong>\uff1a</li><li>1.  <strong>softirq (\u8f6f\u4e2d\u65ad)</strong>\uff1a\u5728\u786c\u4e2d\u65ad\u8fd4\u56de\u524d\u6216 <code>ksoftirqd</code> \u8fdb\u7a0b\u4e2d\u6267\u884c\uff0c\u4e0d\u80fd\u963b\u585e\u4f11\u7720\uff0c\u9002\u5408\u7f51\u5361\u6536\u5305\u3002</li><li>2.  <strong>workqueue (\u5de5\u4f5c\u961f\u5217)</strong>\uff1a\u7531\u5185\u6838\u80cc\u666f\u7ebf\u7a0b\u6267\u884c\uff0c\u8fd0\u884c\u5728\u8fdb\u7a0b\u4e0a\u4e0b\u6587\uff0c\u53ef\u4ee5\u5b89\u5168\u6267\u884c I/O \u6216\u7761\u7720\u963b\u585e\u3002</li>"}, {"id": 8, "relativeId": "M2.4", "module": "M2", "moduleName": "\u4e2d\u65ad\u5f02\u5e38\u4e0e\u5b8c\u5168\u516c\u5e73\u8c03\u5ea6\u5668", "color": "#7D8F7B", "title": "CFS \u5b8c\u5168\u516c\u5e73\u8c03\u5ea6\u5668\u6838\u5fc3\u865a\u62df\u8fd0\u884c\u65f6\u95f4\u66f4\u65b0 (CFS vruntime Update)", "body": "<li>  <strong>\u865a\u62df\u65f6\u95f4\u8f74\u9012\u589e</strong>\uff1aCFS \u8c03\u5ea6\u5668\u901a\u8fc7 <code>vruntime</code> \u8861\u91cf\u8fdb\u7a0b\u83b7\u5f97\u7684 CPU \u8d44\u6e90\u3002\u8fdb\u7a0b\u8fd0\u884c\u4e00\u6bb5\u65f6\u95f4\u540e\uff0c\u865a\u62df\u65f6\u95f4\u589e\u52a0\uff1a$\\Delta vruntime = \\Delta physical\\_time \\times \\frac{NICE\\_0\\_LOAD}{weight}$\u3002</li><li>  <strong>\u7ea2\u9ed1\u6811\u52a8\u6001\u6392\u5e8f</strong>\uff1aCFS \u4f7f\u7528\u7ea2\u9ed1\u6811 <code>rb_root_cached</code> \u6302\u8f7d\u6240\u6709 runnable \u8fdb\u7a0b\uff0c\u4ee5 <code>vruntime</code> \u4e3a\u952e\u503c\u6392\u5e8f\u3002\u6bcf\u6b21\u8c03\u5ea6\u901a\u8fc7 $O(1)$ \u7684\u65f6\u95f4\u590d\u6742\u5ea6\u5feb\u901f\u53d6\u8d70\u6700\u5de6\u4fa7\u53f6\u5b50\u8282\u70b9\uff08<code>rb_leftmost</code>\uff09\u6267\u884c\u3002</li>"}, {"id": 9, "relativeId": "M2.5", "module": "M2", "moduleName": "\u4e2d\u65ad\u5f02\u5e38\u4e0e\u5b8c\u5168\u516c\u5e73\u8c03\u5ea6\u5668", "color": "#7D8F7B", "title": "switch_to() \u4e0a\u4e0b\u6587\u5207\u6362\u6c47\u7f16\u5185\u6838\u6808\u91cd\u5b9a\u5411 (switch_to Context Switch)", "body": "<li>  <strong>\u786c\u4ef6\u5bc4\u5b58\u5668\u91cd\u5b9a\u5411</strong>\uff1a\u8c03\u5ea6\u7a0b\u5e8f\u51b3\u5b9a\u5207\u6362\u8fdb\u7a0b\u65f6\uff0c\u8c03\u7528 <code>switch_to()</code>\u3002</li><li>  <strong>\u6c47\u7f16\u91cd\u5199\u6808\u6307\u9488</strong>\uff1a\u5229\u7528\u6c47\u7f16\u4fee\u6539 RSP \u5bc4\u5b58\u5668\uff0c\u5c06\u5176\u91cd\u5b9a\u5411\u5230\u76ee\u6807\u8fdb\u7a0b\u7684 <code>thread.sp</code>\uff08\u5185\u6838\u6808\u9876\uff09\u3002\u7531\u4e8e\u6240\u6709\u5c40\u90e8\u53d8\u91cf\u548c CPU \u5bc4\u5b58\u5668\u90fd\u5728\u6808\u4e2d\uff0c\u5b8c\u6210\u6808\u6307\u9488\u5207\u6362\u5373\u5b8c\u6210\u4e86 CPU \u4e0a\u4e0b\u6587\u7684\u7269\u7406\u8f6c\u79fb\u3002</li>"}, {"id": 10, "relativeId": "M3.1", "module": "M3", "moduleName": "\u7269\u7406\u5185\u5b58\u7ba1\u7406\u4e0e\u4f19\u4f34\u5206\u914d\u7cfb\u7edf", "color": "#9E828A", "title": "NUMA \u67b6\u6784\u3001\u7269\u7406 Node \u4e0e\u5185\u5b58 Zone \u5212\u5206 (NUMA Zones)", "body": "<li>  <strong>NUMA \u7269\u7406\u8282\u70b9</strong>\uff1a\u591a\u8def CPU \u4e0b\uff0c\u7269\u7406\u5185\u5b58\u88ab\u5212\u5206\u4e3a\u591a\u4e2a Node\uff08\u7ed3\u6784\u4e3a <code>pg_data_t</code>\uff09\uff0c\u9760\u8fd1\u5404\u81ea CPU \u4ee5\u51cf\u5c11\u8de8\u603b\u7ebf\u8bbf\u5b58\u5f00\u9500\u3002</li><li>  <strong>Zone \u7269\u7406\u5206\u5c42</strong>\uff1a\u6bcf\u4e2a Node \u5185\u90e8\u6839\u636e\u786c\u4ef6\u9650\u5236\u5212\u5206\u4e3a\uff1a</li><li>1.  <strong>ZONE_DMA</strong>\uff1a\u7269\u7406\u5185\u5b58\u524d 16MB\uff0c\u7528\u4e8e\u517c\u5bb9\u8001\u5f0f DMA \u786c\u4ef6\u3002</li><li>2.  <strong>ZONE_NORMAL</strong>\uff1a16MB \u81f3 4GB\uff0c\u5185\u6838\u53ef\u4ee5\u76f4\u63a5\u6620\u5c04\u8bbf\u95ee\u7684\u4e3b\u7269\u7406\u533a\u57df\u3002</li><li>3.  <strong>ZONE_HIGHMEM</strong>\uff1a4GB \u4ee5\u4e0a\uff0832\u4f4d\u7cfb\u7edf\u4e0b\u65e0\u6cd5\u76f4\u63a5\u6620\u5c04\u7684\u533a\u57df\uff0c64\u4f4d\u4e0b\u5df2\u57fa\u672c\u4e0d\u5b58\u5728\uff09\u3002</li>"}, {"id": 11, "relativeId": "M3.2", "module": "M3", "moduleName": "\u7269\u7406\u5185\u5b58\u7ba1\u7406\u4e0e\u4f19\u4f34\u5206\u914d\u7cfb\u7edf", "color": "#9E828A", "title": "struct page \u7269\u7406\u9875\u5e27\u5143\u6570\u636e\u6620\u5c04\u673a\u5236 (struct page Layout)", "body": "<li>  <strong>\u5168\u5c40\u9875\u63cf\u8ff0\u7b26\u6570\u7ec4</strong>\uff1a\u5185\u6838\u5728\u521d\u59cb\u5316\u65f6\uff0c\u4e3a\u7cfb\u7edf\u5185\u6240\u6709 4KB \u7269\u7406\u9875\u6846\u5206\u914d\u4e00\u4e2a <code>struct page</code> \u63cf\u8ff0\u7b26\uff0c\u96c6\u4e2d\u5b58\u653e\u5728 <code>mem_map</code> \u6570\u7ec4\u4e2d\u3002</li><li>  <strong>\u6620\u5c04\u8ba1\u6570\u63a7\u5236</strong>\uff1a<code>struct page</code> \u4e0d\u5305\u542b\u4efb\u4f55\u6587\u4ef6\u6570\u636e\uff0c\u4ec5\u7528 <code>_refcount</code>\uff08\u5185\u6838\u5f15\u7528\u8ba1\u6570\uff09\u548c <code>_mapcount</code>\uff08\u7528\u6237\u6001\u9875\u8868\u6620\u5c04\u6b21\u6570\uff09\u63a7\u5236\u9875\u9762\u7684\u751f\u547d\u5468\u671f\u3002\u5f53 <code>_refcount</code> \u5f52 0 \u65f6\uff0c\u9875\u9762\u88ab\u91ca\u653e\u56de\u4f19\u4f34\u7cfb\u7edf\u3002</li>"}, {"id": 12, "relativeId": "M3.3", "module": "M3", "moduleName": "\u7269\u7406\u5185\u5b58\u7ba1\u7406\u4e0e\u4f19\u4f34\u5206\u914d\u7cfb\u7edf", "color": "#9E828A", "title": "\u4f19\u4f34\u7cfb\u7edf (Buddy System) 2\u7684\u5e42\u6b21\u7269\u7406\u5206\u5272\u7b97\u6cd5 (Buddy Allocator)", "body": "<li>  <strong>\u5e42\u6b21\u7a7a\u95f2\u94fe\u8868\u6570\u7ec4</strong>\uff1a\u4f19\u4f34\u7cfb\u7edf\u7ef4\u62a4\u4e00\u4e2a\u4ece 0 \u5230 10\uff08\u5373 1 \u9875\u5230 1024 \u9875\uff09\u7684 <code>free_area</code> \u94fe\u8868\u6570\u7ec4\u3002</li><li>  <strong>\u5f02\u6216\u6bd4\u5bf9\u4e0e\u62c6\u5206\u5f52\u5e76</strong>\uff1a</li><li>  <strong>\u5206\u914d</strong>\uff1a\u7533\u8bf7 Order \u7ea7\u9875\u5757\u65f6\uff0c\u82e5\u5bf9\u5e94\u94fe\u8868\u4e3a\u7a7a\uff0c\u5219\u5411\u66f4\u9ad8\u9636\u94fe\u8868\u7533\u8bf7\uff0c\u5e76\u5c06\u5f97\u5230\u7684\u5927\u5757\u5bf9\u534a\u201c\u62c6\u5206\uff08Split\uff09\u201d\u3002</li><li>  <strong>\u91ca\u653e</strong>\uff1a\u91ca\u653e\u9875\u5757\u65f6\uff0c\u8ba1\u7b97\u4f19\u4f34\u5757\u5730\u5740 $Partner = Block \\oplus (Order \\ll PAGE\\_SHIFT)$\uff0c\u82e5\u4f19\u4f34\u5757\u4e5f\u7a7a\u95f2\uff0c\u5219\u5c06\u5176\u201c\u5408\u5e76\uff08Merge\uff09\u201d\u5e76\u63d0\u5347\u5230\u4e0a\u4e00\u7ea7 Order \u94fe\u8868\u3002</li>"}, {"id": 13, "relativeId": "M3.4", "module": "M3", "moduleName": "\u7269\u7406\u5185\u5b58\u7ba1\u7406\u4e0e\u4f19\u4f34\u5206\u914d\u7cfb\u7edf", "color": "#9E828A", "title": "\u5185\u5b58\u5f02\u6b65\u6574\u7406 (Migration & Compaction) \u673a\u5236 (Memory Compaction)", "body": "<li>  <strong>\u5185\u5b58\u788e\u7247\u5316\u762b\u75ea</strong>\uff1a\u957f\u65f6\u95f4\u8fd0\u884c\u540e\uff0c\u9891\u7e41\u5206\u914d\u91ca\u653e\u4f1a\u5bfc\u81f4\u7269\u7406\u5185\u5b58\u4e2d\u5145\u65a5\u7740\u6563\u843d\u7684\u5df2\u5206\u914d\u9875\uff0c\u65e0\u6cd5\u627e\u5230 Order-9\uff082MB\uff09\u7b49\u8fde\u7eed\u5927\u5757\u9875\u3002</li><li>  <strong>\u53cc\u5411\u626b\u63cf\u5e73\u79fb\u6574\u7406</strong>\uff1a<code>kcompactd</code> \u7ebf\u7a0b\u4ece Zone \u4e24\u7aef\u5411\u4e2d\u95f4\u626b\u63cf\uff1a\u4e00\u7aef\u626b\u63cf\u53ef\u79fb\u52a8\u7684 active \u9875\u9762\uff0c\u53e6\u4e00\u7aef\u626b\u63cf\u7a7a\u95f2\u5757\u3002\u5c06 active \u9875\u9762\u6574\u4f53\u5e73\u79fb\u590d\u5236\u5230\u7a7a\u95f2\u5757\u4e2d\uff0c\u5e76\u5728\u9875\u8868\u4e2d\u91cd\u5b9a\u5411\uff0c\u7269\u7406\u62fc\u63a5\u51fa\u5927\u7247\u8fde\u7eed\u7684\u7a7a\u95f2\u7a7a\u95f4\u3002</li>"}, {"id": 14, "relativeId": "M4.1", "module": "M4", "moduleName": "SLUB \u7f13\u5b58\u5bf9\u8c61\u4e0e\u5185\u6838\u5c0f\u5185\u5b58\u5206\u914d", "color": "#B58A7D", "title": "Slab \u5206\u914d\u5668\u8bbe\u8ba1\u601d\u60f3\u4e0e\u5185\u6838\u5bf9\u8c61\u590d\u7528 (Slab Allocator Concept)", "body": "<li>  <strong>\u89c4\u907f\u4f19\u4f34\u7cfb\u7edf\u7c97\u7c92\u5ea6</strong>\uff1a\u7531\u4e8e\u4f19\u4f34\u7cfb\u7edf\u7684\u6700\u5c0f\u5355\u4f4d\u662f 4KB \u9875\uff0c\u9891\u7e41\u7533\u8bf7\u51e0\u5341\u5b57\u8282\u7684\u5185\u6838\u5bf9\u8c61\uff08\u5982 <code>file</code> \u63cf\u8ff0\u7b26\uff09\u4f1a\u5bfc\u81f4\u5de8\u5927\u7684\u5185\u5b58\u5185\u90e8\u788e\u7247\u3002</li><li>  <strong>\u5bf9\u8c61\u6c60\u751f\u547d\u5468\u671f\u7f13\u5b58</strong>\uff1aSlab \u5206\u914d\u5668\u5728\u7269\u7406\u9875\u5185\u5212\u5206\u56fa\u5b9a\u5927\u5c0f\u7684\u201c\u5bf9\u8c61\u6c60\u201d\u3002\u5bf9\u8c61\u5728\u91ca\u653e\u65f6\u5e76\u4e0d\u9000\u56de\u4f19\u4f34\u7cfb\u7edf\uff0c\u800c\u662f\u4fdd\u7559\u5176\u6784\u9020\u521d\u59cb\u5316\u72b6\u6001\uff0c\u4ec5\u6807\u8bb0\u4e3a\u201c\u53ef\u7528\u201d\uff0c\u4e0b\u6b21\u7533\u8bf7\u65f6\u76f4\u63a5\u8fd4\u56de\uff0c\u5b9e\u73b0\u4e86\u6781\u81f4\u7684 CPU \u5c40\u90e8\u6027\u3002</li>"}, {"id": 15, "relativeId": "M4.2", "module": "M4", "moduleName": "SLUB \u7f13\u5b58\u5bf9\u8c61\u4e0e\u5185\u6838\u5c0f\u5185\u5b58\u5206\u914d", "color": "#B58A7D", "title": "kmem_cache \u5c42\u7ea7\u7ed3\u6784\u4e0e CPU \u5c40\u90e8\u6027\u9501\u4f18\u5316 (kmem_cache Hierarchies)", "body": "<li>  <strong>CPU \u672c\u5730\u65e0\u9501\u5feb\u901f\u8def\u5f84</strong>\uff1a<code>kmem_cache</code> \u7ed3\u6784\u5305\u542b <code>kmem_cache_cpu</code> \u7ed3\u6784\uff0c\u63d0\u4f9b\u5355 CPU \u7684\u65e0\u9501\u5feb\u901f\u901a\u9053\uff0c\u53ef\u4ee5\u76f4\u63a5\u4ece\u672c\u5730 CPU \u7f13\u5b58\u7684\u5bf9\u8c61\u94fe\u8868\u4e2d\u5206\u53d1\u5bf9\u8c61\u3002</li><li>  <strong>Node \u5171\u4eab\u6162\u901f\u8def\u5f84</strong>\uff1a\u5f53\u672c\u5730\u7f13\u5b58\u8017\u5c3d\u65f6\uff0c\u901a\u8fc7\u6162\u901f\u8def\u5f84\uff08Slow Path\uff09\u9501\u5b9a NUMA \u8282\u70b9\u7279\u5b9a\u7684 <code>kmem_cache_node</code> \u5171\u4eab\u94fe\u8868\uff0c\u6279\u91cf\u8865\u5145\u5bf9\u8c61\u5230\u672c\u5730 CPU \u7f13\u5b58\u3002</li>"}, {"id": 16, "relativeId": "M4.3", "module": "M4", "moduleName": "SLUB \u7f13\u5b58\u5bf9\u8c61\u4e0e\u5185\u6838\u5c0f\u5185\u5b58\u5206\u914d", "color": "#B58A7D", "title": "SLUB \u5206\u914d\u5668 inline freelist \u6307\u9488\u6784\u9020 (SLUB freelist Offset)", "body": "<li>  <strong>\u96f6\u989d\u5916\u5f00\u9500 freelist</strong>\uff1aSLUB \u5206\u914d\u5668\u5bf9\u4f20\u7edf Slab \u8fdb\u884c\u7cbe\u7b80\uff0c\u53bb\u9664\u4e86\u590d\u6742\u7684\u5916\u90e8\u7ba1\u7406\u6570\u636e\u3002</li><li>  <strong>\u7a7a\u95f2\u94fe\u8868\u5185\u5d4c</strong>\uff1a\u5b83\u5c06\u6307\u5411\u4e0b\u4e00\u4e2a\u7a7a\u95f2\u5bf9\u8c61\u7684\u6307\u9488\uff08<code>freelist</code> \u6307\u9488\uff09\u76f4\u63a5\u5199\u5165\u7a7a\u95f2\u5bf9\u8c61\u81ea\u8eab\u7684\u7269\u7406\u5185\u5b58\u9996\u5730\u5740\uff08Offset\uff09\u4e2d\u3002\u5206\u914d\u65f6\u76f4\u63a5\u63d0\u53d6\u8be5\u5730\u5740\uff0c\u91ca\u653e\u65f6\u5c06\u5f53\u524d\u5bf9\u8c61\u9996\u5730\u5740\u5199\u5165\u524d\u4e00\u7a7a\u95f2\u5bf9\u8c61\u5934\uff0c\u5b9e\u73b0\u4e86\u96f6\u5185\u5b58\u5f00\u9500\u7684\u94fe\u8868\u7ef4\u62a4\u3002</li>"}, {"id": 17, "relativeId": "M4.4", "module": "M4", "moduleName": "SLUB \u7f13\u5b58\u5bf9\u8c61\u4e0e\u5185\u6838\u5c0f\u5185\u5b58\u5206\u914d", "color": "#B58A7D", "title": "kmalloc() \u52a8\u6001\u52a8\u6001\u5927\u5c0f\u8def\u7531\u673a\u5236 (kmalloc Implementation)", "body": "<li>  <strong>\u52a8\u6001\u5927\u5c0f\u9884\u5206\u914d</strong>\uff1a<code>kmalloc()</code> \u4e13\u7528\u4e8e\u5206\u914d\u4efb\u610f\u5927\u5c0f\u7684\u8fde\u7eed\u5185\u6838\u5185\u5b58\u3002</li><li>  <strong>Slab \u9759\u6001\u6c60\u8def\u7531</strong>\uff1a\u5185\u6838\u5728\u521d\u59cb\u5316\u65f6\uff0c\u9759\u6001\u9884\u5148\u521b\u5efa\u4e86\u4e00\u7ec4\u4e0d\u540c\u5c3a\u5bf8\u7684 kmem_cache\uff08\u5982 <code>kmalloc-32</code>, <code>kmalloc-64</code>, <code>kmalloc-128</code>, <code>kmalloc-2048</code>\uff09\u3002\u5e94\u7528\u8c03\u7528 <code>kmalloc(100)</code> \u65f6\uff0c\u5185\u6838\u81ea\u52a8\u5411\u4e0a\u53d6\u6574\u8def\u7531\u5230 <code>kmalloc-128</code> \u7f13\u5b58\u6c60\u5206\u53d1\u3002</li>"}, {"id": 18, "relativeId": "M5.1", "module": "M5", "moduleName": "\u9875\u9762\u7f13\u5b58\u3001\u5730\u5740\u7a7a\u95f4\u4e0e\u810f\u9875\u7f6e\u6362", "color": "#5F7582", "title": "Page Cache \u7269\u7406\u7ed3\u6784\u4e0e xarray / \u57fa\u6570\u6811\u7d22\u5f15 (Page Cache Layout)", "body": "<li>  <strong>\u6587\u4ef6\u9875\u5185\u5b58\u955c\u50cf</strong>\uff1aPage Cache \u662f\u6587\u4ef6\u6570\u636e\u5728\u7269\u7406\u5185\u5b58\u4e2d\u7684\u6620\u5c04\u7f13\u5b58\u3002</li><li>  <strong>\u6811\u72b6\u7269\u7406\u7d22\u5f15</strong>\uff1a\u6bcf\u4e2a Inode \u7684 <code>address_space</code> \u7ed3\u6784\u5305\u542b\u4e00\u4e2a\u57fa\u6570\u6811\uff08\u5728\u73b0\u4ee3\u5185\u6838\u4e2d\u4e3a\u9ad8\u6548\u7684 <code>xarray</code>\uff09\u6765\u7ef4\u62a4\u5176 Page Cache\u3002\u901a\u8fc7\u6587\u4ef6\u5185\u90e8\u7684 Page \u504f\u79fb\u91cf\u4f5c\u4e3a\u952e\u503c\uff0c\u53ef\u5728 $O(1)$ \u7684\u65f6\u95f4\u590d\u6742\u5ea6\u5185\u8fc5\u901f\u5b9a\u4f4d\u5185\u5b58\u4e2d\u7684\u7269\u7406 <code>struct page</code> \u6307\u9488\u3002</li>"}, {"id": 19, "relativeId": "M5.2", "module": "M5", "moduleName": "\u9875\u9762\u7f13\u5b58\u3001\u5730\u5740\u7a7a\u95f4\u4e0e\u810f\u9875\u7f6e\u6362", "color": "#5F7582", "title": "pdflush \u80cc\u666f\u5199\u56de\u7ebf\u7a0b\u4e0e\u810f\u9875\u63a7\u5236\u9608\u503c (Page Writeback Control)", "body": "<li>  <strong>\u810f\u9875\u5ef6\u8fdf\u6ede\u7559</strong>\uff1a\u6587\u4ef6\u4fee\u6539\u5199\u5165 Page Cache \u540e\u88ab\u6807\u8bb0\u4e3a Dirty\uff08\u810f\u9875\uff09\uff0c\u4e0d\u4f1a\u7acb\u5373\u89e6\u53d1\u6162\u901f\u78c1\u76d8 I/O\u3002</li><li>  <strong>\u5f02\u6b65\u5237\u76d8\u63a7\u5236</strong>\uff1a\u5185\u6838\u80cc\u666f\u7ebf\u7a0b\uff08\u5982 <code>wb_workfn</code> / \u8001\u7248 <code>pdflush</code>\uff09\u5b9a\u671f\u88ab\u5524\u9192\u3002\u5f53\u810f\u9875\u5360\u6bd4\u8fbe\u5230 <code>vm.dirty_background_ratio</code> \u65f6\uff0c\u542f\u52a8\u5f02\u6b65\u5199\u56de\uff1b\u5f53\u8fbe\u5230\u4e34\u754c\u9608\u503c <code>vm.dirty_ratio</code> \u65f6\uff0c\u5f3a\u884c\u963b\u585e\u7528\u6237\u8fdb\u7a0b\u7684\u5199\u64cd\u4f5c\uff0c\u6267\u884c\u540c\u6b65\u5199\u56de\u3002</li>"}, {"id": 20, "relativeId": "M5.3", "module": "M5", "moduleName": "\u9875\u9762\u7f13\u5b58\u3001\u5730\u5740\u7a7a\u95f4\u4e0e\u810f\u9875\u7f6e\u6362", "color": "#5F7582", "title": "\u7269\u7406\u9875\u6846\u56de\u6536\u7b97\u6cd5 (PFRA) \u4e0e\u53cc\u5411 LRU \u94fe\u8868 (Page Reclaim PFRA)", "body": "<li>  <strong>\u7a7a\u95f2\u5185\u5b58\u544a\u6025\u6536\u56de</strong>\uff1a\u5f53\u7269\u7406\u5185\u5b58\u6c34\u4f4d\u4f4e\u4e8e\u4f4e\u5b89\u5168\u6c34\u4f4d\uff08low watermark\uff09\u65f6\uff0c<code>kswapd</code> \u5b88\u62a4\u8fdb\u7a0b\u542f\u52a8\u7269\u7406\u9875\u6846\u56de\u6536\u3002</li><li>  <strong>\u6d3b\u52a8\u72b6\u6001\u53cc\u5411\u8fc1\u79fb</strong>\uff1aZone \u7ef4\u62a4 <code>Active</code> \u548c <code>Inactive</code> \u4e24\u4e2a LRU\uff08\u6700\u8fd1\u6700\u5c11\u4f7f\u7528\uff09\u9875\u9762\u94fe\u8868\u3002\u7ecf\u5e38\u8bbf\u95ee\u7684\u9875\u9762\u7559\u5728 Active \u94fe\u8868\uff1b\u957f\u65f6\u95f4\u672a\u88ab\u8bbf\u95ee\u7684\u9875\u9762\u5411\u4e0b\u8fc1\u79fb\u81f3 Inactive \u94fe\u8868\uff0c\u4f5c\u4e3a\u56de\u6536\u7684\u4f18\u5148\u5019\u9009\u8005\u3002</li>"}, {"id": 21, "relativeId": "M5.4", "module": "M5", "moduleName": "\u9875\u9762\u7f13\u5b58\u3001\u5730\u5740\u7a7a\u95f4\u4e0e\u810f\u9875\u7f6e\u6362", "color": "#5F7582", "title": "\u4e24\u8f6e LRU \u7f6e\u6362\u626b\u63cf\u4e0e swappiness \u6362\u51fa\u5206\u914d (LRU & Swappiness)", "body": "<li>  <strong>\u4e8c\u6b21\u673a\u4f1a\u5f15\u7528\u6821\u9a8c</strong>\uff1a\u6536\u56de Inactive \u94fe\u8868\u65f6\uff0c\u5185\u6838\u6e05\u9664\u9875\u8868\u9879\u4e2d\u7684 Referenced \u6807\u5fd7\u4f4d\u3002\u5982\u679c\u5728\u4e0b\u4e00\u6b21\u626b\u63cf\u524d\u8be5\u9875\u53c8\u88ab\u8bbf\u95ee\uff0c\u5219\u5c06\u5176\u91cd\u65b0\u79fb\u56de Active \u94fe\u8868\uff1b\u5426\u5219\uff0c\u5b89\u5168\u56de\u6536\u3002</li><li>  <strong>Swappiness \u56de\u6536\u503e\u5411</strong>\uff1a<code>swappiness</code> \u503c\uff080-100\uff09\u4f5c\u4e3a\u6743\u91cd\u3002\u503c\u8d8a\u9ad8\uff0c\u5185\u6838\u8d8a\u503e\u5411\u4e8e\u56de\u6536\u533f\u540d\u5185\u5b58\u9875\uff08Anonymous Memory\uff09\u5e76\u5199\u5165 Swap \u5206\u533a\uff1b\u503c\u8d8a\u4f4e\uff0c\u8d8a\u503e\u5411\u4e8e\u76f4\u63a5\u56de\u6536\u5e72\u51c0\u7684\u6587\u4ef6\u9875\uff08File Pages\uff09\u3002</li>"}, {"id": 22, "relativeId": "M5.5", "module": "M5", "moduleName": "\u9875\u9762\u7f13\u5b58\u3001\u5730\u5740\u7a7a\u95f4\u4e0e\u810f\u9875\u7f6e\u6362", "color": "#5F7582", "title": "OOM-Killer badness() \u79ef\u5206\u8bc4\u5206\u516c\u5f0f (OOM Killer Scoring)", "body": "<li>  <strong>\u5185\u5b58\u5d29\u6e83\u81ea\u6211\u6551\u8d4e</strong>\uff1a\u5f53\u7cfb\u7edf\u5f7b\u5e95\u8017\u5c3d\u5185\u5b58\u4e14\u65e0\u6cd5\u6536\u56de\u4efb\u4f55\u7269\u7406\u9875\u65f6\uff0c\u89e6\u53d1 OOM-Killer\u3002</li><li>  <strong>\u79ef\u5206\u516c\u5f0f\u4e0e\u60e9\u7f5a</strong>\uff1a\u5185\u6838\u6839\u636e <code>badness()</code> \u7b97\u6cd5\u8ba1\u7b97\u6bcf\u4e2a\u8fdb\u7a0b\u7684\u5f97\u5206\uff1a$Points = \\frac{RSS\\_Memory}{Total\\_System\\_Memory} \\times 1000$\u3002\u5728\u6b64\u57fa\u7840\u4e0a\uff0c\u53e0\u52a0\u8fdb\u7a0b\u8fd0\u884c\u65f6\u95f4\u60e9\u7f5a\uff0c\u5e76\u52a0\u4e0a <code>oom_score_adj</code> \u7684\u7528\u6237\u8c03\u6574\u504f\u7f6e\uff0c\u6311\u9009\u6700\u9ad8\u5f97\u5206\u8005\u7269\u7406\u6740\u6b7b\u4ee5\u91ca\u653e\u7a7a\u95f4\u3002</li>"}, {"id": 23, "relativeId": "M5.6", "module": "M5", "moduleName": "\u9875\u9762\u7f13\u5b58\u3001\u5730\u5740\u7a7a\u95f4\u4e0e\u810f\u9875\u7f6e\u6362", "color": "#5F7582", "title": "Swap \u7a7a\u95f4\u6620\u5c04\u7ba1\u7406\u4e0e\u7f3a\u9875\u6362\u5165 (Swap Page Management)", "body": "<li>  <strong>\u7269\u7406\u9875\u5411\u78c1\u76d8\u8f6c\u79fb</strong>\uff1a\u88ab\u6362\u51fa\u7684\u533f\u540d\u5185\u5b58\u9875\u88ab\u5199\u5165\u6307\u5b9a\u7684\u78c1\u76d8 Swap \u5206\u533a\u3002</li><li>  <strong>swap_map \u5f15\u7528\u8ddf\u8e2a</strong>\uff1a\u5185\u6838\u4f7f\u7528 <code>swap_map</code> \u6570\u7ec4\u8bb0\u5f55 Swap \u5206\u533a\u4e2d\u6bcf\u4e2a 4KB \u69fd\u4f4d\uff08Swap Slot\uff09\u7684\u8fdb\u7a0b\u5f15\u7528\u8ba1\u6570\u3002\u5f53\u8fdb\u7a0b\u91cd\u65b0\u8bbf\u95ee\u8be5\u9875\u65f6\uff0c\u89e6\u53d1 Page Fault \u7f3a\u9875\u4e2d\u65ad\uff0c\u5185\u6838\u5206\u914d\u65b0\u7269\u7406\u9875\u5e76\u4ece Swap \u78c1\u76d8\u8bfb\u5165\u3002</li>"}, {"id": 24, "relativeId": "M6.1", "module": "M6", "moduleName": "\u865a\u62df\u6587\u4ef6\u7cfb\u7edf\u4e0e\u5757\u8bbe\u5907 I/O \u8c03\u5ea6", "color": "#BFA88F", "title": "VFS \u56db\u5927\u6838\u5fc3\u5bf9\u8c61\u62d3\u6251\u5173\u7cfb (VFS Core Objects)", "body": "<li>  <strong>\u56db\u5927\u7269\u7406\u62bd\u8c61\u5143\u6570\u636e</strong>\uff1a</li><li>1.  <strong>super_block</strong>\uff1a\u63cf\u8ff0\u6587\u4ef6\u7cfb\u7edf\u5168\u5c40\u5143\u6570\u636e\uff08\u5982\u5757\u5927\u5c0f\uff0c\u6302\u8f7d\u70b9\uff09\u3002</li><li>2.  <strong>inode</strong>\uff1a\u4ee3\u8868\u5177\u4f53\u7684\u7269\u7406\u6587\u4ef6\u5b9e\u4f53\uff0c\u5305\u542b\u6587\u4ef6\u7269\u7406\u5757\u6307\u9488\u3002</li><li>3.  <strong>dentry</strong>\uff1a\u8868\u793a\u76ee\u5f55\u6811\u4e2d\u7684\u4e00\u4e2a\u8282\u70b9\uff08\u6587\u4ef6\u540d\u4e0e Inode \u7684\u7ed1\u5b9a\uff09\uff0c\u52a0\u901f\u8def\u5f84\u5bfb\u5740\u3002</li><li>4.  <strong>file</strong>\uff1a\u4ee3\u8868\u8fdb\u7a0b\u6253\u5f00\u7684\u4e00\u4e2a\u6587\u4ef6\u5b9e\u4f8b\uff0c\u5305\u542b\u5f53\u524d\u7684\u8bfb\u53d6\u8bfb\u5199\u504f\u79fb\u3002</li>"}, {"id": 25, "relativeId": "M6.2", "module": "M6", "moduleName": "\u865a\u62df\u6587\u4ef6\u7cfb\u7edf\u4e0e\u5757\u8bbe\u5907 I/O \u8c03\u5ea6", "color": "#BFA88F", "title": "file_operations \u865a\u8868\u4e0e\u8bbe\u5907\u6587\u4ef6\u5206\u53d1\u9a71\u52a8 (file_operations VFS)", "body": "<li>  <strong>\u591a\u6001\u591a\u8def\u6587\u4ef6\u64cd\u4f5c\u63a5\u53e3</strong>\uff1a<code>struct file</code> \u5185\u7f6e\u6307\u5411 <code>struct file_operations</code> \u7684\u6307\u9488\u865a\u8868\u3002</li><li>  <strong>\u9a71\u52a8\u6302\u8f7d\u6620\u5c04</strong>\uff1a\u5728\u6267\u884c <code>read()</code> \u7cfb\u7edf\u8c03\u7528\u65f6\uff0c\u5185\u6838\u5e76\u4e0d\u5173\u5fc3\u5177\u4f53\u5e95\u5c42\u7ec6\u8282\uff0c\u800c\u662f\u6267\u884c <code>file->f_op->read()</code>\u3002\u5bf9\u4e8e EXT4\uff0c\u8fd9\u6307\u5411 <code>ext4_file_read</code>\uff1b\u5bf9\u4e8e\u5b57\u7b26\u8bbe\u5907\uff08\u5982 <code>/dev/null</code>\uff09\uff0c\u5b83\u88ab\u9a71\u52a8\u7a0b\u5e8f\u63a5\u7ba1\u76f4\u63a5\u6307\u5411\u8bbe\u5907\u64cd\u4f5c\u51fd\u6570\u3002</li>"}, {"id": 26, "relativeId": "M6.3", "module": "M6", "moduleName": "\u865a\u62df\u6587\u4ef6\u7cfb\u7edf\u4e0e\u5757\u8bbe\u5907 I/O \u8c03\u5ea6", "color": "#BFA88F", "title": "struct bio \u7269\u7406\u7ed3\u6784\u4e0e bio_vec \u9875\u5207\u7247\u5411\u91cf (struct bio Layout)", "body": "<li>  <strong>\u5757\u8bbe\u5907 I/O \u7269\u7406\u5355\u5143</strong>\uff1aVFS \u53d1\u8d77\u6570\u636e\u4f20\u8f93\u65f6\uff0c\u5c06\u6587\u4ef6\u9875\u7ffb\u8bd1\u4e3a <code>struct bio</code> \u7ed3\u6784\uff0c\u5b83\u662f\u5757\u8bbe\u5907 I/O \u7684\u6838\u5fc3\u8f7d\u4f53\u3002</li><li>  <strong>\u805a\u5408\u5206\u6563 DMA \u6620\u5c04</strong>\uff1a<code>struct bio</code> \u5305\u542b <code>bio_vec</code> \u6570\u7ec4\uff0c\u6bcf\u4e2a\u5143\u7d20\u63cf\u8ff0\u4e00\u4e2a\u5185\u5b58\u7269\u7406 Page\u3001\u5757\u5185\u504f\u79fb\u548c\u5927\u5c0f\u3002DMA \u63a7\u5236\u5668\u5229\u7528\u6b64\u6570\u7ec4\u6267\u884c\u5206\u6563-\u805a\u96c6\uff08Scatter-Gather\uff09I/O\uff0c\u76f4\u63a5\u5c06\u591a\u4e2a\u4e0d\u8fde\u7eed\u7269\u7406\u9875\u5237\u5165\u78c1\u76d8\u3002</li>"}, {"id": 27, "relativeId": "M6.4", "module": "M6", "moduleName": "\u865a\u62df\u6587\u4ef6\u7cfb\u7edf\u4e0e\u5757\u8bbe\u5907 I/O \u8c03\u5ea6", "color": "#BFA88F", "title": "I/O \u8bf7\u6c42\u961f\u5217\u5408\u5e76\u4e0e\u8c03\u5ea6\u7b97\u6cd5 (I/O Scheduler queue)", "body": "<li>  <strong>\u78c1\u76d8\u5408\u5e76\u9632\u6296\u52a8</strong>\uff1aBIO \u5757\u8fdb\u5165\u8bf7\u6c42\u961f\u5217 <code>request_queue</code>\u3002\u8c03\u5ea6\u5668\u9996\u5148\u6267\u884c\u7535\u68af\u5408\u5e76\uff08Elevator Merge\uff09\uff0c\u5c06\u76f8\u90bb\u6247\u533a\uff08Sector\uff09\u7684\u591a\u4e2a BIO \u5408\u5e76\u4e3a\u5355\u4e2a\u5927 Request\u3002</li><li>  <strong>\u73b0\u4ee3\u591a\u961f\u5217\u8c03\u5ea6</strong>\uff1a\u73b0\u4ee3\u5185\u6838\u5f15\u5165 blk-mq\uff08\u591a\u961f\u5217\uff09\u6846\u67b6\uff0c\u4e3a\u6bcf\u4e2a CPU \u6838\u5fc3\u5206\u914d\u4e13\u5c5e\u7684\u8f6f\u4ef6\u961f\u5217\uff0c\u7ed3\u5408 BFQ\uff08\u591a\u961f\u5217\u516c\u5e73\u8c03\u5ea6\uff09\u6216 Kyber\uff0c\u6d88\u9664\u4e86\u5757\u8bbe\u5907\u5168\u5c40\u5927\u9501\u7684\u7ade\u4e89\u3002</li>"}, {"id": 28, "relativeId": "M6.5", "module": "M6", "moduleName": "\u865a\u62df\u6587\u4ef6\u7cfb\u7edf\u4e0e\u5757\u8bbe\u5907 I/O \u8c03\u5ea6", "color": "#BFA88F", "title": "mmap \u7269\u7406\u6587\u4ef6\u6620\u5c04\u4e0e Page Fault \u96f6\u62f7\u8d1d\u8bfb\u53d6 (mmap & Page Fault)", "body": "<li>  <strong>\u865a\u62df\u5185\u5b58\u533a\u95f4\u5efa\u7acb</strong>\uff1a<code>mmap</code> \u521b\u5efa\u4e00\u4e2a\u65b0\u7684\u865a\u62df\u5185\u5b58\u533a\u95f4\uff08<code>struct vm_area_struct</code>\uff09\uff0c\u5c06\u5176\u4e0e\u76ee\u6807\u6587\u4ef6 <code>i_mapping</code> \u7ed1\u5b9a\uff0c\u4f46\u5728\u9875\u8868\u4e2d\u4e0d\u5206\u914d\u7269\u7406\u9875\u3002</li><li>  <strong>\u7f3a\u9875\u5f02\u5e38\u96f6\u62f7\u8d1d</strong>\uff1a\u5f53\u7a0b\u5e8f\u9996\u6b21\u8bfb\u53d6\u8be5\u5185\u5b58\u5730\u5740\u65f6\uff0cCPU \u89e6\u53d1\u7f3a\u9875\u5f02\u5e38\uff08Page Fault\uff09\u3002\u5185\u6838\u6355\u6349\u8be5\u5f02\u5e38\uff0c\u4ece\u78c1\u76d8\u8bfb\u53d6\u5bf9\u5e94\u6587\u4ef6\u9875\u586b\u5165 Page Cache\uff0c\u76f4\u63a5\u5c06\u8be5 Page \u7684\u7269\u7406\u5730\u5740\u5199\u5165\u8fdb\u7a0b\u9875\u8868\uff0c\u5b9e\u73b0\u4e86\u96f6\u62f7\u8d1d\u76f4\u63a5\u8bfb\u5199\u3002</li>"}];
+        let activeModule = 'ALL';
+
+        function renderCards() {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = '';
+            const query = document.getElementById('search').value.toLowerCase();
+
+            cards.forEach(c => {
+                const matchesSearch = c.title.toLowerCase().includes(query) || c.body.toLowerCase().includes(query);
+                const matchesModule = activeModule === 'ALL' || c.module === activeModule;
+
+                if (matchesSearch && matchesModule) {
+                    const el = document.createElement('div');
+                    el.className = 'card';
+                    el.style.borderLeft = `4px solid ${c.color}`;
+                    el.innerHTML = `
+                        <div class="card-header">
+                            <span class="card-id" style="background-color: ${c.color}22; color: ${c.color}">${c.relativeId}</span>
+                            <h3 class="card-title">${c.title}</h3>
+                        </div>
+                        <div class="card-body">
+                            ${c.body}
+                        </div>
+                        <div class="card-footer">
+                            <span>${c.moduleName}</span>
+                            <span style="color: ${c.color}">Card #${c.id}</span>
+                        </div>
+                    `;
+                    grid.appendChild(el);
+                }
+            });
+        }
+
+        function filterModule(mod) {
+            activeModule = mod;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.innerText.includes(mod) || (mod === 'ALL' && btn.innerText === 'ALL')) {
+                    btn.classList.add('active');
+                }
+            });
+            renderCards();
+        }
+
+        document.getElementById('search').addEventListener('input', renderCards);
+        renderCards();
+    </script>
+</body>
+</html>

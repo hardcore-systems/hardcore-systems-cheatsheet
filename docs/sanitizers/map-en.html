@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanitizers Runtime Memory & Concurrency Detection Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --m1-color: #4B5F7A;
+            --m2-color: #9C6666;
+            --m3-color: #6B8272;
+            --m4-color: #7A7A7A;
+            --m5-color: #9A825A;
+            --m6-color: #755B77;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .ladder-section {
+            max-width: 1400px;
+            margin: 0 auto 2.5rem auto;
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .ladder-block {
+            margin-bottom: 1.2rem;
+        }
+
+        .ladder-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .ladder-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.4rem;
+        }
+
+        .ladder-content {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        .ladder-content code {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #1e293b;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #f472b6;
+            word-break: break-all;
+        }
+
+        .controls {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .search-box {
+            flex-grow: 1;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            padding: 0.6rem 1rem;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-color);
+        }
+
+        .cards-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 0.8rem;
+        }
+
+        .card-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.3;
+        }
+
+        .card-body {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+            flex-grow: 1;
+            white-space: pre-wrap;
+        }
+
+        .card-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>SANITIZERS RUNTIME DIAGNOSTICS MAP</h1>
+        <p>High-Density Technical System Architecture Cards Mapping</p>
+    </header>
+
+    <section class="ladder-section">
+        <div class="ladder-block">
+            <div class="ladder-title">L0 Essence</div>
+            <div class="ladder-content">The essence of Sanitizers is a dynamic program analysis suite integrating compiler instrumentation and runtime libraries. By using shadow memory mapping to track memory states, vector clocks to maintain happens-before partial orders, and bit-to-bit shadow mapping to trace initialization, it detects memory out-of-bounds/UAF, data races, uninitialized reads, and undefined behavior at runtime with lower overhead than traditional interpreters.</div>
+        </div>
+        <div class="ladder-block">
+            <div class="ladder-title">L1 Logical Framework</div>
+            <div class="ladder-content">1.  **Instrumentation & Interception**: The compiler LLVM Pass inserts checks at the IR level, and runtime interceptors hijack key libc syscalls, collaborating with llvm-symbolizer to achieve high-precision symbolization and stack unwinding.
+    2.  **Shadow Poisoning & Quarantine**: ASan establishes an 8:1 shadow memory mapping, intercepts out-of-bounds access by poisoning redzones around variables, and detects use-after-free (UAF) by delaying physical block reclamation in a quarantine queue.
+    3.  **Vector Clocks & Race Detection**: TSan tracks happens-before relations via vector clocks, matching each 8-byte application memory to 4 shadow cells (recording thread, epoch, range, write/read) to achieve lock-free concurrency race detection.
+    4.  **Bit Tracing & Conservative Sweep**: MSan uses a 1:1 bit-to-bit shadow map to verify initialization states, coupled with origin tracking to trace allocations; LSan scans the root set in a conservative GC manner on exit to detect unreachable memory and report leaks.</div>
+        </div>
+        <div class="ladder-block">
+            <div class="ladder-title">L2 Data Flow Topology</div>
+            <div class="ladder-content"><code>*   `Compile C/C++ Code` ➜ `LLVM IR` ➜ `ASan/TSan/MSan Pass` ➜ `Insert Instrumentation Checks` ➜ `Link Runtime Library (libclang_rt)` ➜ `Application Startup` ➜ `Interceptors Hijack malloc()/free()` ➜ `Heap Allocation` ➜ `Poison Redzones (Shadow Memory set to 0xf1-0xf8)` ➜ `Application Write/Read` ➜ `Compile-Time Instrumented Check: (Addr >> 3) + Offset` ➜ `Shadow Byte Value != 0?` ➜ `Crash Report (ASan Global/Stack OOB)` ➜ `Free Object` ➜ `Move Page/Block to Quarantine (Poison Shadow Memory to 0xfd)` ➜ `Application Use-After-Free Access` ➜ `Shadow Byte == 0xfd Check` ➜ `Symbolic Stack Unwinding` ➜ `Report ASan UAF` ➜ `Thread A Write` ➜ `Record Vector Clock & Epoch` ➜ `Update TSan Shadow Cell (Thread, Epoch, Lock)` ➜ `Thread B Read (No happens-before link)` ➜ `Compare current Epoch with Vector Clock ➜ Data Race detected!` ➜ `Deadlock Check: Lock dependency graph circular loop` ➜ `UBSan runtime check: Integer overflow check (llvm.sadd.with.overflow)` ➜ `LSan Scan: Sweep stack/registers for pointers to allocated blocks ➜ Report memory leak`.</code></div>
+        </div>
+    </section>
+
+    <div class="controls">
+        <div class="filter-group">
+            <button class="filter-btn active" data-mod="all">All Modules</button>
+            <button class="filter-btn" data-mod="M1">M1: Compiler Instrumentation</button> <button class="filter-btn" data-mod="M2">M2: AddressSanitizer (ASan)</button> <button class="filter-btn" data-mod="M3">M3: ThreadSanitizer (TSan)</button> <button class="filter-btn" data-mod="M4">M4: MemorySanitizer (MSan)</button> <button class="filter-btn" data-mod="M5">M5: UBSan & LSan Analysis</button> <button class="filter-btn" data-mod="M6">M6: Operations & Suppressions</button>
+        </div>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search keywords...">
+        </div>
+    </div>
+
+    <main class="cards-grid" id="cardsGrid"></main>
+
+    <script>
+        const cards = [{'num': 1, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Memory and Concurrency Safety Pain Points', 'body': 'C/C++ programs are memory-unsafe by design, leading to critical safety issues:\n1.  **Static Analysis Limits**: Static vulnerability scanners (e.g., Clang Static Analyzer) struggle with pointer aliasing analysis and suffer from path explosion, yielding high false-positive and false-negative rates.\n2.  **Blackbox and Interpreter Overhead**: Traditional dynamic tools like Valgrind interpret instructions at runtime, incurring 10x-50x CPU slowdown and massive memory footprints, which prohibits their use in performance or concurrency stress testing.\n3.  **Dynamic Detection Need**: Low-overhead compilation-phase instrumentation combined with high-precision runtime interception of out-of-bounds, use-after-free (UAF), and concurrent data races forms the core foundation of modern robust systems programming.'}, {'num': 2, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Compiler-Level Instrumentation Mechanism', 'body': 'The core architecture of LLVM Sanitizers is divided into compilation-time transformation (LLVM Pass) and runtime library support (compiler-rt):\n1.  **Compilation Instrumentation**: After Clang parses source code into LLVM Intermediate Representation (IR), Sanitizers Pass traverses the IR\'s Basic Blocks. For every memory load/store instruction, the Pass automatically inserts check logic beforehand.\n2.  **Runtime Binding**: The instrumented code links against the compiler-rt static or dynamic library. The runtime manages memory allocations, maintains shadow memory mapping, and initializes system call interceptors.\n3.  **Cooperative Running**: The compiler-time pass defines "where to check" while the runtime library determines "how to record and intercept," minimizing dynamic analysis overhead.'}, {'num': 3, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'System Function Interception and Wrapping', 'body': "Dynamic verification requires tracking the application's interactions with standard library (libc) functions:\n1.  **Hijacking (LD_PRELOAD)**: On Linux, the runtime library uses dynamic linker loading priorities or the `LD_PRELOAD` environment variable to ensure its custom wrapper functions are resolved first.\n2.  **Weak Symbols Override**: For static linking, the runtime library overrides the weak symbol definitions of libc standard functions with its own strong symbol implementations.\n3.  **Wrappers (Interceptors)**: Interceptors for functions like `memcpy`, `strcpy`, and `pthread_create` inspect the shadow memory status of target buffer ranges before forwarding calls to the original libc implementations via `dlsym(RTLD_NEXT, ...)`."}, {'num': 4, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Runtime Symbolization and Stack Unwinding', 'body': 'When a Sanitizer catches a safety violation, it must reconstruct and print a human-readable stack trace:\n1.  **Stack Unwinding**: The runtime library captures the instruction pointer register (PC) at the error point. To extract call frames, it uses a fast unwinder (relying on the RBP frame pointer chain, requiring `-fno-omit-frame-pointer`) or a slow unwinder (parsing DWARF `.eh_frame`).\n2.  **Symbolizer Engine**: The runtime library communicates via a pipe with a background daemon process, `llvm-symbolizer`. It sends the captured PC addresses to the engine, which queries ELF DWARF debug symbols.\n3.  **Formatted Report**: The engine translates PCs to source filenames, line numbers, and function names, outputting a structured stack trace.'}, {'num': 5, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Performance and Optimization Trade-off', 'body': 'To balance detection accuracy and execution speed, compilation instrumentation must be paired with appropriate optimizer settings:\n1.  **Overhead Sources**: Shadow address translation, state loading, and branching logic inserted before each load/store instruction disrupt CPU out-of-order execution, stalling pipelines.\n2.  **Optimization Options**:\n    *   `-O0`: No optimization. The Pass instrument all memory reads and writes indiscriminately, causing severe performance degradation.\n    *   `-O1` / `-O2`: The compiler applies Dead Code Elimination (DCE) and redundant check merging (e.g., check once for multiple accesses to the same pointer within a loop), reducing CPU overhead to ~2x.\n3.  **Debug Trade-off**: High optimization levels may inline functions, leading to omitted call frames or minor line offsets in the printed error stack.'}, {'num': 6, 'moduleId': 'M2', 'moduleColor': '#9C6666', 'title': 'Shadow Memory Mapping Algorithm', 'body': 'AddressSanitizer maps the status of the application memory space onto a dedicated Shadow Memory region:\n1.  **Eight-to-One Linear Mapping**: Every 8 bytes of application memory are mapped to 1 byte of shadow memory, yielding an 8:1 mapping ratio.\n2.  **Mapping Formula**:\n    $$\\text{ShadowAddr} = (\\text{AppAddr} \\gg 3) + \\text{Offset}$$\n    For Linux x86_64, the Offset constant is `0x7fff8000`.\n3.  **Shadow Byte Encoding**:\n    *   `0x00`: All 8 application bytes are clean and addressable.\n    *   `0x01` - `0x07`: The first $k$ bytes are addressable, while the remaining $8-k$ bytes are poisoned (forbidden).\n    *   Negative / Special values (e.g., `0xf1` - `0xf8`): Redzones separating allocated regions.\n    *   `0xfd`: Freed memory blocks currently in the heap quarantine.'}, {'num': 7, 'moduleId': 'M2', 'moduleColor': '#9C6666', 'title': 'Redzones and Compiler-Time Instrumentation', 'body': 'To detect buffer overflows, ASan structures unaddressable buffer boundaries known as Redzones:\n1.  **Variable Padding**: The LLVM Pass modifies the memory layout of stack and global variables during compilation. It inserts unaddressable padding (Redzones) and poisons their corresponding shadow bytes (e.g., stack left redzone is `0xf1`, middle is `0xf2`, right is `0xf3`).\n2.  **Out-of-Bounds Assertion**: For any memory load/store instruction:\n    ```c\n    char *p = malloc(10);\n    // Inserted by compiler:\n    char *shadow_addr = (p >> 3) + 0x7fff8000;\n    if (*shadow_addr != 0) {\n        ReportError(p);\n    }\n    ```\n    If an index calculation shifts the pointer into a Redzone, the shadow check hits a non-zero poisoned value, triggering an immediate crash report.'}, {'num': 8, 'moduleId': 'M2', 'moduleColor': '#9C6666', 'title': 'Use-After-Free and Quarantine Protection', 'body': 'Use-After-Free (UAF) occurs when dangling pointers write back to reclaimed heap blocks:\n1.  **Deallocation Hijacking**: The runtime wrapper intercepts `free(ptr)`. Instead of returning the memory to the OS, it poisons the corresponding shadow bytes to `0xfd` (freed heap).\n2.  **Quarantine Queue**: The freed block is pushed into a First-In-First-Out (FIFO) quarantine queue (e.g., limited to 256MB). While in quarantine, the block cannot be recycled or reallocated.\n3.  **Violation Interception**: If a dangling pointer accesses the quarantined address, ASan identifies the `0xfd` shadow byte, asserts a UAF violation, and halts. Older blocks are evicted from quarantine and reclaimed when the size limit is exceeded.'}, {'num': 9, 'moduleId': 'M2', 'moduleColor': '#9C6666', 'title': 'Heap Allocation Hijacking', 'body': 'ASan uses a custom allocator, `asan_allocator`, to manage physical heap memory:\n1.  **Reconstructed Allocation**: When `malloc(size)` is called, the allocator reserves a contiguous memory region of size `Header_Size + Left_Redzone + size + Right_Redzone`, aligned to 16-byte boundaries.\n2.  **Header Metadata**: The block header (poisoned) stores vital allocation metadata, including the allocation thread ID and a hash of the allocation stack trace.\n3.  **Boundary Isolation**: The allocator poisons the Left and Right Redzones (e.g., `0xfa` / `0xfb`). This layout isolates buffer boundaries, ensuring even large out-of-bounds writes are blocked before corrupting neighboring allocations.'}, {'num': 10, 'moduleId': 'M2', 'moduleColor': '#9C6666', 'title': 'Stack Use-After-Return (UAR) and Use-After-Scope (UAS)', 'body': 'Stack variables are deallocated when their declaring function or block exits, but escaping pointers can cause bugs:\n1.  **UAR Detection**: With `ASAN_OPTIONS=detect_stack_use_after_return=1` enabled, the LLVM Pass alters stack frames. Instead of physical stack allocation, stack variables are allocated dynamically on a heap-backed "Fake Stack." Upon return, these fake frames are poisoned to `0xf5`. Subsequent accesses by escaping pointers are intercepted.\n2.  **UAS Detection**: When execution exits a block scope (e.g., `{ char tmp[10]; ... }`), the compiler inserts a call to `__asan_poison_stack_memory`, poisoning the corresponding shadow bytes to `0xf8`. Accessing `tmp` after the scope block triggers an error.'}, {'num': 11, 'moduleId': 'M3', 'moduleColor': '#6B8272', 'title': 'Data Races and the Happens-Before Relation', 'body': 'A data race is a dangerous concurrent access pattern occurring when multiple threads read and write to the same memory without synchronization:\n1.  **Race Definition**: Two or more threads concurrently access the same memory address, at least one access is a write, and no synchronization locks establish a relative execution order.\n2.  **Happens-Before Relation ($\\rightarrow$)**: A partial order relation defining temporal dependency. If event $A \\rightarrow B$, the results of $A$ are guaranteed visible to $B$.\n3.  **Race-Free Condition**: For any concurrent accesses $E_1$ and $E_2$ to the same memory, they must satisfy $E_1 \\rightarrow E_2$ or $E_2 \\rightarrow E_1$; otherwise, TSan flags a data race.'}, {'num': 12, 'moduleId': 'M3', 'moduleColor': '#6B8272', 'title': 'Vector Clocks State Tracking', 'body': 'TSan tracks happens-before relations across threads using Vector Clocks:\n1.  **Vector Definition**: Each thread $i$ maintains an integer array $VC_i$ of size $N$ (total threads). $VC_i[j]$ denotes the latest logical time (epoch) of thread $j$ known to thread $i$.\n2.  **Local Tick**: On performing local reads/writes, thread $i$ increments its own component:\n    $$VC_i[i] = VC_i[i] + 1$$\n3.  **Synchronization Merge**: When thread $i$ releases mutex $L$, the lock copies the clock: $VC_L = VC_i$. When thread $j$ subsequently acquires $L$, it merges the clocks:\n    $$VC_j = \\max(VC_j, VC_L)$$\n    This transfers the happens-before dependency across threads.'}, {'num': 13, 'moduleId': 'M3', 'moduleColor': '#6B8272', 'title': 'Shadow State Compression', 'body': 'TSan records memory access histories using compressed shadow memory representations:\n1.  **Four Shadow Cells**: Every 8 bytes of application memory map to 4 shadow cells (each cell is 8 bytes, totaling 32 bytes, for a 4:1 mapping ratio).\n2.  **Access Ring Buffer**: These 4 cells act as a circular buffer, tracking the 4 most recent read or write events on that 8-byte application memory chunk.\n3.  **64-Bit Compressed Encoding**: Each cell stores:\n    *   `Thread ID` (13 bits): The thread performing the access.\n    *   `Epoch` (16 bits): The logical epoch of the thread during access.\n    *   `Access Range` (8 bits): The relative byte offset and size within the 8-byte block.\n    *   `IsWrite` (1 bit): Flag indicating a read or write operation.'}, {'num': 14, 'moduleId': 'M3', 'moduleColor': '#6B8272', 'title': 'Lock Synchronization and State Transition', 'body': "Interceptors are the bridge that transfers vector clock state during synchronization:\n1.  **Synchronization Hijacking**: TSan intercepts `pthread_mutex_lock/unlock`, `pthread_cond_wait`, and atomic operations.\n2.  **Clock Bridge**:\n    *   On `pthread_mutex_unlock`, the thread's vector clock $VC_{\\text{thread}}$ is copied to the lock's shadow state $VC_{\\text{lock}}$, and the thread's epoch is incremented.\n    *   On `pthread_mutex_lock`, the thread's $VC$ is merged with $VC_{\\text{lock}}$.\n3.  **Conflict Checking**: For each memory access, TSan compares the current epoch against those stored in the 4 historical shadow cells. If the historical epoch is not less than the current thread's vector clock component, a concurrent race is detected and reported."}, {'num': 15, 'moduleId': 'M3', 'moduleColor': '#6B8272', 'title': 'Deadlock Dynamic Detection', 'body': 'Static graph analysis of runtime locking relationships allows deadlocks to be predicted before they block execution:\n1.  **Lock Order Graph**: TSan maintains a global directed graph representing active locking dependencies. Vertices represent locks, and edges represent lock acquisitions.\n2.  **Edge Insertion**: If a thread holding lock $L_1$ attempts to acquire lock $L_2$, TSan inserts a directed edge: $L_1 \\rightarrow L_2$.\n3.  **Cycle Analysis**: Upon inserting any dependency edge, TSan runs a cycle detection algorithm. If a cycle is detected (e.g., $L_1 \\rightarrow L_2 \\rightarrow L_1$), TSan immediately issues a deadlock warning, exposing lock inversion bugs.'}, {'num': 16, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'Uninitialized Memory Read Vulnerabilities', 'body': 'Reading uninitialized memory is a subtle yet severe class of systems programming bugs:\n1.  **Residual Dirty Data**: Recycled physical pages reallocated for new variables stack/heap space retain previous memory states. Variables declared without explicit initializers read this dirty data.\n2.  **Information Leakage**: Transmitting uninitialized structures (which contain alignment padding bytes) via sockets leaks stack/heap fragments over the network.\n3.  **Control Flow Hijacking**: If uninitialized data affects an `if` branch condition or is cast to a function pointer, an attacker can manipulate stack layouts to hijack control flow.'}, {'num': 17, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'Shadow Memory Bit-Map Mapping', 'body': 'To track variable initialization at a single-bit level, MSan uses a 1:1 bit-to-bit shadow mapping:\n1.  **1:1 Byte Mapping**: Every 1 byte of application memory corresponds to 1 byte of shadow memory, yielding a 1:1 mapping ratio.\n2.  **Mapping Formula**:\n    $$\\text{ShadowAddr} = \\text{AppAddr} \\oplus 0x200000000000$$\n3.  **Bit Initialization Flags**: Each bit in a shadow byte indicates the initialization state of the corresponding application bit:\n    *   `0`: The bit has been written to, indicating it is Initialized.\n    *   `1`: The bit has not been written, indicating it is Uninitialized (dirty).\n4.  **Shadow Propagation**: Arithmetic operations (e.g., `a = b + c`) propagate shadow bits. If `b` or `c` is uninitialized, their dirty shadow bits are propagated to the shadow representation of `a`.'}, {'num': 18, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'Origin Tracking Technology', 'body': 'When an uninitialized read occurs, knowing only the crash location is insufficient; developers need to trace where the uninitialized memory was allocated:\n1.  **Origin Memory Mapping**: Compiled with `-fsanitize-memory-track-origins`, MSan reserves extra memory. Every 4 bytes of application memory map to a 4-byte Origin space.\n2.  **32-Bit ID Metadata**: The Origin space holds a 32-bit ID referencing a global allocation stack trace registry.\n3.  **Origin Propagation**: When uninitialized memory is copied (e.g., via `memcpy`), the corresponding Origin ID is copied alongside it. When an uninitialized read eventually triggers a crash, MSan prints the full propagation chain back to the original allocation site.'}, {'num': 19, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'Uninitialized Read False-Positive Suppression', 'body': 'To prevent excessive noise, MSan defers reporting uninitialized data until it reaches critical boundaries:\n1.  **Deferred Reporting**: MSan does not report errors on simple memory loads or copies (copying uninitialized padding bytes is valid). Reports are triggered only at:\n    *   **Conditional Branches**: When an uninitialized value determines an `if` / `while` branch transition.\n    *   **Syscall Parameters**: When uninitialized data is passed to a syscall (e.g., `write`, `send`).\n2.  **Uninstrumented Code Blind Spots**: MSan can only track code compiled at the LLVM IR level. Inline assembly and uninstrumented third-party libraries (e.g., precompiled dynamic libraries) do not update shadow memory, leading to potential false positives or false negatives.'}, {'num': 20, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'Memory Leaks and Conservative GC Scanning', 'body': "Memory leaks degrade system reliability and eventually lead to Out-Of-Memory (OOM) process termination:\n1.  **Leak Definition**: Memory allocated via `malloc` loses all references to its start address before being freed, creating an unreachable memory island.\n2.  **Conservative GC Approach**: LeakSanitizer (LSan) acts as the mark phase of a conservative garbage collector (GC), avoiding heavy reference-counting overhead.\n3.  **Reachability Axiom**: If no pointer in the application's root set (registers, stack, globals) references the address of an allocated memory block, that block is unreachable and considered leaked."}, {'num': 21, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'LSan Root Set Conservative Sweep', 'body': 'LSan sweeps the application memory space using a Stop-The-World (STW) mechanism to detect leaked blocks:\n1.  **Root Set Definition**: Includes global writable segments (.data and .bss), active CPU registers, and the stack frames of all running threads.\n2.  **Pointer Scanning**: LSan pauses all threads (via `ptrace`) and scans the root set. It treats raw 8-byte aligned memory chunks as potential pointers. If a value falls within the `[start_addr, end_addr]` range of an allocated heap block, it marks the block as "Reachable."\n3.  **Recursive Coloring**: LSan recursively scans reachable heap blocks for pointers to other blocks. At the end of the sweep, any allocated block not marked reachable is flagged as a leak, and its allocation stack trace is printed.'}, {'num': 22, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'UBSan Arithmetic and Pointer Safety Checks', 'body': 'UndefinedBehaviorSanitizer (UBSan) targets runtime actions that violate language specifications:\n1.  **Signed Integer Overflow**: In C/C++, signed overflow is undefined. The compiler replaces normal arithmetic instructions with overflow-checking intrinsics (e.g., `llvm.sadd.with.overflow`). If an overflow occurs at runtime, it triggers a UBSan report.\n2.  **Null Pointer Dereferences**: UBSan inserts null checks `if (ptr == nullptr)` before dereferences, preventing hard segfaults and emitting informative error locations instead.\n3.  **Misaligned Access**: Casting an odd memory address to an aligned pointer (e.g., `int*`) violates alignment requirements. UBSan checks `(uintptr_t)ptr % alignof(type) != 0` before accesses.'}, {'num': 23, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'UBSan Bounds and Vptr Validation', 'body': "Array bound checking and C++ polymorphism protection guard against out-of-bounds corruption:\n1.  **Array Bounds Checking**: UBSan extracts static array bounds during compilation or dynamically calculates Variable-Length Array (VLA) sizes at runtime. For each index `i`, it asserts `if (i >= array_size)` to prevent buffer overflows.\n2.  **Vptr Validation**: Before dynamic C++ virtual function calls, UBSan verifies the virtual table (vtable) pointer (`vptr`). It checks if the `vptr` points to a valid vtable layout defined in the application's metadata, preventing control flow hijacking via vtable tampering."}, {'num': 24, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'UBSan Downcasting and Control Flow Integrity (CFI)', 'body': 'Securing class hierachy casting and enforcing control-flow bounds are vital for exploit mitigation:\n1.  **Downcast Verification**: Casting a base class pointer to a derived class pointer (`static_cast` or `dynamic_cast`) is undefined if the underlying object is not an instance of the target derived class. UBSan queries Run-Time Type Information (RTTI) to prevent Type Confusion exploits.\n2.  **Control Flow Integrity (CFI)**: CFI constructs a directed Control Flow Graph (CFG) at compile time, identifying all valid targets for indirect calls (function pointers, virtual functions). At runtime, it checks target PCs before jumps. If a pointer has been overwritten and points to an unauthorized address, CFI terminates the process immediately.'}, {'num': 25, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'Runtime Configuration and Suppressions', 'body': 'Sanitizers support fine-grained runtime control to facilitate deployment on legacy systems:\n1.  **Environment Variables**:\n    *   ASan: `ASAN_OPTIONS=quarantine_size_mb=64:detect_odr_violation=1` manages quarantine sizes and checks for One Definition Rule violations.\n    *   TSan: `TSAN_OPTIONS=history_size=7` retains longer thread history records.\n2.  **Suppressions File**: Used to ignore known warnings in uninstrumented third-party libraries (e.g., `race:libcrypto.so`).\n3.  **Compilation Ignorelist**: Configured via `-fsanitize-ignorelist=ignorelist.txt` to bypass instrumentation for specific source files or performance-critical functions.'}, {'num': 26, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'ASan Diagnostic Stack Trace Reconstruction', 'body': 'ASan reports follow a highly structured layout for rapid diagnostic analysis:\n1.  **Header Summary**: Displays the error type (e.g., `heap-use-after-free`), the action (READ/WRITE), the thread ID, and the crash stack trace.\n2.  **Lifecycle Trace**: For UAF errors, ASan outputs the stack trace where the heap block was allocated, followed by the stack trace where it was freed.\n3.  **Shadow Memory Grid**: Prints the shadow bytes surrounding the offending address. The corrupted address is highlighted in brackets (e.g., `[fd]` for freed heap, `[fa]` for left redzone), providing physical evidence of the memory state.'}, {'num': 27, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'TSan and MSan Integration Troubleshooting', 'body': "Uninstrumented libraries and low-level asynchronous primitives are the primary sources of diagnostic issues:\n1.  **TSan False Positives**: Custom locking mechanisms implemented via assembly or raw atomic instructions bypass TSan's thread synchronization detection. This results in false data race warnings. To resolve this, developers insert explicit synchronization annotations (e.g., `ANNOTATE_HAPPENS_BEFORE`).\n2.  **MSan Unpoisoning**: Writing to memory via syscalls (e.g., `ioctl`) or uninstrumented libraries (e.g., OpenSSL) does not update shadow memory. This causes subsequent reads to trigger uninitialized memory errors. Developers must manually call `__msan_unpoison(addr, size)` after such writes."}, {'num': 28, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'Fuzzing Integration and Gold Canary Deployment', 'body': 'Combining Sanitizers with fuzz testing (Fuzzing) is the industry standard for vulnerability discovery:\n1.  **Fuzzing Compilation**: Code is instrumented with ASan/UBSan and compiled as a binary target for fuzzing engines like libFuzzer or AFL++.\n2.  **Crash-Driven Exploration**: The fuzzer mutates inputs to find edge cases. When a vulnerability is triggered, the Sanitizer halts the process, allowing the fuzzer to log the crashing input.\n3.  **Canary Deployments**: In CI/CD pipelines, canary containers compiled with Sanitizers are run under real staging traffic to intercept memory leaks and concurrency errors before production deployment.'}];
+        const grid = document.getElementById('cardsGrid');
+        const searchInput = document.getElementById('searchInput');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+
+        let activeFilter = 'all';
+        let searchQuery = '';
+
+        function renderCards() {
+            grid.innerHTML = '';
+            const filtered = cards.filter(card => {
+                const matchesMod = activeFilter === 'all' || card.moduleId === activeFilter;
+                const matchesSearch = card.title.toLowerCase().includes(searchQuery) || card.body.toLowerCase().includes(searchQuery);
+                return matchesMod && matchesSearch;
+            });
+
+            filtered.forEach(card => {
+                const el = document.createElement('div');
+                el.className = 'card';
+                el.style.borderTop = `3px solid ${card.moduleColor}`;
+                el.innerHTML = `
+                    <div class="card-badge" style="background-color: ${card.moduleColor}"></div>
+                    <div class="card-header">
+                        <span class="card-num">Card ${card.num}</span>
+                        <div class="card-title">${card.title}</div>
+                    </div>
+                    <div class="card-body">${card.body}</div>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase();
+            renderCards();
+        });
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeFilter = btn.dataset.mod;
+                renderCards();
+            });
+        });
+
+        renderCards();
+    </script>
+</body>
+</html>

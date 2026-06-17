@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang= + map_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive distributed systems playground for checkcheckzz/awesome-scalability.">
+    <title>checkcheckzz / awesome-scalability Interactive Architecture Simulation Sandbox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --color-active: #10b981;
+            --color-warn: #f59e0b;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #7A8B99, #BFA88F);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .grid-labs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 1200px) {
+            .grid-labs {
+                grid-template-columns: 1fr;
+            }
+        }
+        .lab-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .lab-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: #60a5fa;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+        .lab-description {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .input-group label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .input-ctrl {
+            background-color: #0b111e;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.5rem 0.8rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn:hover {
+            background-color: #2563eb;
+        }
+        .btn-secondary {
+            background-color: #475569;
+        }
+        .btn-secondary:hover {
+            background-color: #334155;
+        }
+        .btn:disabled {
+            background-color: #1e293b;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+        
+        /* CQRS Lab Visualizer */
+        .cqrs-visualizer {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            height: 240px;
+            position: relative;
+            overflow: hidden;
+        }
+        .cqrs-node {
+            position: absolute;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem;
+            background-color: #151d30;
+            text-align: center;
+            font-size: 0.8rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+        .cqrs-node.active {
+            border-color: #60a5fa;
+            box-shadow: 0 0 10px rgba(96,165,250,0.6);
+        }
+        .node-c-client   { left: 10px;  top: 90px;  width: 90px;  height: 60px; }
+        .node-c-write    { left: 130px; top: 15px;  width: 100px; height: 60px; }
+        .node-c-read     { left: 130px; top: 155px; width: 100px; height: 60px; }
+        .node-c-evtstore { left: 270px; top: 15px;  width: 100px; height: 60px; }
+        .node-c-bus      { left: 400px; top: 90px;  width: 100px; height: 60px; }
+        .node-c-readview { left: 270px; top: 155px; width: 100px; height: 60px; }
+        
+        .cqrs-label {
+            font-size: 0.65rem;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+        .cqrs-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #10b981;
+        }
+        .path-packet {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f59e0b;
+            border-radius: 50%;
+            display: none;
+            z-index: 100;
+        }
+
+        /* Bulkhead Lab Visualizer */
+        .bulkhead-visualizer {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        .service-row {
+            display: grid;
+            grid-template-columns: 100px 1fr 100px;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            padding-bottom: 0.8rem;
+        }
+        .service-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        .srv-lbl {
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .thread-pool-grid {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .thread-cell {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            background-color: #1e293b;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: background-color 0.2s;
+        }
+        .thread-cell.busy {
+            background-color: #ef4444; /* red */
+        }
+        .thread-cell.free {
+            background-color: #10b981; /* green */
+        }
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .status-badge.healthy { background-color: rgba(16,185,129,0.2); color: #10b981; }
+        .status-badge.degraded { background-color: rgba(245,158,11,0.2); color: #f59e0b; }
+        .status-badge.dead { background-color: rgba(239,68,68,0.2); color: #f87171; }
+        .status-badge.circuit-open { background-color: rgba(99,102,241,0.2); color: #818cf8; }
+
+        .log-terminal {
+            background-color: #05070c;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.75rem;
+            height: 130px;
+            overflow-y: auto;
+            color: #a7f3d0;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>checkcheckzz / awesome-scalability Sandbox</h1>
+        <p>Experiment with CQRS/Event Sourcing flow and Microservices Bulkhead thread pool isolation with Circuit Breaking.</p>
+    </header>
+
+    <div class="grid-labs">
+        <!-- Lab 1: CQRS & Event Sourcing -->
+        <div class="lab-panel">
+            <h2 class="lab-title">Lab 1: CQRS & Event Sourcing Workflow</h2>
+            <p class="lab-description">
+                Submit a Write Command to append an event, then witness it project asynchronously to the Read View. Test Read Latencies or rebuild the entire database using the Replay Event Log feature.
+            </p>
+
+            <div class="controls-row">
+                <button class="btn" id="btn-cqrs-write" onclick="cqrsWrite()">SUBMIT WRITE COMMAND</button>
+                <button class="btn btn-secondary" id="btn-cqrs-read" onclick="cqrsRead()">QUERY READ VIEW</button>
+                <button class="btn btn-secondary" id="btn-cqrs-replay" onclick="cqrsReplay()">REPLAY EVENT LOG</button>
+            </div>
+
+            <div class="cqrs-visualizer">
+                <div class="path-packet" id="cqrs-packet"></div>
+                
+                <div class="cqrs-node node-c-client" id="cqrs-cl">
+                    <span class="cqrs-label">Client</span>
+                    <span>App Server</span>
+                </div>
+                <div class="cqrs-node node-c-write" id="cqrs-wr">
+                    <span class="cqrs-label">Write model</span>
+                    <span>Command App</span>
+                </div>
+                <div class="cqrs-node node-c-evtstore" id="cqrs-es">
+                    <span class="cqrs-label">Event Store</span>
+                    <span>Append-Only WAL</span>
+                    <span class="cqrs-val" id="val-es">Events: 0</span>
+                </div>
+                <div class="cqrs-node node-c-bus" id="cqrs-bus">
+                    <span class="cqrs-label">Event Bus</span>
+                    <span>Kafka Queue</span>
+                    <span class="cqrs-val" id="val-bus">Lag: 0</span>
+                </div>
+                <div class="cqrs-node node-c-readview" id="cqrs-rv">
+                    <span class="cqrs-label">Read view</span>
+                    <span>Fast Redis View</span>
+                    <span class="cqrs-val" id="val-rv">val: 0</span>
+                </div>
+                <div class="cqrs-node node-c-read" id="cqrs-rd">
+                    <span class="cqrs-label">Read model</span>
+                    <span>Query App</span>
+                </div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">CQRS & Event Sourcing Timeline</h4>
+            <div class="log-terminal" id="log-cqrs">
+                -- CQRS sandbox idle. Press Command or Query to simulate requests. --
+            </div>
+        </div>
+
+        <!-- Lab 2: Bulkhead & Circuit Breaker -->
+        <div class="lab-panel">
+            <h2 class="lab-title">Lab 2: Microservices Bulkhead & Circuit Breaker</h2>
+            <p class="lab-description">
+                Simulate high request rates to slow payment downstream. Compare No Isolation (thread exhaustion blocking healthy services) with Bulkhead (thread pool restriction) or Circuit Breaking.
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>Isolation Strategy</label>
+                    <select id="bulkhead-strategy" class="input-ctrl" onchange="resetBulkhead()">
+                        <option value="none">No Isolation (Shared Thread Pool)</option>
+                        <option value="bulkhead">Bulkhead (Isolated Thread Pools)</option>
+                        <option value="breaker">Circuit Breaker Enabled</option>
+                    </select>
+                </div>
+                <button class="btn" id="btn-bulk-inject" onclick="toggleFaultInjection()">INJECT FAULT (PAYMENT SLOW)</button>
+                <button class="btn btn-secondary" onclick="startBulkheadLoad()">START TRAFFIC</button>
+            </div>
+
+            <div class="bulkhead-visualizer">
+                <!-- Thread Pool 1: Shared or Gateway Pool -->
+                <div class="service-row">
+                    <div class="srv-lbl" id="pool-lbl-main">Gateway Pool</div>
+                    <div class="thread-pool-grid" id="grid-pool-main">
+                        <!-- 10 cells -->
+                        <div class="thread-cell"></div><div class="thread-cell"></div><div class="thread-cell"></div><div class="thread-cell"></div><div class="thread-cell"></div>
+                        <div class="thread-cell"></div><div class="thread-cell"></div><div class="thread-cell"></div><div class="thread-cell"></div><div class="thread-cell"></div>
+                    </div>
+                    <div class="status-badge healthy" id="badge-main">Healthy</div>
+                </div>
+
+                <!-- Downstream A: Inventory Service -->
+                <div class="service-row">
+                    <div class="srv-lbl">Inventory Svc</div>
+                    <div class="thread-pool-grid" id="grid-pool-inv">
+                        <!-- 5 cells -->
+                        <div class="thread-cell free"></div><div class="thread-cell free"></div><div class="thread-cell free"></div><div class="thread-cell free"></div><div class="thread-cell free"></div>
+                    </div>
+                    <div class="status-badge healthy" id="badge-inv">Healthy</div>
+                </div>
+
+                <!-- Downstream B: Payment Service -->
+                <div class="service-row">
+                    <div class="srv-lbl">Payment Svc</div>
+                    <div class="thread-pool-grid" id="grid-pool-pay">
+                        <!-- 5 cells -->
+                        <div class="thread-cell free"></div><div class="thread-cell free"></div><div class="thread-cell free"></div><div class="thread-cell free"></div><div class="thread-cell free"></div>
+                    </div>
+                    <div class="status-badge healthy" id="badge-pay">Healthy</div>
+                </div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">Resiliency Control logs</h4>
+            <div class="log-terminal" id="log-bulk">
+                -- Load Simulator idle. Press Start Traffic to simulate user actions. --
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Lab 1: CQRS & Event Sourcing
+        // ==========================================
+        const logCqrsEl = document.getElementById('log-cqrs');
+        function logCqrs(msg) {
+            logCqrsEl.innerHTML += `<div>[CQRS] ${msg}</div>`;
+            logCqrsEl.scrollTop = logCqrsEl.scrollHeight;
+        }
+
+        let eventLogs = []; // List of events
+        let currentReadValue = 0;
+        let lastCommandValue = 0;
+        let isBusDelayed = false;
+
+        function animateCqrsPacket(fromId, toId, color, callback) {
+            const p = document.getElementById('cqrs-packet');
+            const fromEl = document.getElementById(fromId);
+            const toEl = document.getElementById(toId);
+
+            const containerRect = document.querySelector('.cqrs-visualizer').getBoundingClientRect();
+            const fromRect = fromEl.getBoundingClientRect();
+            const toRect = toEl.getBoundingClientRect();
+
+            const xStart = fromRect.left - containerRect.left + fromRect.width / 2 - 5;
+            const yStart = fromRect.top - containerRect.top + fromRect.height / 2 - 5;
+            const xEnd = toRect.left - containerRect.left + toRect.width / 2 - 5;
+            const yEnd = toRect.top - containerRect.top + toRect.height / 2 - 5;
+
+            p.style.display = 'block';
+            p.style.backgroundColor = color;
+            p.style.boxShadow = `0 0 8px ${color}`;
+            p.style.left = `${xStart}px`;
+            p.style.top = `${yStart}px`;
+
+            let start = null;
+            const duration = 400;
+
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                const progress = Math.min((timestamp - start) / duration, 1);
+                p.style.left = `${xStart + (xEnd - xStart) * progress}px`;
+                p.style.top = `${yStart + (yEnd - yStart) * progress}px`;
+
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    p.style.display = 'none';
+                    if (callback) callback();
+                }
+            }
+            window.requestAnimationFrame(step);
+        }
+
+        function cqrsWrite() {
+            const btnW = document.getElementById('btn-cqrs-write');
+            const btnR = document.getElementById('btn-cqrs-read');
+            const btnRep = document.getElementById('btn-cqrs-replay');
+            btnW.disabled = true;
+            btnR.disabled = true;
+            btnRep.disabled = true;
+
+            const newVal = Math.floor(Math.random() * 900) + 100;
+            lastCommandValue = newVal;
+            
+            logCqrs(`--> Client Command: SET value = ${newVal}`);
+            document.getElementById('cqrs-cl').classList.add('active');
+
+            animateCqrsPacket('cqrs-cl', 'cqrs-wr', '#3b82f6', () => {
+                document.getElementById('cqrs-wr').classList.add('active');
+                logCqrs("[COMMAND VERIFY] Write model validated constraint: value > 0.");
+                
+                // Write to Event Store
+                animateCqrsPacket('cqrs-wr', 'cqrs-es', '#ef4444', () => {
+                    document.getElementById('cqrs-es').classList.add('active');
+                    eventLogs.push(newVal);
+                    document.getElementById('val-es').innerText = `Events: ${eventLogs.length}`;
+                    logCqrs(`[EVENT STORE] Appended Event: OrderCreated(Val=${newVal}) to Write-Ahead Log.`);
+                    
+                    // Instant Write ACK to Client
+                    logCqrs("<< Write transactional commit confirmed to Client. Latency: 5ms.");
+                    
+                    animateCqrsPacket('cqrs-wr', 'cqrs-cl', '#10b981', () => {
+                        document.getElementById('cqrs-cl').classList.remove('active');
+                        document.getElementById('cqrs-wr').classList.remove('active');
+                        
+                        // Push asynchronously to Event Bus
+                        logCqrs("[ASYNC] Dispatching Event payload asynchronously to Event Bus (Kafka)...");
+                        animateCqrsPacket('cqrs-es', 'cqrs-bus', '#f59e0b', () => {
+                            document.getElementById('cqrs-bus').classList.add('active');
+                            document.getElementById('val-bus').innerText = "Lag: 1";
+                            
+                            // Projector consumes event and updates Read View
+                            setTimeout(() => {
+                                logCqrs("[PROJECTOR] Consumer popped Event from Kafka. Running Projection mapping...");
+                                animateCqrsPacket('cqrs-bus', 'cqrs-rv', '#10b981', () => {
+                                    document.getElementById('cqrs-rv').classList.add('active');
+                                    currentReadValue = newVal;
+                                    document.getElementById('val-rv').innerText = `val: ${currentReadValue}`;
+                                    document.getElementById('val-rv').style.color = '#10b981';
+                                    document.getElementById('val-bus').innerText = "Lag: 0";
+                                    logCqrs(`[READ VIEW UPDATE] Read cache updated to ${currentReadValue}. consistency synchronized.`);
+                                    
+                                    setTimeout(() => {
+                                        document.getElementById('cqrs-es').classList.remove('active');
+                                        document.getElementById('cqrs-bus').classList.remove('active');
+                                        document.getElementById('cqrs-rv').classList.remove('active');
+                                        btnW.disabled = false;
+                                        btnR.disabled = false;
+                                        btnRep.disabled = false;
+                                    }, 400);
+                                });
+                            }, 800);
+                        });
+                    });
+                });
+            });
+        }
+
+        function cqrsRead() {
+            const btnW = document.getElementById('btn-cqrs-write');
+            const btnR = document.getElementById('btn-cqrs-read');
+            btnW.disabled = true;
+            btnR.disabled = true;
+
+            logCqrs("--> Client Query: GET current value");
+            document.getElementById('cqrs-cl').classList.add('active');
+
+            animateCqrsPacket('cqrs-cl', 'cqrs-rd', '#3b82f6', () => {
+                document.getElementById('cqrs-rd').classList.add('active');
+                
+                // Read model queries fast Read View (Redis)
+                animateCqrsPacket('cqrs-rd', 'cqrs-rv', '#3b82f6', () => {
+                    document.getElementById('cqrs-rv').classList.add('active');
+                    
+                    const isStale = (currentReadValue !== lastCommandValue);
+                    if (isStale) {
+                        logCqrs(`[READ STALE] Cache is STALE! Query returned ${currentReadValue}. (Write was ${lastCommandValue}, Eventual Consistency Window).`);
+                    } else {
+                        logCqrs(`[READ HIT] Read View matched exactly. Query returned ${currentReadValue}.`);
+                    }
+
+                    animateCqrsPacket('cqrs-rv', 'cqrs-rd', '#10b981', () => {
+                        animateCqrsPacket('cqrs-rd', 'cqrs-cl', '#10b981', () => {
+                            document.getElementById('cqrs-cl').classList.remove('active');
+                            document.getElementById('cqrs-rd').classList.remove('active');
+                            document.getElementById('cqrs-rv').classList.remove('active');
+                            btnW.disabled = false;
+                            btnR.disabled = false;
+                        });
+                    });
+                });
+            });
+        }
+
+        function cqrsReplay() {
+            if (eventLogs.length === 0) {
+                alert("No events in Event Store yet. Submit some writes first.");
+                return;
+            }
+            const btnW = document.getElementById('btn-cqrs-write');
+            const btnR = document.getElementById('btn-cqrs-read');
+            const btnRep = document.getElementById('btn-cqrs-replay');
+            btnW.disabled = true;
+            btnR.disabled = true;
+            btnRep.disabled = true;
+
+            logCqrs("[REBUILD START] Wiping Read View cache... (val = 0)");
+            currentReadValue = 0;
+            document.getElementById('val-rv').innerText = "val: 0";
+            document.getElementById('val-rv').style.color = '#ef4444';
+
+            setTimeout(() => {
+                logCqrs(`[REPLAY LOG] Reading ${eventLogs.length} historical events sequentially from WAL...`);
+                let delay = 0;
+                
+                eventLogs.forEach((v, idx) => {
+                    setTimeout(() => {
+                        logCqrs(`>> Replaying Event [${idx+1}/${eventLogs.length}]: Value=${v}`);
+                        currentReadValue = v;
+                        document.getElementById('val-rv').innerText = `val: ${v}`;
+                        document.getElementById('val-rv').style.color = '#f59e0b';
+                        
+                        if (idx === eventLogs.length - 1) {
+                            setTimeout(() => {
+                                document.getElementById('val-rv').style.color = '#10b981';
+                                logCqrs("[REBUILD SUCCESS] Read View cache fully restored to consistent state.");
+                                btnW.disabled = false;
+                                btnR.disabled = false;
+                                btnRep.disabled = false;
+                            }, 500);
+                        }
+                    }, delay);
+                    delay += 500;
+                });
+            }, 800);
+        }
+
+        // ==========================================
+        // Lab 2: Bulkhead & Circuit Breaker
+        // ==========================================
+        const logBulkEl = document.getElementById('log-bulk');
+        function logBulk(msg) {
+            logBulkEl.innerHTML += `<div>[RESILIENCY] ${msg}</div>`;
+            logBulkEl.scrollTop = logBulkEl.scrollHeight;
+        }
+
+        let isFaultInjected = false;
+        let isTrafficRunning = false;
+        let trafficInterval = null;
+        let currentStrategy = 'none';
+        
+        let errorCount = 0;
+        let totalCalls = 0;
+        let breakerState = 'CLOSED'; // CLOSED, OPEN, HALF-OPEN
+        let breakerResetTimeout = null;
+
+        function resetBulkhead() {
+            currentStrategy = document.getElementById('bulkhead-strategy').value;
+            logBulk(`Switched isolation strategy to: [${currentStrategy.toUpperCase()}]`);
+            
+            // Adjust Pool Labels based on strategy
+            if (currentStrategy === 'bulkhead') {
+                document.getElementById('pool-lbl-main').innerText = "Inventory Pool";
+            } else {
+                document.getElementById('pool-lbl-main').innerText = "Gateway Pool";
+            }
+            
+            // Reset state
+            breakerState = 'CLOSED';
+            updateBreakerBadge();
+        }
+
+        function updateBreakerBadge() {
+            const badgePay = document.getElementById('badge-pay');
+            if (currentStrategy === 'breaker') {
+                if (breakerState === 'CLOSED') {
+                    badgePay.className = "status-badge healthy";
+                    badgePay.innerText = "Breaker: Closed";
+                } else if (breakerState === 'OPEN') {
+                    badgePay.className = "status-badge dead";
+                    badgePay.innerText = "Breaker: Open";
+                } else {
+                    badgePay.className = "status-badge degraded";
+                    badgePay.innerText = "Breaker: Half-Open";
+                }
+            } else {
+                badgePay.className = isFaultInjected ? "status-badge degraded" : "status-badge healthy";
+                badgePay.innerText = isFaultInjected ? "Degraded" : "Healthy";
+            }
+        }
+
+        function toggleFaultInjection() {
+            isFaultInjected = !isFaultInjected;
+            const btn = document.getElementById('btn-bulk-inject');
+            if (isFaultInjected) {
+                btn.className = "btn btn-secondary";
+                btn.innerText = "CLEAR FAULT INJECTION";
+                logBulk("[FAULT INJECT] Payment Service latency increased to 2500ms (Thread blockage induced).");
+            } else {
+                btn.className = "btn";
+                btn.innerText = "INJECT FAULT (PAYMENT SLOW)";
+                logBulk("[FAULT CLEARED] Payment Service response time back to 20ms.");
+            }
+            updateBreakerBadge();
+        }
+
+        function updateThreadPoolUI(poolId, activeCount, maxCount) {
+            const grid = document.getElementById(poolId);
+            const cells = grid.querySelectorAll('.thread-cell');
+            
+            cells.forEach((cell, idx) => {
+                if (idx < activeCount) {
+                    cell.className = "thread-cell busy";
+                } else {
+                    cell.className = "thread-cell free";
+                }
+            });
+        }
+
+        function startBulkheadLoad() {
+            if (isTrafficRunning) {
+                // Stop it
+                clearInterval(trafficInterval);
+                isTrafficRunning = false;
+                logBulk("Traffic generator stopped.");
+                // Clear UI
+                updateThreadPoolUI('grid-pool-main', 0, 10);
+                updateThreadPoolUI('grid-pool-inv', 0, 5);
+                updateThreadPoolUI('grid-pool-pay', 0, 5);
+                return;
+            }
+
+            isTrafficRunning = true;
+            logBulk("Traffic generator started. Dispatching 6 req/sec (50% Payment, 50% Inventory).");
+
+            let activeMainPool = 0;
+            let activeInvPool = 0;
+            let activePayPool = 0;
+
+            trafficInterval = setInterval(() => {
+                // Decide request type (Inventory or Payment)
+                const isPayReq = Math.random() < 0.5;
+
+                if (isPayReq) {
+                    // Payment request
+                    logBulk("--> HTTP POST /api/v1/payments");
+                    
+                    if (currentStrategy === 'breaker' && breakerState === 'OPEN') {
+                        // Fast reject
+                        logBulk("[CIRCUIT BREAKER] Request rejected instantly at gateway. (Fallback return).");
+                        errorCount++;
+                        return;
+                    }
+
+                    if (currentStrategy === 'none') {
+                        // Shared pool
+                        if (activeMainPool >= 10) {
+                            logBulk("[GATEWAY OVERLOAD] Gateway thread pool exhausted! Request rejected with 503.");
+                            return;
+                        }
+                        activeMainPool++;
+                        updateThreadPoolUI('grid-pool-main', activeMainPool, 10);
+                        
+                        // Process Payment Downstream
+                        const delay = isFaultInjected ? 2200 : 200;
+                        setTimeout(() => {
+                            activeMainPool--;
+                            updateThreadPoolUI('grid-pool-main', activeMainPool, 10);
+                            logBulk("<< Payments processed successfully.");
+                        }, delay);
+
+                    } else if (currentStrategy === 'bulkhead') {
+                        // Bulkhead: Dedicated thread pool for payment
+                        if (activePayPool >= 5) {
+                            logBulk("[BULKHEAD REJECT] Payment dedicated thread pool full (5/5). Request rejected.");
+                            return;
+                        }
+                        activePayPool++;
+                        updateThreadPoolUI('grid-pool-pay', activePayPool, 5);
+
+                        const delay = isFaultInjected ? 2200 : 200;
+                        setTimeout(() => {
+                            activePayPool--;
+                            updateThreadPoolUI('grid-pool-pay', activePayPool, 5);
+                            logBulk("<< Payments completed.");
+                        }, delay);
+
+                    } else if (currentStrategy === 'breaker') {
+                        // Breaker is CLOSED or HALF-OPEN
+                        if (activeMainPool >= 10) {
+                            logBulk("[GATEWAY OVERLOAD] Shared thread pool full!");
+                            return;
+                        }
+                        activeMainPool++;
+                        updateThreadPoolUI('grid-pool-main', activeMainPool, 10);
+
+                        const isSlow = isFaultInjected;
+                        const delay = isSlow ? 2200 : 200;
+
+                        setTimeout(() => {
+                            activeMainPool--;
+                            updateThreadPoolUI('grid-pool-main', activeMainPool, 10);
+
+                            if (isSlow) {
+                                logBulk("[SLOW CALL] Payment responded in 2200ms.");
+                                errorCount++;
+                                
+                                if (breakerState === 'CLOSED' && errorCount >= 3) {
+                                    breakerState = 'OPEN';
+                                    logBulk("[BREAKER TRIP] Error threshold exceeded! Circuit Breaker switched to OPEN.");
+                                    updateBreakerBadge();
+                                    
+                                    // Start recovery timer
+                                    clearTimeout(breakerResetTimeout);
+                                    breakerResetTimeout = setTimeout(() => {
+                                        breakerState = 'HALF-OPEN';
+                                        logBulk("[BREAKER COOL-DOWN] Reset timeout elapsed. Circuit Breaker switched to HALF-OPEN.");
+                                        updateBreakerBadge();
+                                        errorCount = 0;
+                                    }, 5000);
+                                } else if (breakerState === 'HALF-OPEN') {
+                                    breakerState = 'OPEN';
+                                    logBulk("[BREAKER RE-TRIP] Probe request failed. Re-tripping to OPEN.");
+                                    updateBreakerBadge();
+                                }
+                            } else {
+                                logBulk("<< Payment completed (200ms).");
+                                if (breakerState === 'HALF-OPEN') {
+                                    breakerState = 'CLOSED';
+                                    logBulk("[BREAKER RESET] Probe request succeeded! Circuit Breaker reset to CLOSED.");
+                                    updateBreakerBadge();
+                                    errorCount = 0;
+                                }
+                            }
+                        }, delay);
+                    }
+
+                } else {
+                    // Inventory request
+                    logBulk("--> HTTP GET /api/v1/inventory");
+
+                    if (currentStrategy === 'none') {
+                        if (activeMainPool >= 10) {
+                            logBulk("[GATEWAY BLOCKED] Inventory query blocked because thread pool is exhausted by slow payments!");
+                            return;
+                        }
+                        activeMainPool++;
+                        updateThreadPoolUI('grid-pool-main', activeMainPool, 10);
+
+                        setTimeout(() => {
+                            activeMainPool--;
+                            updateThreadPoolUI('grid-pool-main', activeMainPool, 10);
+                            logBulk("<< Inventory returned successfully.");
+                        }, 50);
+
+                    } else if (currentStrategy === 'bulkhead') {
+                        // Bulkhead: Inventory has its own pool
+                        if (activeInvPool >= 5) {
+                            logBulk("[INVENTORY OVERLOAD] Dedicated pool full.");
+                            return;
+                        }
+                        activeInvPool++;
+                        updateThreadPoolUI('grid-pool-inv', activeInvPool, 5);
+
+                        setTimeout(() => {
+                            activeInvPool--;
+                            updateThreadPoolUI('grid-pool-inv', activeInvPool, 5);
+                            logBulk("<< Inventory completed (isolated from slow payments).");
+                        }, 50);
+
+                    } else if (currentStrategy === 'breaker') {
+                        if (activeMainPool >= 10) {
+                            logBulk("[GATEWAY BLOCKED] Shared pool exhausted.");
+                            return;
+                        }
+                        activeMainPool++;
+                        updateThreadPoolUI('grid-pool-main', activeMainPool, 10);
+
+                        setTimeout(() => {
+                            activeMainPool--;
+                            updateThreadPoolUI('grid-pool-main', activeMainPool, 10);
+                            logBulk("<< Inventory completed (circuit breaker protects thread pool).");
+                        }, 50);
+                    }
+                }
+            }, 600);
+        }
+    </script>
+</body>
+</html>

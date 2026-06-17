@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang= + map_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CockroachDB Consensus & Transaction Laboratory Sandbox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --slate-blue: #7A8B99;
+            --moss-green: #7D8F7B;
+            --terracotta: #B58A7D;
+            --plum-rose: #9E828A;
+            --indigo: #5F7582;
+            --antique-gold: #BFA88F;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1200px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.6rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Sandbox Container */
+        .sandbox-panel {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            display: none;
+        }
+
+        .sandbox-panel.active {
+            display: block;
+        }
+
+        /* Lab Layout Grid */
+        .lab-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        /* Topology Visualizer */
+        .visualizer-area {
+            border: 1px solid var(--border-color);
+            background-color: #0d1321;
+            border-radius: 8px;
+            padding: 1.5rem;
+            min-height: 380px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Controls Panel */
+        .controls-area {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .control-group {
+            background-color: #1e293b;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            width: 100%;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background-color: #334155;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        /* Log Terminal */
+        .log-terminal {
+            background-color: #020617;
+            color: #10b981;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 1rem;
+            border-radius: 6px;
+            height: 180px;
+            overflow-y: auto;
+            border: 1px solid #111827;
+            margin-top: 1.5rem;
+            white-space: pre-wrap;
+        }
+
+        /* 2PC Lab Specifics */
+        .node-network {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .topo-node {
+            width: 100px;
+            background-color: #1e293b;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.6rem;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .topo-node.coordinator {
+            border-color: #f59e0b;
+            background-color: #2c2013;
+        }
+
+        .topo-node.crashed {
+            border-color: #ef4444;
+            background-color: #2d1818;
+            opacity: 0.6;
+        }
+
+        .node-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.3rem;
+        }
+
+        .node-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            color: #94a3b8;
+        }
+
+        .intent-badge {
+            background-color: #ec4899;
+            color: white;
+            font-size: 0.55rem;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 0.2rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .record-box {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.8rem;
+            text-align: center;
+            margin: 1rem auto;
+            max-width: 400px;
+        }
+
+        .record-title {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.3rem;
+        }
+
+        .record-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .status-badge.pending { background-color: #d97706; color: white; }
+        .status-badge.committed { background-color: #059669; color: white; }
+        .status-badge.aborted { background-color: #dc2626; color: white; }
+        .status-badge.none { background-color: #475569; color: white; }
+
+        /* HLC Lab Specifics */
+        .hlc-node-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .hlc-node-card {
+            background-color: #1e293b;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: left;
+            position: relative;
+        }
+
+        .hlc-node-card.panic {
+            border-color: #ef4444;
+            background-color: #2d1818;
+            animation: shake 0.3s infinite;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(0px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+        }
+
+        .hlc-node-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: white;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .hlc-clock-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #60a5fa;
+            margin-bottom: 0.4rem;
+        }
+
+        .hlc-clock-logical {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #10b981;
+            margin-bottom: 0.4rem;
+        }
+
+        .hlc-db-versions {
+            background-color: #0b0f19;
+            padding: 0.4rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            height: 90px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+        }
+
+        .hlc-db-item {
+            border-bottom: 1px solid #111827;
+            padding: 0.15rem 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .skew-slider {
+            width: 100%;
+            margin-top: 0.3rem;
+        }
+
+        .skew-val-lbl {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #f59e0b;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>CockroachDB Internals Simulator</h1>
+        <p>Interactive simulation of the Two-Phase Commit (2PC) protocol with Write Intents and Transaction Records, and the Hybrid Logical Clock (HLC) with MVCC versioned snapshots under clock offsets.</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" id="tab1-btn" onclick="switchTab(1)">Lab 1: 2PC & Distributed Transactions</button>
+        <button class="tab-btn" id="tab2-btn" onclick="switchTab(2)">Lab 2: HLC & MVCC Versioning</button>
+    </div>
+
+    <!-- TAB 1: 2PC & Distributed Transactions -->
+    <div class="sandbox-panel active" id="lab1-panel">
+        <div class="lab-grid">
+            <div class="visualizer-area">
+                <div>
+                    <h3 class="section-title">Distributed 2PC Protocol Pipeline</h3>
+                    <p style="font-size: 0.75rem; color:#64748b; margin-top:-0.5rem; margin-bottom:1rem">
+                        Click on Range Nodes to toggle node crashes. Monitor Intent Locks.
+                    </p>
+                </div>
+                
+                <div class="node-network">
+                    <!-- Coordinator -->
+                    <div class="topo-node coordinator" id="node-coord">
+                        <div class="node-label">Txn Coordinator</div>
+                        <div class="node-val" id="coord-state">Idle</div>
+                    </div>
+                    
+                    <!-- Range 1 -->
+                    <div class="topo-node" id="node-r1" onclick="crashRange(1)">
+                        <div class="node-label">Range 1 (K1)</div>
+                        <div class="node-val" id="r1-val">Value: v0</div>
+                        <div id="r1-intents"></div>
+                    </div>
+
+                    <!-- Range 2 -->
+                    <div class="topo-node" id="node-r2" onclick="crashRange(2)">
+                        <div class="node-label">Range 2 (K2)</div>
+                        <div class="node-val" id="r2-val">Value: v0</div>
+                        <div id="r2-intents"></div>
+                    </div>
+                </div>
+
+                <div class="record-box">
+                    <div class="record-title">System DB: Transaction Record (txn_coord_table)</div>
+                    <div class="record-status" id="txn-record-status">
+                        <span class="status-badge none">No Transaction</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-area">
+                <h3 class="section-title">Transaction Execution Controls</h3>
+                
+                <div class="control-group">
+                    <button class="btn" onclick="startTxn()">1. Start Transaction (Create Record)</button>
+                    <button class="btn" onclick="writeIntent()">2. Phase 1: Write Intent Locks</button>
+                    <button class="btn" onclick="commitTxn(true)">3a. Phase 2: Commit Transaction</button>
+                    <button class="btn btn-danger" onclick="commitTxn(false)">3b. Phase 2: Abort Transaction</button>
+                    <button class="btn btn-secondary" onclick="asyncCleanup()">4. Asynchronous Intent Cleanup</button>
+                </div>
+
+                <div class="control-group">
+                    <label>Simulated Values to Write</label>
+                    <input type="text" id="txn-val-input" value="v_new" style="background:#0b0f19; border:1px solid var(--border-color); color:white; padding:0.4rem; border-radius:4px; width:100%; font-family:'JetBrains Mono'">
+                </div>
+
+                <button class="btn btn-secondary" onclick="resetLab1()">Reset Lab Sandbox</button>
+            </div>
+        </div>
+
+        <div class="log-terminal" id="log-1">-- Sandbox 1 Initialized. Click 'Start Transaction' to begin. --</div>
+    </div>
+
+    <!-- TAB 2: HLC & MVCC Versioning -->
+    <div class="sandbox-panel" id="lab2-panel">
+        <div class="lab-grid">
+            <div class="visualizer-area">
+                <div>
+                    <h3 class="section-title">Hybrid Logical Clock & MVCC Store</h3>
+                    <p style="font-size: 0.75rem; color:#64748b; margin-top:-0.5rem; margin-bottom:1rem">
+                        Adjust clock offsets in the controls. Nodes exceeding 200ms automatically crash (Panic).
+                    </p>
+                </div>
+
+                <div class="hlc-node-container">
+                    <!-- Node A -->
+                    <div class="hlc-node-card" id="hlc-node-a">
+                        <div class="hlc-node-title">Node A</div>
+                        <div class="hlc-clock-val" id="hlc-phys-a">Phys Clock: 1000ms</div>
+                        <div class="hlc-clock-logical" id="hlc-val-a">HLC: (1000, 0)</div>
+                        <div style="font-size: 0.7rem; color:#64748b; margin-bottom:0.25rem">Local MVCC Store:</div>
+                        <div class="hlc-db-versions" id="hlc-db-a"></div>
+                    </div>
+
+                    <!-- Node B -->
+                    <div class="hlc-node-card" id="hlc-node-b">
+                        <div class="hlc-node-title">Node B</div>
+                        <div class="hlc-clock-val" id="hlc-phys-b">Phys Clock: 1000ms</div>
+                        <div class="hlc-clock-logical" id="hlc-val-b">HLC: (1000, 0)</div>
+                        <div style="font-size: 0.7rem; color:#64748b; margin-bottom:0.25rem">Local MVCC Store:</div>
+                        <div class="hlc-db-versions" id="hlc-db-b"></div>
+                    </div>
+
+                    <!-- Node C -->
+                    <div class="hlc-node-card" id="hlc-node-c">
+                        <div class="hlc-node-title">Node C</div>
+                        <div class="hlc-clock-val" id="hlc-phys-c">Phys Clock: 1000ms</div>
+                        <div class="hlc-clock-logical" id="hlc-val-c">HLC: (1000, 0)</div>
+                        <div style="font-size: 0.7rem; color:#64748b; margin-bottom:0.25rem">Local MVCC Store:</div>
+                        <div class="hlc-db-versions" id="hlc-db-c"></div>
+                    </div>
+                </div>
+                
+                <div style="font-size: 0.75rem; color:#94a3b8; padding:0.5rem; background:#1e293b; border-radius:4px">
+                    <strong>HLC Update Rule:</strong> When node receives event with timestamp (L_msg, C_msg), it sets L_local = max(L_local, L_msg, Physical_Clock). If physical time is chosen, C_local = 0. If logical message time is chosen, C_local = C_msg + 1.
+                </div>
+            </div>
+
+            <div class="controls-area">
+                <h3 class="section-title">HLC & MVCC Controls</h3>
+                
+                <!-- Skew Sliders -->
+                <div class="control-group">
+                    <label>Node B Physical Clock Skew</label>
+                    <input type="range" class="skew-slider" id="skew-b" min="-250" max="250" value="50" oninput="updateClockSkew()">
+                    <span class="skew-val-lbl" id="skew-b-lbl">+50ms</span>
+                </div>
+
+                <div class="control-group">
+                    <label>Node C Physical Clock Skew</label>
+                    <input type="range" class="skew-slider" id="skew-c" min="-250" max="250" value="-30" oninput="updateClockSkew()">
+                    <span class="skew-val-lbl" id="skew-c-lbl">-30ms</span>
+                </div>
+
+                <div class="control-group">
+                    <button class="btn" onclick="hlcWrite()">Write Key K1 (Proposed at Node A)</button>
+                    <button class="btn btn-secondary" onclick="hlcRead('A')">Read K1 at Node A</button>
+                    <button class="btn btn-secondary" onclick="hlcRead('C')">Read K1 at Node C (Drift Uncertainty Check)</button>
+                    <button class="btn btn-secondary" onclick="advanceBaseTime()">Advance Base Time (+200ms)</button>
+                </div>
+
+                <button class="btn btn-secondary" onclick="resetLab2()">Reset Lab Sandbox</button>
+            </div>
+        </div>
+
+        <div class="log-terminal" id="log-2">-- Sandbox 2 Initialized. Write or read to demonstrate HLC + MVCC. --</div>
+    </div>
+
+    <script>
+        function switchTab(num) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.sandbox-panel').forEach(panel => panel.classList.remove('active'));
+            
+            document.getElementById(`tab${num}-btn`).classList.add('active');
+            document.getElementById(`lab${num}-panel`).classList.add('active');
+        }
+
+        // ==========================================
+        // Lab 1: 2PC & Distributed Transactions
+        // ==========================================
+        let txnState = 'NONE'; // NONE, PENDING, INTENTS_WRITTEN, COMMITTED, ABORTED
+        let range1Val = 'v0';
+        let range2Val = 'v0';
+        let r1Intent = null;
+        let r2Intent = null;
+        let r1Crashed = false;
+        let r2Crashed = false;
+        let txnVal = 'v_new';
+
+        function logLab1(msg) {
+            const el = document.getElementById('log-1');
+            const d = new Date();
+            const timeStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+            el.innerHTML = `[${timeStr}] ${msg}\n` + el.innerHTML;
+        }
+
+        function renderLab1() {
+            // Coordinator state
+            const coordState = document.getElementById('coord-state');
+            coordState.innerText = `State: ${txnState}`;
+
+            // Nodes
+            const nR1 = document.getElementById('node-r1');
+            const nR2 = document.getElementById('node-r2');
+            
+            nR1.className = `topo-node ${r1Crashed ? 'crashed' : ''}`;
+            nR2.className = `topo-node ${r2Crashed ? 'crashed' : ''}`;
+
+            document.getElementById('r1-val').innerText = `Value: ${range1Val}`;
+            document.getElementById('r2-val').innerText = `Value: ${range2Val}`;
+
+            // Intents
+            const r1Int = document.getElementById('r1-intents');
+            const r2Int = document.getElementById('r2-intents');
+
+            r1Int.innerHTML = r1Intent ? `<span class="intent-badge">INTENT: ${r1Intent}</span>` : '';
+            r2Int.innerHTML = r2Intent ? `<span class="intent-badge">INTENT: ${r2Intent}</span>` : '';
+
+            // Record status
+            const recStatus = document.getElementById('txn-record-status');
+            if (txnState === 'NONE') {
+                recStatus.innerHTML = '<span class="status-badge none">No Transaction Record</span>';
+            } else if (txnState === 'PENDING' || txnState === 'INTENTS_WRITTEN') {
+                recStatus.innerHTML = '<span class="status-badge pending">PENDING</span>';
+            } else if (txnState === 'COMMITTED') {
+                recStatus.innerHTML = '<span class="status-badge committed">COMMITTED</span>';
+            } else if (txnState === 'ABORTED') {
+                recStatus.innerHTML = '<span class="status-badge aborted">ABORTED</span>';
+            }
+        }
+
+        function crashRange(num) {
+            if (num === 1) r1Crashed = !r1Crashed;
+            if (num === 2) r2Crashed = !r2Crashed;
+            logLab1(`Range ${num} ${num===1? (r1Crashed?'CRASHED (Offline)':'recovered'): (r2Crashed?'CRASHED (Offline)':'recovered')}`);
+            renderLab1();
+        }
+
+        function startTxn() {
+            if (txnState !== 'NONE' && txnState !== 'COMMITTED' && txnState !== 'ABORTED') {
+                logLab1("[Error] Active transaction already in progress.");
+                return;
+            }
+            txnVal = document.getElementById('txn-val-input').value.trim() || 'v_new';
+            txnState = 'PENDING';
+            r1Intent = null;
+            r2Intent = null;
+            logLab1(`[START] Transaction started. Transaction Record registered as PENDING.`);
+            renderLab1();
+        }
+
+        function writeIntent() {
+            if (txnState !== 'PENDING') {
+                logLab1("[Error] Click 'Start Transaction' first.");
+                return;
+            }
+
+            logLab1("[Phase 1] Writing Write Intent locks to Range 1 and Range 2...");
+            
+            // Check Range 1
+            if (r1Crashed) {
+                logLab1("[Failure] Range 1 is offline. Write Intent failed.");
+                txnState = 'ABORTED';
+                logLab1("[AUTO ABORT] Phase 1 encountered failures. Transaction coordinator flags state as ABORTED.");
+                renderLab1();
+                return;
+            } else {
+                r1Intent = txnVal;
+                logLab1("[Success] Write Intent written on Range 1.");
+            }
+
+            // Check Range 2
+            if (r2Crashed) {
+                logLab1("[Failure] Range 2 is offline. Write Intent failed.");
+                txnState = 'ABORTED';
+                logLab1("[AUTO ABORT] Phase 1 encountered failures. Transaction coordinator flags state as ABORTED.");
+                renderLab1();
+                return;
+            } else {
+                r2Intent = txnVal;
+                logLab1("[Success] Write Intent written on Range 2.");
+            }
+
+            txnState = 'INTENTS_WRITTEN';
+            logLab1("[Phase 1 Complete] All Write Intents written successfully. Ready to Commit.");
+            renderLab1();
+        }
+
+        function commitTxn(doCommit) {
+            if (txnState !== 'INTENTS_WRITTEN' && txnState !== 'PENDING') {
+                logLab1("[Error] No active transaction ready for Phase 2.");
+                return;
+            }
+
+            if (doCommit) {
+                if (txnState === 'PENDING') {
+                    logLab1("[Error] Cannot commit. Phase 1 Write Intents not written yet.");
+                    return;
+                }
+                // Verify one last time
+                if (r1Crashed || r2Crashed) {
+                    logLab1("[Failure] Cannot commit: a participant node went offline during Phase 2.");
+                    txnState = 'ABORTED';
+                } else {
+                    txnState = 'COMMITTED';
+                    logLab1("[Phase 2 SUCCESS] Transaction Record atomically updated to COMMITTED! Transaction is legally complete.");
+                }
+            } else {
+                txnState = 'ABORTED';
+                logLab1("[Phase 2 ABORTED] Transaction Record updated to ABORTED. Reverting writes.");
+            }
+            renderLab1();
+        }
+
+        function asyncCleanup() {
+            if (txnState !== 'COMMITTED' && txnState !== 'ABORTED') {
+                logLab1("[Error] Can only run cleanup after Transaction is COMMITTED or ABORTED.");
+                return;
+            }
+
+            logLab1("[Cleanup] Resolving intents and releasing locks asynchronously...");
+
+            if (txnState === 'COMMITTED') {
+                if (r1Intent) { range1Val = r1Intent; r1Intent = null; logLab1("[Cleanup] Range 1 Intent resolved: Value updated to permanent."); }
+                if (r2Intent) { range2Val = r2Intent; r2Intent = null; logLab1("[Cleanup] Range 2 Intent resolved: Value updated to permanent."); }
+            } else if (txnState === 'ABORTED') {
+                r1Intent = null;
+                r2Intent = null;
+                logLab1("[Cleanup] Intents cleared on all nodes. Lock tables released. Old values kept.");
+            }
+
+            txnState = 'NONE';
+            logLab1("[Cleanup Complete] Intents resolved successfully. Systems idle.");
+            renderLab1();
+        }
+
+        function resetLab1() {
+            txnState = 'NONE';
+            range1Val = 'v0';
+            range2Val = 'v0';
+            r1Intent = null;
+            r2Intent = null;
+            r1Crashed = false;
+            r2Crashed = false;
+            document.getElementById('log-1').innerHTML = '-- Lab Sandbox reset. Ready. --';
+            renderLab1();
+        }
+
+
+        // ==========================================
+        // Lab 2: HLC & MVCC Versioning
+        // ==========================================
+        let baseTime = 1000; // base physical clock in ms
+        let skewB = 50;      // ms
+        let skewC = -30;     // ms
+        
+        let hlcA = { l: 1000, c: 0 };
+        let hlcB = { l: 1050, c: 0 };
+        let hlcC = { l: 970,  c: 0 };
+
+        let panicB = false;
+        let panicC = false;
+
+        let dbA = []; // Array of { key, val, hlc: {l, c} }
+        let dbB = [];
+        let dbC = [];
+
+        function logLab2(msg) {
+            const el = document.getElementById('log-2');
+            const d = new Date();
+            const timeStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+            el.innerHTML = `[${timeStr}] ${msg}\n` + el.innerHTML;
+        }
+
+        function renderLab2() {
+            // Skew labels
+            document.getElementById('skew-b-lbl').innerText = `${skewB >= 0 ? '+' : ''}${skewB}ms`;
+            document.getElementById('skew-c-lbl').innerText = `${skewC >= 0 ? '+' : ''}${skewC}ms`;
+
+            // Node states (Panic checks)
+            // Maximum clock offset limit in CockroachDB is typically 200ms
+            panicB = Math.abs(skewB) > 200;
+            panicC = Math.abs(skewC) > 200;
+
+            const cardA = document.getElementById('hlc-node-a');
+            const cardB = document.getElementById('hlc-node-b');
+            const cardC = document.getElementById('hlc-node-c');
+
+            cardB.className = `hlc-node-card ${panicB ? 'panic' : ''}`;
+            cardC.className = `hlc-node-card ${panicC ? 'panic' : ''}`;
+
+            // Clocks
+            document.getElementById('hlc-phys-a').innerText = `Phys Clock: ${baseTime}ms`;
+            document.getElementById('hlc-phys-b').innerText = `Phys Clock: ${panicB ? 'CRASHED (Off sync)' : (baseTime + skewB) + 'ms'}`;
+            document.getElementById('hlc-phys-c').innerText = `Phys Clock: ${panicC ? 'CRASHED (Off sync)' : (baseTime + skewC) + 'ms'}`;
+
+            document.getElementById('hlc-val-a').innerText = `HLC: (${hlcA.l}, ${hlcA.c})`;
+            document.getElementById('hlc-val-b').innerText = `HLC: ${panicB ? 'PANIC' : `(${hlcB.l}, ${hlcB.c})`}`;
+            document.getElementById('hlc-val-c').innerText = `HLC: ${panicC ? 'PANIC' : `(${hlcC.l}, ${hlcC.c})`}`;
+
+            // DB tables
+            renderDBTable('hlc-db-a', dbA);
+            renderDBTable('hlc-db-b', dbB);
+            renderDBTable('hlc-db-c', dbC);
+        }
+
+        function renderDBTable(id, db) {
+            const el = document.getElementById(id);
+            el.innerHTML = '';
+            if (db.length === 0) {
+                el.innerHTML = '<div style="color:#64748b; padding:0.5rem">-- Empty Store --</div>';
+                return;
+            }
+            db.forEach(item => {
+                el.innerHTML += `
+                    <div class="hlc-db-item">
+                        <span><strong>${item.key}</strong>: ${item.val}</span>
+                        <span style="color:#64748b">@(${item.hlc.l}, ${item.hlc.c})</span>
+                    </div>
+                `;
+            });
+        }
+
+        function updateClockSkew() {
+            skewB = parseInt(document.getElementById('skew-b').value);
+            skewC = parseInt(document.getElementById('skew-c').value);
+
+            if (Math.abs(skewB) > 200 && !panicB) {
+                logLab2("[PANIC DETECTED] Node B physical clock offset exceeds 200ms threshold! Server auto-panicked for safety fencing.");
+            }
+            if (Math.abs(skewC) > 200 && !panicC) {
+                logLab2("[PANIC DETECTED] Node C physical clock offset exceeds 200ms threshold! Server auto-panicked for safety fencing.");
+            }
+
+            renderLab2();
+        }
+
+        function advanceBaseTime() {
+            baseTime += 200;
+            logLab2(`[PHYSICAL TIME ADVANCE] Base physical time advanced to ${baseTime}ms.`);
+            
+            // Nodes tick physical clock
+            hlcA.l = Math.max(hlcA.l, baseTime);
+            if (!panicB) hlcB.l = Math.max(hlcB.l, baseTime + skewB);
+            if (!panicC) hlcC.l = Math.max(hlcC.l, baseTime + skewC);
+
+            renderLab2();
+        }
+
+        function hlcWrite() {
+            // Write request Proposed at Node A
+            logLab2("[WRITE] Client writes K1=value_A at Node A.");
+
+            // HLC Tick at Node A
+            let physicalA = baseTime;
+            if (physicalA > hlcA.l) {
+                hlcA.l = physicalA;
+                hlcA.c = 0;
+            } else {
+                hlcA.c += 1;
+            }
+
+            let writeHlc = { l: hlcA.l, c: hlcA.c };
+            dbA.unshift({ key: 'K1', val: 'value_A', hlc: writeHlc });
+            logLab2(`[WRITE SUCCESS] Local write on Node A committed at HLC timestamp (${writeHlc.l}, ${writeHlc.c}).`);
+
+            // Replicate write to Node B
+            if (panicB) {
+                logLab2("[REPLICATION WARNING] Node B is PANICKED. Replication to Node B skipped.");
+            } else {
+                logLab2("[REPLICATION] Sending write proposal from Node A to Node B...");
+                
+                // Node B HLC Update Rule
+                let physicalB = baseTime + skewB;
+                let maxL = Math.max(hlcB.l, writeHlc.l, physicalB);
+                
+                if (maxL === hlcB.l && maxL === writeHlc.l) {
+                    hlcB.c = Math.max(hlcB.c, writeHlc.c) + 1;
+                } else if (maxL === writeHlc.l) {
+                    hlcB.c = writeHlc.c + 1;
+                } else {
+                    hlcB.c = 0;
+                }
+                hlcB.l = maxL;
+
+                dbB.unshift({ key: 'K1', val: 'value_A', hlc: writeHlc }); // keeps original write timestamp
+                logLab2(`[REPLICATION SUCCESS] Write replicated on Node B. Node B HLC updated to (${hlcB.l}, ${hlcB.c}).`);
+            }
+
+            // Replicate write to Node C
+            if (panicC) {
+                logLab2("[REPLICATION WARNING] Node C is PANICKED. Replication to Node C skipped.");
+            } else {
+                logLab2("[REPLICATION] Sending write proposal from Node A to Node C...");
+                
+                // Node C HLC Update Rule
+                let physicalC = baseTime + skewC;
+                let maxL = Math.max(hlcC.l, writeHlc.l, physicalC);
+                
+                if (maxL === hlcC.l && maxL === writeHlc.l) {
+                    hlcC.c = Math.max(hlcC.c, writeHlc.c) + 1;
+                } else if (maxL === writeHlc.l) {
+                    hlcC.c = writeHlc.c + 1;
+                } else {
+                    hlcC.c = 0;
+                }
+                hlcC.l = maxL;
+
+                dbC.unshift({ key: 'K1', val: 'value_A', hlc: writeHlc });
+                logLab2(`[REPLICATION SUCCESS] Write replicated on Node C. Node C HLC updated to (${hlcC.l}, ${hlcC.c}).`);
+            }
+
+            renderLab2();
+        }
+
+        function hlcRead(nodeId) {
+            if (nodeId === 'A') {
+                logLab2("[READ] Reading K1 at Node A...");
+                let record = dbA.find(item => item.key === 'K1');
+                if (record) {
+                    logLab2(`[READ SUCCESS] Value K1 = ${record.val} retrieved (HLC Stamp: ${record.hlc.l}, ${record.hlc.c}).`);
+                } else {
+                    logLab2("[READ EMPTY] No records found for K1 on Node A.");
+                }
+            } else if (nodeId === 'C') {
+                if (panicC) {
+                    logLab2("[Error] Cannot read. Node C is in Panic state.");
+                    return;
+                }
+
+                // Node C clock uncertainty check
+                // Max offset threshold is typically 200ms
+                logLab2("[READ] Initiating Read for K1 at Node C...");
+                
+                // Find latest record
+                let record = dbC.find(item => item.key === 'K1');
+                if (!record) {
+                    logLab2("[READ EMPTY] No records found for K1 on Node C.");
+                    return;
+                }
+
+                // Simulate client reading at snapshot timestamp T_read = 1000
+                // Node C physical clock is currently baseTime + skewC = 1000 - 30 = 970ms
+                // The clock uncertainty window is [970ms, 970 + max_offset] = [970, 1170]
+                // Since the write HLC is (1000, 0), which falls inside the uncertainty interval of Node C's physical clock,
+                // Node C will flag a potential anomaly.
+                let nodeCPhys = baseTime + skewC;
+                let uncertaintyLimit = nodeCPhys + 100; // simulate a 100ms uncertainty bound
+
+                logLab2(`[CLOCK ANALYSIS] Node C Phys: ${nodeCPhys}ms. Record Write HLC.L: ${record.hlc.l}ms.`);
+
+                if (record.hlc.l > nodeCPhys && record.hlc.l <= uncertaintyLimit) {
+                    logLab2(`[WARNING] Read Uncertainty Drift Detected! Record timestamp (${record.hlc.l}ms) falls within clock uncertainty interval of Node C [${nodeCPhys}ms, ${uncertaintyLimit}ms].`);
+                    logLab2("[READ RESTART] Safety protocol triggered: executing Read Restart. Waiting/retrying at updated time...");
+                    logLab2(`[READ SUCCESS] Retry successful. Value K1 = ${record.val} returned under linearizable snapshot guarantee.`);
+                } else {
+                    logLab2(`[READ SUCCESS] Value K1 = ${record.val} retrieved without uncertainty. HLC is safe.`);
+                }
+            }
+        }
+
+        function resetLab2() {
+            baseTime = 1000;
+            skewB = 50;
+            skewC = -30;
+            hlcA = { l: 1000, c: 0 };
+            hlcB = { l: 1050, c: 0 };
+            hlcC = { l: 970,  c: 0 };
+            panicB = false;
+            panicC = false;
+            dbA = [];
+            dbB = [];
+            dbC = [];
+            
+            document.getElementById('skew-b').value = 50;
+            document.getElementById('skew-c').value = -30;
+            document.getElementById('log-2').innerHTML = '-- Lab Sandbox reset. Ready. --';
+            renderLab2();
+        }
+
+        // Init
+        resetLab1();
+        resetLab2();
+    </script>
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUDA & GPGPU Programming Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --m1-color: #4B5F7A;
+            --m2-color: #6B8272;
+            --m3-color: #9C6666;
+            --m4-color: #7A7A7A;
+            --m5-color: #9A825A;
+            --m6-color: #755B77;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.05em;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            font-size: 1rem;
+            color: #94a3b8;
+        }
+
+        .ladder-section {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            background: rgba(21, 29, 48, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .ladder-section h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ladder-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .ladder-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .ladder-item {
+            background: #111827;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .ladder-item.l2 {
+            grid-column: 1 / -1;
+            border-left-color: #8b5cf6;
+        }
+
+        .ladder-item h3 {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .ladder-item p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .ladder-item code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #a855f7;
+        }
+
+        .controls {
+            max-width: 1400px;
+            margin: 0 auto 1.5rem auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-input {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            width: 300px;
+            font-size: 0.9rem;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-color);
+            outline: none;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            background: #1e293b;
+            border: 1px solid transparent;
+            color: #94a3b8;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--accent-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .cards-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--module-color);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            border-color: var(--module-color);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            background-color: var(--module-color);
+        }
+
+        .card-module {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-body {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>CUDA & GPGPU PROGRAMMING MAP</h1>
+        <p>High-Density Technical System Architecture Cards Mapping</p>
+    </header>
+
+    <div class="ladder-section">
+        <h2>📂 L0 Essence</h2>
+        <div class="ladder-grid">
+            <div class="ladder-item">
+                <h3>L0 Essence</h3>
+                <p><strong>The essence of GPU parallel computing is to achieve high-throughput data parallel processing and tensor computation acceleration through massive lightweight threads mapping under a 3D grid-block-thread topology, executing on SIMT (Single Instruction Multiple Threads) hardware architecture coupled with high-bandwidth memory (HBM/GDDR).</strong></p>
+            </div>
+            <div class="ladder-item">
+                <h3>L1 Logical Framework</h3>
+                <p>1. **Grid Topology Mapping**: The software logical layer abstracts computation tasks into Grid and Block, where millions of lightweight threads are mapped to 1D/2D physical data arrays in a 3D coordinate system via `threadIdx` and `blockIdx`.
+    2. **SIMT Hardware Scheduling**: The hardware execution layer maps thread Blocks to Streaming Multiprocessors (SMs), where thread warps (32 threads) serve as the basic physical scheduling and instruction issue unit.
+    3. **High-Throughput Storage Hierarchy**: A multi-tiered high-throughput memory hierarchy consisting of thread-private registers, Block-shared memory (SRAM), and Global Memory (GDDR/HBM) is constructed, optimized via coalesced global memory access and bank-conflict-free shared memory access.
+    4. **Async Pipeline Concurrency**: Intra-block thread synchronization is enforced via `__syncthreads()`, while tasks and memory copies are overlapped asynchronously using CUDA Streams and CUDA Graphs to maximize hardware utilization.</p>
+            </div>
+            <div class="ladder-item l2">
+                <h3>L2 Data Flow Topology</h3>
+                <p><code>`CPU Host Memory` ➜ (PCIe / NVLink Copy HtoD) ➜ `GPU Global Memory` ➜ (Grid Launch) ➜ `SM Cache / Registers` ➜ (Shared Memory Intra-Block Reduction) ➜ `Warp Registers for Arithmetic (FMA / Tensor Core)` ➜ (Shared Memory / Global Memory Writeback) ➜ (PCIe / NVLink Copy DtoH) ➜ `CPU Host Memory Result`</code></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search keywords...">
+        <div class="filter-buttons" id="filterButtons">
+            <button class="filter-btn active" data-module="all">All Modules</button>
+            <button class="filter-btn" data-module="M1" style="--module-color:#4B5F7A">M1: Programming Model & Grid Topology</button> <button class="filter-btn" data-module="M2" style="--module-color:#6B8272">M2: Hardware & Warp Scheduling</button> <button class="filter-btn" data-module="M3" style="--module-color:#9C6666">M3: Storage & Coalescing</button> <button class="filter-btn" data-module="M4" style="--module-color:#7A7A7A">M4: Thread Sync & Cooperative Groups</button> <button class="filter-btn" data-module="M5" style="--module-color:#9A825A">M5: Async Streams & Unified Memory</button> <button class="filter-btn" data-module="M6" style="--module-color:#755B77">M6: Tensor Cores & Optimization</button>
+        </div>
+    </div>
+
+    <main class="cards-grid" id="cardsGrid"></main>
+
+    <script>
+        const cardsData = [{'num': 1, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Grid-Block-Thread Hierarchy Model', 'body': '*   **Core Definition**: The CUDA software programming model organizes threads hierarchically into a Grid of thread Blocks. Each Block contains up to 1024 threads, sharing on-chip memory and supporting barrier synchronization.\n*   **Bottom Mechanism**: Thread indices map to physical data coordinates. The 1D mapping index formula is: `int tid = blockIdx.x * blockDim.x + threadIdx.x;`. For 2D spatial layouts, coordinates are mapped using: `int x = blockIdx.x * blockDim.x + threadIdx.x; int y = blockIdx.y * blockDim.y + threadIdx.y;`. This model governs GPU execution mapping.'}, {'num': 2, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Kernel Device Life Cycle', 'body': '*   **Core Definition**: A Kernel is a parallel function declared to execute on the GPU device, launched asynchronously from the host CPU.\n*   **Bottom Mechanism**: When a CPU thread calls a Kernel with configuration parameters `<<<grid, block, sharedMem, stream>>>`, the launch request is pushed into a hardware command queue (CUDA Stream). The CPU returns immediately, while the GPU hardware scheduler performs Grid Launch to dispatch Blocks.'}, {'num': 3, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Streaming Multiprocessor (SM) Physical Architecture', 'body': "*   **Core Definition**: The Streaming Multiprocessor (SM) is the fundamental hardware block of the GPU's processing power.\n*   **Bottom Mechanism**: Each SM houses multiple SPs (Single Precision CUDA Cores), DP Cores (Double Precision), SFUs (Special Function Units for trans transcendental math like sin/cos), and a massive Register File (RF). The warp scheduler inside the SM dispatches instruction packets to execution units."}, {'num': 4, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'SIMT Architecture & Warp Scheduling Logic', 'body': '*   **Core Definition**: Single Instruction Multiple Threads (SIMT) is the hardware execution model where the GPU manages and executes threads in groups of 32 called Warps.\n*   **Bottom Mechanism**: A Warp is the smallest execution and scheduling unit in the SM. The 32 threads in a Warp share a single Program Counter (PC) and execute the same instruction in lockstep. The Warp Scheduler switches active Warps instantly to hide execution stalls.'}, {'num': 5, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Warp Divergence Mitigation', 'body': '*   **Core Definition**: Warp Divergence occurs when threads in a single Warp branch to different execution paths due to conditional statements (`if-else`).\n*   **Bottom Mechanism**: Because threads in a Warp share the same instruction pipeline, different execution branches must be serialized. The hardware uses an Active Mask register to disable non-participating threads for each branch. Developers must align branch boundaries to 32-thread intervals to avoid serial stalls.'}, {'num': 6, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'GPU Latency Hiding & Occupancy Optimization', 'body': '*   **Core Definition**: Occupancy is the ratio of active Warps per SM to the maximum theoretical active Warps supported by the hardware.\n*   **Bottom Mechanism**: GPUs lack complex branch predictors or massive caches; instead, they rely on zero-overhead context switching. When a Warp stalls (e.g., waiting for global memory), the scheduler instantly switches to a ready Warp, hiding latency. High occupancy ensures a large pool of ready Warps.'}, {'num': 7, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'GPU Memory Hierarchy & Latency', 'body': '*   **Core Definition**: The memory hierarchy ranges from registers, local memory, shared memory, constant memory, texture memory, L1/L2 caches, to global memory.\n*   **Bottom Mechanism**: Registers feature 1-cycle access; on-chip Shared Memory takes tens of cycles; Global Memory takes 400 - 800 cycles. High-performance CUDA design centers on staging data from global memory into high-speed on-chip SRAM (Shared Memory) for reuse.'}, {'num': 8, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'Global Memory Coalescing', 'body': '*   **Core Definition**: When threads in a Warp access global memory, the hardware merges 32 memory requests into a single or minimum number of memory transactions.\n*   **Bottom Mechanism**: Memory controllers fetch data in aligned segments of 32, 64, or 128 bytes. If thread accesses are contiguous and aligned, one transaction serves the Warp. Uncoalesced accesses force up to 32 separate transactions, bottlenecking the memory bus.'}, {'num': 9, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'Shared Memory & 32-Bank Organization', 'body': '*   **Core Definition**: Shared Memory is a fast on-chip SRAM allocated per Block, structured physically into 32 independent memory banks.\n*   **Bottom Mechanism**: Successive 32-bit (or 64-bit) words are mapped cyclicly to Bank 0 through Bank 31. If the 32 threads of a Warp access 32 distinct banks in the same cycle, the access executes in parallel. This bank architecture yields multi-terabyte-per-second aggregate bandwidth.'}, {'num': 10, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'Shared Memory Bank Conflict & Broadcast', 'body': '*   **Core Definition**: A Bank Conflict occurs when multiple threads in a Warp access different addresses within the same memory bank in the same cycle.\n*   **Bottom Mechanism**: Accesses to the same bank must be serialized (an n-way conflict increases latency by n times). Exception: if all threads in a Warp access the *same* address in a bank, the hardware performs a Broadcast, serving all threads in 1 cycle without conflict. Use odd strides to avoid conflicts.'}, {'num': 11, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'Register Spilling Overhead', 'body': '*   **Core Definition**: Register Spilling occurs when a thread requests more local variables than the hardware register allocation limit per thread.\n*   **Bottom Mechanism**: The compiler forces excess variables into Local Memory (physically located in Global Memory). Although cached in L1, Local Memory access is hundreds of times slower than register access, leading to severe throughput degradation.'}, {'num': 12, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'Constant & Texture Memory Caching', 'body': '*   **Core Definition**: Constant and Texture memories are read-only memory spaces cached at the SM level.\n*   **Bottom Mechanism**: Constant memory excels when all threads of a Warp read the same address simultaneously (single-cycle broadcast). Texture memory features 2D spatial locality caching and dedicated hardware for filtering/clamping, ideal for graphics and spatial data.'}, {'num': 13, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'L1 / L2 Cache Configuration', 'body': '*   **Core Definition**: The L1 cache and Shared Memory share a physical SRAM pool within each SM, allowing dynamic allocation sizing.\n*   **Bottom Mechanism**: Developers can configure the SRAM partitioning (e.g., `96KB Shared / 32KB L1` or `64KB Shared / 64KB L1`) via APIs. The L2 cache is a unified global cache that buffers non-coalesced accesses, mitigating memory bus congestion.'}, {'num': 14, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'Unified Memory Page Migration', 'body': '*   **Core Definition**: Unified Memory (UM) provides a single, unified virtual address space (UVA) allowing the CPU and GPU to share pointers with automatic data movement.\n*   **Bottom Mechanism**: When the GPU accesses an address that is not physically present in VRAM, it triggers a page fault. The driver intercepts the fault and asynchronously migrates the corresponding 4KB virtual pages over PCIe/NVLink.'}, {'num': 15, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'Barriers & Memory Fences', 'body': '*   **Core Definition**: Synchronizations govern execution ordering and memory visibility across GPU threads.\n*   **Bottom Mechanism**: `__syncthreads()` acts as an execution barrier, halting all threads in a Block until everyone reaches it. `__threadfence()` acts as a memory fence; it does not block execution but flushes outstanding writes to ensure global visibility before proceeding.'}, {'num': 16, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'Cooperative Groups Programming Model', 'body': '*   **Core Definition**: Cooperative Groups provide a clean abstraction for defining and synchronizing custom groups of threads (sub-blocks or grid-wide).\n*   **Bottom Mechanism**: It breaks the block-wide constraint of `__syncthreads()`. Developers can group threads by Warp tiling (e.g., groups of 8/16) or synchronize globally across the entire Grid using `this_grid()`, enabling safe multi-block iteration.'}, {'num': 17, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'Warp Shuffle Register Data Exchange', 'body': '*   **Core Definition**: Warp Shuffle operations allow threads within a Warp to read registers from other threads in the same Warp directly.\n*   **Bottom Mechanism**: Registers are read directly via crossbar routing inside the Register File, bypassing Shared Memory and L1 cache entirely. This eliminates the need for execution barriers and is highly optimized in primitives like `__shfl_sync` and `__shfl_down_sync`.'}, {'num': 18, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'GPU Atomic Operations & L2 ALU Acceleration', 'body': '*   **Core Definition**: Atomic operations (e.g., `atomicAdd`) guarantee that read-modify-write actions on shared or global memory are executed atomically.\n*   **Bottom Mechanism**: Modern GPUs integrate hardware atomic ALUs directly into the L2 cache controllers. Global atomics are executed at the L2 cache line level, avoiding costly round-trips to registers and minimizing lock contention in high-concurrency writes.'}, {'num': 19, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'CUDA Streams & Concurrency Model', 'body': '*   **Core Definition**: A CUDA Stream represents a queue of commands (kernels, memcpys) that execute sequentially on the GPU.\n*   **Bottom Mechanism**: The default stream (Stream 0) is synchronous and blocks operations on other streams. Custom non-default streams execute concurrently and out-of-order, allowing overlap of memory copy and kernel execution across different streams.'}, {'num': 20, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'Host-Device Synchronization & Events', 'body': '*   **Core Definition**: GPU operations are asynchronous to the CPU; Events monitor stream execution progress and measure time intervals.\n*   **Bottom Mechanism**: `cudaEventRecord` places an event marker in a stream. When the GPU reaches it, the event is marked complete. The host queries the event status via `cudaEventQuery` or blocks CPU execution using `cudaEventSynchronize` until the stream drains.'}, {'num': 21, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'CUDA Graphs Task Graph Launch', 'body': '*   **Core Definition**: CUDA Graphs model workflow launches (kernels, memcpys) as a static Directed Acyclic Graph (DAG) instead of individual API calls.\n*   **Bottom Mechanism**: Traditional launch sequences incur high CPU overhead (driver validation and launch latency of ~3-5 microseconds per kernel). A captured Graph packages these nodes, sending a single execution token to the GPU, removing host launch overhead.'}, {'num': 22, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'Page-locked (Pinned) Memory & DMA Transfer', 'body': "*   **Core Definition**: Pinned memory is host RAM allocated such that the OS cannot swap it out to virtual memory.\n*   **Bottom Mechanism**: Allocated using `cudaMallocHost`, this memory is locked in physical RAM. The GPU's DMA (Direct Memory Access) engine can bypass the CPU and read host RAM directly, reaching the physical limits of the PCIe/NVLink bus width."}, {'num': 23, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'Multi-GPU Peer-to-Peer (P2P) NVLink Mesh', 'body': "*   **Core Definition**: Peer-to-Peer (P2P) enables GPUs in a system to directly read and write each other's VRAM without copying to host RAM.\n*   **Bottom Mechanism**: Using high-bandwidth NVLink or NVSwitch interconnections, peer GPUs bypass the PCIe slot and CPU altogether, communicating directly at high speed. This forms the backbone of modern distributed large-model training clusters."}, {'num': 24, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'Tensor Cores MMA Hardware Acceleration', 'body': '*   **Core Definition**: Tensor Cores are specialized execution units designed to accelerate matrix multiply-accumulate operations in hardware.\n*   **Bottom Mechanism**: In a single clock cycle, a Tensor Core performs a small matrix multiplication ($D = A \\times B + C$, e.g., 16x16x16 shape) at the ASIC level. By hardwiring arithmetic arrays, they process massive Multiply-Accumulate operations far faster than standard SP cores.'}, {'num': 25, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'CUDA Dynamic Parallelism', 'body': "*   **Core Definition**: Dynamic Parallelism enables a GPU Kernel to launch other child Kernels directly on the device without CPU intervention.\n*   **Bottom Mechanism**: The GPU's internal device-side scheduler handles child kernel execution parameters directly. This allows highly efficient recursive algorithms, quad-tree refinement, and adaptive mesh refinement inside device threads."}, {'num': 26, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'GPU Performance Optimization Matrix', 'body': '*   **Core Definition**: Strategies to diagnose and solve Memory-bound and Compute-bound bottlenecks.\n*   **Bottom Mechanism**: Use Roofline analysis to measure arithmetic intensity (FLOPs per byte transferred). Memory-bound kernels require coalescing and shared memory tiling. Compute-bound kernels require loop unrolling, fast-math intrinsics, and Tensor Core utilization.'}, {'num': 27, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'GPGPU Parallel Patterns (Reduction/Scan/GEMM)', 'body': '*   **Core Definition**: Classical algorithmic paradigms for massive parallel computing.\n*   **Bottom Mechanism**: In Parallel Reduction, warp-level unrolling and tree-reduction are used to avoid block-wide synchronization. In Histogram generation, Shared Memory local atomics are used to buffer writes, resolving heavy contention on Global Memory.'}, {'num': 28, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'Nsight Compute & Systems Diagnostics', 'body': "*   **Core Definition**: NVIDIA's official profiling suite for system-level and kernel-level performance tuning.\n*   **Bottom Mechanism**: Nsight Systems tracks global timelines, showing CPU-GPU stream overlaps and API delays. Nsight Compute gathers detailed Performance Monitor (PM) counters, reporting SM occupancy, Speed of Light (SOL), and pipeline stalls."}];
+
+        const searchInput = document.getElementById('searchInput');
+        const filterButtons = document.getElementById('filterButtons');
+        const cardsGrid = document.getElementById('cardsGrid');
+
+        let activeFilter = 'all';
+        let searchQuery = '';
+
+        function renderCards() {
+            cardsGrid.innerHTML = '';
+            const filtered = cardsData.filter(card => {
+                const matchesFilter = activeFilter === 'all' || card.moduleId === activeFilter;
+                const matchesSearch = card.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                      card.body.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesFilter && matchesSearch;
+            });
+
+            filtered.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                cardEl.style.setProperty('--module-color', card.moduleColor);
+                cardEl.innerHTML = `
+                    <div>
+                        <div class="card-header">
+                            <span class="card-module">${card.moduleId}</span>
+                            <span class="card-num">Card ${card.num}</span>
+                        </div>
+                        <h3 class="card-title">${card.title}</h3>
+                        <p class="card-body">${card.body.replace(/\n/g, '<br>')}</p>
+                    </div>
+                `;
+                cardsGrid.appendChild(cardEl);
+            });
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            renderCards();
+        });
+
+        filterButtons.addEventListener('click', (e) => {
+            if (e.target.classList.contains('filter-btn')) {
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                activeFilter = e.target.dataset.module;
+                renderCards();
+            }
+        });
+
+        renderCards();
+    </script>
+</body>
+</html>

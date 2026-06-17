@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>电力系统潮流计算与暂态稳定仿真沙盒</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 16px;
+        }
+        .control-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            color: #A0AEC0;
+            margin-bottom: 4px;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .btn {
+            background-color: #9C6666;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 180px;
+            overflow-y: auto;
+            margin-top: 15px;
+            white-space: pre-wrap;
+        }
+        canvas {
+            width: 100%;
+            height: 200px;
+            background-color: #151D30;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>电力系统潮流计算与暂态稳定仿真沙盒</h1>
+        <div class="grid">
+            <!-- Sandbox 1: Newton-Raphson Solver -->
+            <div class="card">
+                <h2>IEEE 5节点牛顿潮流求解器</h2>
+                <div class="control-group">
+                    <label id="lbl-load-p">节点 3 注入有功 P (MW): 120</label>
+                    <input type="range" id="load-p" min="10" max="300" value="120" oninput="updateLoad()">
+                </div>
+                <div class="control-group">
+                    <label id="lbl-line-x">线路 2-3 电抗 X (p.u.): 0.05</label>
+                    <input type="range" id="line-x" min="0.01" max="0.2" step="0.01" value="0.05" oninput="updateLoad()">
+                </div>
+                <button class="btn" onclick="runNR()">运行一步潮流迭代</button>
+                <div class="console" id="nr-console">
+                    [Newton-Raphson] Solver Idle. Adjust grid levels and run.
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Swing Equation Simulator -->
+            <div class="card">
+                <h2>转子运动方程动力学暂态模拟</h2>
+                <div class="control-group">
+                    <label id="lbl-fault-t">故障切除时间 (ms): 80</label>
+                    <input type="range" id="fault-t" min="20" max="250" value="80" oninput="updateFault()">
+                </div>
+                <div class="control-group">
+                    <label id="lbl-inertia">系统旋转惯量 H (s): 4.0</label>
+                    <input type="range" id="inertia" min="1.0" max="8.0" step="0.5" value="4.0" oninput="updateFault()">
+                </div>
+                <button class="btn" onclick="runSwing()">注入三相短路故障</button>
+                <canvas id="swing-chart"></canvas>
+                <div class="console" id="swing-console" style="height: 60px;">
+                    [Dynamic Simulation] Ready. Trigger fault to simulate rotor swing.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // NR Solver Variables
+        let nr_iter = 0;
+        let v3 = 1.0;
+        let t3 = 0.0;
+
+        function updateLoad() {
+            const p = document.getElementById('load-p').value;
+            const x = document.getElementById('line-x').value;
+            document.getElementById('lbl-load-p').innerText = "False" === "True" ? 
+                `Nodal Load P (MW): ${p}` : `节点 3 注入有功 P (MW): ${p}`;
+            document.getElementById('lbl-line-x').innerText = "False" === "True" ? 
+                `Line Impedance X (p.u.): ${x}` : `线路 2-3 电抗 X (p.u.): ${x}`;
+        }
+
+        function runNR() {
+            const p = parseFloat(document.getElementById('load-p').value) / 100.0; // p.u.
+            const x = parseFloat(document.getElementById('line-x').value);
+            const consoleBox = document.getElementById('nr-console');
+            
+            nr_iter++;
+            // Simplified NR mismatch step calculation
+            let p_mismatch = 1.0 - p - (v3 * Math.sin(t3) / x);
+            let J = -v3 * Math.cos(t3) / x;
+            let delta_t = p_mismatch / J;
+            t3 += delta_t;
+            v3 = 1.0 - 0.02 * p; // simple voltage drop coupling
+
+            consoleBox.innerHTML = `[Newton-Raphson Iteration ${nr_iter}]\n`;
+            consoleBox.innerHTML += `Jacobian matrix element J_p_theta: \${J.toFixed(4)} p.u.\n`;
+            consoleBox.innerHTML += `Active power mismatch Delta_P: \${p_mismatch.toFixed(6)} p.u.\n`;
+            consoleBox.innerHTML += `Computed bus values: Voltage V3 = \${v3.toFixed(4)} p.u., Angle Theta3 = \${(t3 * 180 / Math.PI).toFixed(3)}°\n`;
+            
+            if(Math.abs(p_mismatch) < 1e-5) {
+                consoleBox.innerHTML += `\n[CONVERGED] Convergence tolerance achieved in ${nr_iter} iterations.`;
+                nr_iter = 0;
+            } else {
+                consoleBox.innerHTML += `\nIteration step complete. Run next step to converge.`;
+            }
+        }
+
+        // Swing Simulation
+        function updateFault() {
+            const t = document.getElementById('fault-t').value;
+            const h = document.getElementById('inertia').value;
+            document.getElementById('lbl-fault-t').innerText = "False" === "True" ? 
+                `Fault Clearing Time (ms): ${t}` : `故障切除时间 (ms): ${t}`;
+            document.getElementById('lbl-inertia').innerText = "False" === "True" ? 
+                `System Inertia H (s): ${h}` : `系统旋转惯量 H (s): ${h}`;
+        }
+
+        function runSwing() {
+            const f_time = parseFloat(document.getElementById('fault-t').value) / 1000.0; // s
+            const H = parseFloat(document.getElementById('inertia').value);
+            const canvas = document.getElementById('swing-chart');
+            const ctx = canvas.getContext('2d');
+            const consoleBox = document.getElementById('swing-console');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Simulation parameters
+            let dt = 0.005;
+            let time = 0.0;
+            let delta = 30.0 * Math.PI / 180; // start 30 deg
+            let omega = 1.0;
+            let Pm = 0.8;
+            let H_inv = 1.0 / (2 * H);
+            
+            ctx.strokeStyle = '#9C6666';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+
+            let is_stable = true;
+            for (let i = 0; i < 80; i++) {
+                let Pe = 0.0;
+                if (time < 0.1) {
+                    Pe = 1.2 * Math.sin(delta); // pre-fault
+                } else if (time >= 0.1 && time < 0.1 + f_time) {
+                    Pe = 0.1 * Math.sin(delta); // fault (3-phase short)
+                } else {
+                    Pe = 1.0 * Math.sin(delta); // post-fault
+                }
+                
+                // Swing Equation ODE Step
+                let d_omega = H_inv * (Pm - Pe - 0.2 * (omega - 1.0));
+                omega += d_omega * dt;
+                delta += (omega - 1.0) * 314.15 * dt;
+                time += dt;
+
+                let px = (time / 0.5) * canvas.width;
+                let py = canvas.height - ((delta / (Math.PI)) * canvas.height);
+                
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+
+                if (delta > Math.PI * 0.95) {
+                    is_stable = false;
+                }
+            }
+            ctx.stroke();
+
+            if (is_stable) {
+                consoleBox.innerText = `[Stable] Rotor angle oscillated but stabilized. Peak delta: \${(delta * 180 / Math.PI).toFixed(1)}°`;
+                consoleBox.style.color = '#39D353';
+            } else {
+                consoleBox.innerText = `[OUT OF STEP] Transient Instability! Rotor angle went out of limit (>180°). CCT violated.`;
+                consoleBox.style.color = '#FF4500';
+            }
+        }
+
+        // Initialize canvas sizing
+        const canvas = document.getElementById('swing-chart');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+    </script>
+</body>
+</html>

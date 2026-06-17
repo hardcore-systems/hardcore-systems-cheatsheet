@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>etcd-io / etcd 分布式共识与底层存储机制互动演练沙盒</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --panel-bg: #161820;
+            --border-color: #2a2d3d;
+            --text-color: #e2e8f0;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+            --accent-gold: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, sans-serif;
+            padding: 2rem;
+            line-height: 1.4;
+        }
+        header {
+            max-width: 1200px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #ffffff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p { color: #94a3b8; font-size: 0.9rem; }
+        .sandbox-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .sim-panel {
+            background-color: var(--panel-bg);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+        }
+        .sim-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .sim-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            .sim-content { grid-template-columns: 1fr; }
+        }
+        .control-box {
+            background-color: #0f1115;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .visual-box {
+            background-color: #0f1115;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 250px;
+            position: relative;
+        }
+        button {
+            background-color: var(--accent-blue);
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #2563eb; }
+        button:disabled { background-color: #4b5563; cursor: not-allowed; }
+        .btn-red { background-color: var(--accent-red); }
+        .btn-red:hover { background-color: #dc2626; }
+        .btn-green { background-color: var(--accent-green); }
+        .btn-green:hover { background-color: #059669; }
+        
+        /* Sim 1 Styles */
+        .node-container {
+            display: flex;
+            justify-content: center;
+            gap: 1.25rem;
+            width: 100%;
+            position: relative;
+        }
+        .node-box {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid #4b5563;
+            background-color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.75rem;
+            color: #fff;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .node-box.leader { border-color: var(--accent-gold); box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+        .node-box.leader::after {
+            content: '👑';
+            position: absolute;
+            top: -10px;
+            font-size: 0.8rem;
+        }
+        .node-box.offline { opacity: 0.4; border-color: var(--accent-red); }
+        .partition-line {
+            position: absolute;
+            width: 2px;
+            height: 90px;
+            background-color: var(--accent-red);
+            border-style: dashed;
+            display: none;
+            left: 48%;
+            top: -10px;
+        }
+        .console-log {
+            width: 100%;
+            background-color: #000;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #10b981;
+            height: 80px;
+            overflow-y: auto;
+            margin-top: auto;
+        }
+        
+        /* Sim 2 Styles */
+        .mvcc-tree-box {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+        }
+        .mvcc-row {
+            display: flex;
+            justify-content: space-between;
+            background-color: #1e293b50;
+            padding: 0.4rem 0.6rem;
+            border-radius: 0.25rem;
+            border: 1px solid var(--border-color);
+        }
+        .mvcc-rev { color: var(--accent-green); font-family: monospace; font-weight: bold; }
+        
+        /* Sim 3 Styles */
+        .queue-container {
+            display: flex;
+            width: 100%;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .queue-box {
+            flex: 1;
+            background-color: #1e293b30;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            min-height: 80px;
+            font-size: 0.75rem;
+        }
+        .queue-box h4 { font-size: 0.8rem; margin-bottom: 0.25rem; color: #fff; text-align: center; }
+        .watcher-item {
+            background-color: var(--accent-blue);
+            color: #fff;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            margin: 0.25rem 0;
+            display: inline-block;
+            font-size: 0.7rem;
+            animation: pulse 1s infinite alternate;
+        }
+        .watcher-item.unsynced { background-color: var(--accent-gold); }
+        .watcher-item.offline { background-color: var(--accent-red); animation: none; }
+        
+        @keyframes pulse {
+            from { box-shadow: 0 0 2px rgba(59, 130, 246, 0.4); }
+            to { box-shadow: 0 0 8px rgba(59, 130, 246, 0.8); }
+        }
+        .form-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        input[type="text"], input[type="number"] {
+            background-color: #161820;
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.85rem;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>etcd 分布式共识与底层存储机制仿真实验室</h1>
+        <p>交互式模拟系统：直观演练 Raft 网络分区、MVCC 版本树检索及 Watch 断点增量续传</p>
+    </header>
+
+    <div class="sandbox-grid">
+        <!-- Sim 1: Raft Partition -->
+        <div class="sim-panel">
+            <div class="sim-title">实验一：Raft 网络分区与脑裂防御演练</div>
+            <div class="sim-content">
+                <div class="control-box">
+                    <button onclick="partitionCluster()">划分网络分区</button>
+                    <button class="btn-green" onclick="healCluster()">恢复网络分区 (合并集群)</button>
+                    <div class="form-row" style="margin-top: 1rem;">
+                        <input type="text" id="sim1KeyVal" value="value1">
+                        <button onclick="sim1Write()">发起 PUT /key1 val 写入</button>
+                    </div>
+                </div>
+                <div class="visual-box">
+                    <div class="node-container">
+                        <div id="node1" class="node-box leader">Node 1</div>
+                        <div id="node2" class="node-box">Node 2</div>
+                        <div class="partition-line" id="pLine"></div>
+                        <div id="node3" class="node-box">Node 3</div>
+                        <div id="node4" class="node-box">Node 4</div>
+                        <div id="node5" class="node-box">Node 5</div>
+                    </div>
+                    <div style="margin-top: 1.5rem; font-size: 0.8rem; color: #94a3b8; text-align: center;" id="sim1Status">
+                        集群健康。Node 1 为合法 Leader。
+                    </div>
+                    <div class="console-log" id="sim1Log">>>> etcdserver: start listening on 5 endpoints</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sim 2: MVCC Revision -->
+        <div class="sim-panel">
+            <div class="sim-title">实验二：MVCC 全局 Revision 与内存索引演练</div>
+            <div class="sim-content">
+                <div class="control-box">
+                    <div class="form-row">
+                        <input type="text" id="sim2Key" value="key1" placeholder="Key">
+                        <input type="text" id="sim2Val" value="valA" placeholder="Value">
+                        <button class="btn-green" onclick="sim2Put()">PUT 键值写入</button>
+                    </div>
+                    <div class="form-row" style="margin-top: 0.5rem;">
+                        <input type="number" id="sim2GetRev" value="1" placeholder="Revision">
+                        <button onclick="sim2Get()">GET 检索指定历史 Revision</button>
+                    </div>
+                    <div class="form-row" style="margin-top: 0.5rem;">
+                        <input type="number" id="sim2CompactRev" value="2" placeholder="Revision">
+                        <button class="btn-red" onclick="sim2Compact()">Compact 历史版本压缩</button>
+                    </div>
+                </div>
+                <div class="visual-box" style="justify-content: flex-start; overflow-y: auto;">
+                    <div style="font-size: 0.8rem; color: #fff; font-weight: bold; width: 100%; border-bottom: 1px solid var(--border-color); padding-bottom: 0.25rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                        <span>内存 KeyIndex 索引映射</span>
+                        <span>全局 Revision: <span id="globalRevVal" style="color: var(--accent-green);">0</span></span>
+                    </div>
+                    <div class="mvcc-tree-box" id="mvccTree">
+                        <!-- Key index records shown here -->
+                        <div style="color: #64748b; text-align: center; margin-top: 2rem;">暂无键值写入数据</div>
+                    </div>
+                    <div class="console-log" id="sim2Log" style="height: 60px; margin-top: 0.5rem;">>>> mvcc: storage engine initialized</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sim 3: Watch Catchup -->
+        <div class="sim-panel">
+            <div class="sim-title">实验三：Watch 异步监听断点重连与队列推广</div>
+            <div class="sim-content">
+                <div class="control-box">
+                    <button class="btn-red" id="disconnectWatcherBtn" onclick="disconnectWatcher()">模拟断开 Watcher 连接</button>
+                    <div class="form-row" style="margin-top: 0.5rem;">
+                        <input type="number" id="resumeRev" value="1" placeholder="Revision">
+                        <button class="btn-green" id="reconnectWatcherBtn" onclick="reconnectWatcher()" disabled>重新连接 (指定 Rev 追溯)</button>
+                    </div>
+                    <div class="form-row" style="margin-top: 1rem;">
+                        <input type="text" id="watchVal" value="event1">
+                        <button onclick="triggerWatchEvent()">修改监听键值 (PUT)</button>
+                    </div>
+                </div>
+                <div class="visual-box">
+                    <div class="queue-container">
+                        <div class="queue-box">
+                            <h4>synced queue</h4>
+                            <div id="syncedQueue" style="display: flex; flex-direction: column; align-items: center;">
+                                <div class="watcher-item" id="w1">Watcher 1</div>
+                            </div>
+                        </div>
+                        <div class="queue-box">
+                            <h4>unsynced queue</h4>
+                            <div id="unsyncedQueue" style="display: flex; flex-direction: column; align-items: center;">
+                                <!-- Promoted watcher here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="console-log" id="sim3Log" style="height: 100px;">>>> watch: WatchStream created. Watcher 1 listening on /watch_key</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Simulation 1: Raft Partition
+        // ==========================================
+        let isPartitioned = false;
+        let sim1WriteCount = 0;
+        
+        function partitionCluster() {
+            isPartitioned = true;
+            document.getElementById('pLine').style.display = 'block';
+            document.getElementById('node3').classList.add('leader'); // Node 3 becomes leader of Part B (nodes 3,4,5)
+            document.getElementById('sim1Status').innerText = '网络分区已生效：分区 A [1, 2] (多数派失效，无Leader)，分区 B [3, 4, 5] (产生选举，Node 3 当选 Leader)';
+            document.getElementById('sim1Log').innerHTML += "\n>>> [Partition] Network Split: [1,2] vs [3,4,5]\n>>> [Raft] Candidate Node 3 timed out, triggered election, won votes from 4,5 (Quorum 3/5 achieved)\n>>> [Raft] Node 3 promoted to Leader";
+            document.getElementById('sim1Log').scrollTop = document.getElementById('sim1Log').scrollHeight;
+        }
+
+        function healCluster() {
+            isPartitioned = false;
+            document.getElementById('pLine').style.display = 'none';
+            document.getElementById('node3').classList.remove('leader');
+            document.getElementById('sim1Status').innerText = '网络分区已恢复。Node 1 恢复为集群唯一 Leader。';
+            document.getElementById('sim1Log').innerHTML += "\n>>> [Heal] Network merged.\n>>> [Raft] Node 3 stepped down (received higher Term from Node 1)\n>>> [Raft] Nodes 1,2 synced logs to Nodes 3,4,5";
+            document.getElementById('sim1Log').scrollTop = document.getElementById('sim1Log').scrollHeight;
+        }
+
+        function sim1Write() {
+            const val = document.getElementById('sim1KeyVal').value;
+            sim1WriteCount++;
+            
+            if (isPartitioned) {
+                // Sent to Part A
+                document.getElementById('sim1Log').innerHTML += `\n>>> [Write] Put /key1 "${val}" to Node 1...\n>>> [Raft] Node 1 replication failed. Only Node 2 acknowledged (2/5 nodes, Quorum missing)\n>>> [Warning] Transaction write stalled (Quorum Blocked)`;
+            } else {
+                document.getElementById('sim1Log').innerHTML += `\n>>> [Write] Put /key1 "${val}" to Node 1...\n>>> [Raft] Log entry replicated to nodes 2,3,4,5 (5/5 nodes, Quorum success)\n>>> [Raft] Committed index advanced. Transaction Applied.`;
+            }
+            document.getElementById('sim1Log').scrollTop = document.getElementById('sim1Log').scrollHeight;
+        }
+
+        // ==========================================
+        // Simulation 2: MVCC Revision
+        // ==========================================
+        let globalRev = 0;
+        const keyIndexMap = {}; // key -> generations array
+        const boltDB = {}; // rev -> {key, val}
+
+        function updateMvccVisual() {
+            const treeEl = document.getElementById('mvccTree');
+            document.getElementById('globalRevVal').innerText = globalRev;
+            treeEl.innerHTML = '';
+            
+            if (Object.keys(keyIndexMap).length === 0) {
+                treeEl.innerHTML = '<div style="color: #64748b; text-align: center; margin-top: 2rem;">暂无键值写入数据</div>';
+                return;
+            }
+
+            for (const key in keyIndexMap) {
+                const generations = keyIndexMap[key];
+                const row = document.createElement('div');
+                row.className = 'mvcc-row';
+                
+                // Format generations
+                const gensStr = generations.map(g => {
+                    const revsStr = g.revisions.map(r => `<span class="mvcc-rev">${r}</span>`).join(', ');
+                    const tomb = g.tombstone ? ` (del at ${g.tombstone})` : '';
+                    return `[Revs: ${revsStr}${tomb}]`;
+                }).join(' -> ');
+
+                row.innerHTML = `
+                    <span style="font-weight: bold; color: var(--accent-blue);">${key}</span>
+                    <span style="color: #94a3b8;">generations: ${gensStr}</span>
+                `;
+                treeEl.appendChild(row);
+            }
+        }
+
+        function sim2Put() {
+            const key = document.getElementById('sim2Key').value.trim();
+            const val = document.getElementById('sim2Val').value.trim();
+            if (!key || !val) return;
+
+            globalRev++;
+            
+            // Write to BoltDB
+            boltDB[globalRev] = { key, val };
+
+            // Update KeyIndex
+            if (!keyIndexMap[key]) {
+                keyIndexMap[key] = [{ revisions: [globalRev], tombstone: null }];
+            } else {
+                let latestGen = keyIndexMap[key][keyIndexMap[key].length - 1];
+                if (latestGen.tombstone) {
+                    // Start a new generation if previously deleted
+                    keyIndexMap[key].push({ revisions: [globalRev], tombstone: null });
+                } else {
+                    latestGen.revisions.push(globalRev);
+                }
+            }
+
+            document.getElementById('sim2Log').innerHTML += `\n>>> [PUT] KeyIndex updated for "${key}". BoltDB committed at Revision: ${globalRev}`;
+            document.getElementById('sim2Log').scrollTop = document.getElementById('sim2Log').scrollHeight;
+            updateMvccVisual();
+        }
+
+        function sim2Get() {
+            const key = document.getElementById('sim2Key').value.trim();
+            const rev = parseInt(document.getElementById('sim2GetRev').value);
+            if (!key || isNaN(rev)) return;
+
+            const logEl = document.getElementById('sim2Log');
+            
+            if (rev > globalRev) {
+                logEl.innerHTML += `\n>>> [GET Error] Revision ${rev} is in the future. Current global revision is ${globalRev}`;
+                logEl.scrollTop = logEl.scrollHeight;
+                return;
+            }
+
+            // Find keyIndex
+            const keyIndex = keyIndexMap[key];
+            if (!keyIndex) {
+                logEl.innerHTML += `\n>>> [GET Error] Key "${key}" not found`;
+                logEl.scrollTop = logEl.scrollHeight;
+                return;
+            }
+
+            // Look up revision in KeyIndex generations
+            let targetRev = null;
+            for (const gen of keyIndex) {
+                // If the key was compacted below this revision, it might have been cleared
+                const revs = gen.revisions;
+                const matches = revs.filter(r => r <= rev);
+                if (matches.length > 0) {
+                    // Take the largest revision <= requested rev
+                    targetRev = matches[matches.length - 1];
+                }
+                if (gen.tombstone && gen.tombstone <= rev) {
+                    targetRev = null; // deleted at or before this rev
+                }
+            }
+
+            if (!targetRev || !boltDB[targetRev]) {
+                logEl.innerHTML += `\n>>> [GET Compacted/Deleted] Key "${key}" at Rev ${rev} is compacted or deleted!`;
+            } else {
+                const data = boltDB[targetRev];
+                logEl.innerHTML += `\n>>> [GET Success] KeyIndex mapped "${key}" -> Rev ${targetRev}. BoltDB returned: "${data.val}"`;
+            }
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function sim2Compact() {
+            const rev = parseInt(document.getElementById('sim2CompactRev').value);
+            if (isNaN(rev)) return;
+            const logEl = document.getElementById('sim2Log');
+
+            // Purge revisions < rev from BoltDB
+            for (const r in boltDB) {
+                if (parseInt(r) < rev) {
+                    delete boltDB[r];
+                }
+            }
+
+            // Clean KeyIndex revisions
+            for (const key in keyIndexMap) {
+                const generations = keyIndexMap[key];
+                const updatedGens = [];
+                for (const gen of generations) {
+                    const keptRevs = gen.revisions.filter(r => r >= rev);
+                    if (keptRevs.length > 0 || (gen.tombstone && gen.tombstone >= rev)) {
+                        gen.revisions = keptRevs;
+                        updatedGens.append(gen);
+                    }
+                }
+                
+                if (updatedGens.length === 0) {
+                    delete keyIndexMap[key];
+                } else {
+                    keyIndexMap[key] = updatedGens;
+                }
+            }
+
+            logEl.innerHTML += `\n>>> [COMPACT] Cleared revisions < ${rev}. Reclaimed BoltDB storage pages.`;
+            logEl.scrollTop = logEl.scrollHeight;
+            updateMvccVisual();
+        }
+
+        // ==========================================
+        // Simulation 3: Watch Catchup
+        // ==========================================
+        let watchRev = 1;
+        let watcherState = 'synced'; // synced, offline, unsynced
+        
+        function disconnectWatcher() {
+            watcherState = 'offline';
+            const w = document.getElementById('w1');
+            w.className = 'watcher-item offline';
+            document.getElementById('syncedQueue').removeChild(w);
+            document.getElementById('unsyncedQueue').appendChild(w);
+            
+            document.getElementById('disconnectWatcherBtn').disabled = true;
+            document.getElementById('reconnectWatcherBtn').disabled = false;
+            
+            document.getElementById('sim3Log').innerHTML += `\n>>> [Watch] Watcher 1 disconnected from gRPC Stream.`;
+            document.getElementById('sim3Log').scrollTop = document.getElementById('sim3Log').scrollHeight;
+        }
+
+        function triggerWatchEvent() {
+            watchRev++;
+            const val = document.getElementById('watchVal').value;
+            
+            if (watcherState === 'synced') {
+                document.getElementById('sim3Log').innerHTML += `\n>>> [Event] Key "/watch_key" updated to "${val}" at Rev ${watchRev}\n>>> [WatchStream] Pushed event [PUT /watch_key -> "${val}"] to Watcher 1`;
+            } else {
+                document.getElementById('sim3Log').innerHTML += `\n>>> [Event] Key "/watch_key" updated to "${val}" at Rev ${watchRev} (Watcher offline. Event buffered in historical log)`;
+            }
+            document.getElementById('sim3Log').scrollTop = document.getElementById('sim3Log').scrollHeight;
+        }
+
+        function reconnectWatcher() {
+            const resumeRevVal = parseInt(document.getElementById('resumeRev').value);
+            const w = document.getElementById('w1');
+            
+            watcherState = 'unsynced';
+            w.className = 'watcher-item unsynced';
+            
+            document.getElementById('sim3Log').innerHTML += `\n>>> [Watch] Watcher 1 reconnected. Resume from Revision ${resumeRevVal}...\n>>> [WatchableStore] Registering in unsynced queue. Fetching historical events from Revision ${resumeRevVal} to ${watchRev}...`;
+            document.getElementById('sim3Log').scrollTop = document.getElementById('sim3Log').scrollHeight;
+            
+            setTimeout(() => {
+                watcherState = 'synced';
+                w.className = 'watcher-item';
+                document.getElementById('unsyncedQueue').removeChild(w);
+                document.getElementById('syncedQueue').appendChild(w);
+                
+                let eventsCount = Math.max(0, watchRev - resumeRevVal + 1);
+                document.getElementById('sim3Log').innerHTML += `\n>>> [WatchableStore] Historical replay complete (${eventsCount} events sent).\n>>> [WatchableStore] Watcher 1 promoted to synced queue. Listening for real-time events.`;
+                document.getElementById('sim3Log').scrollTop = document.getElementById('sim3Log').scrollHeight;
+                
+                document.getElementById('disconnectWatcherBtn').disabled = false;
+                document.getElementById('reconnectWatcherBtn').disabled = true;
+            }, 1200);
+        }
+    </script>
+</body>
+</html>

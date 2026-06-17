@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Java Design Patterns & Concurrency Map</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #4B5F7A;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        #canvas-container {
+            width: 90%;
+            height: 600px;
+            border: 2px solid #24324F;
+            border-radius: 8px;
+            background-color: #1A202C;
+            position: relative;
+            overflow: hidden;
+        }
+        .node {
+            position: absolute;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(255,255,255,0.1);
+        }
+        #tooltip {
+            width: 80%;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #2D3748;
+            border-left: 5px solid #4B5F7A;
+            border-radius: 4px;
+            min-height: 80px;
+        }
+        .colorM1 { background-color: #4B5F7A; }
+        .colorM2 { background-color: #6B8272; }
+        .colorM3 { background-color: #9C6666; }
+        .colorM4 { background-color: #7A7A7A; }
+        .colorM5 { background-color: #9A825A; }
+        .colorM6 { background-color: #755B77; }
+    </style>
+</head>
+<body>
+    <h1>Java Design Patterns & Concurrency Map</h1>
+    <div id="canvas-container"></div>
+    <div id="tooltip">
+        <h3>Click a card node to inspect technical details and source code coordinates</h3>
+    </div>
+
+    <script>
+        const nodes = [
+            { id: 1, group: 'M1', x: 80, y: 100, label: 'Card 1: DCL Singleton', zh: '卡片 1: 单例模式与DCL', desc: 'Double-checked locking and volatile execution barriers.' },
+            { id: 2, group: 'M1', x: 80, y: 220, label: 'Card 2: Factories', zh: '卡片 2: 工厂与抽象工厂', desc: 'Decoupling object creations and product families.' },
+            { id: 3, group: 'M1', x: 80, y: 340, label: 'Card 3: Proxy Patterns', zh: '卡片 3: JDK与CGLIB动态代理', desc: 'Dynamic bytecodes and InvocationHandlers.' },
+            { id: 4, group: 'M1', x: 80, y: 460, label: 'Card 4: Adapter Decorator', zh: '卡片 4: 适配器与装饰器模式', desc: 'Compositions extending runtime logic signatures.' },
+            { id: 5, group: 'M1', x: 80, y: 540, label: 'Card 5: Facade Flyweight', zh: '卡片 5: 外观与享元共享内存', desc: 'Intrinsic vs extrinsic JVM heap caches.' },
+            
+            { id: 6, group: 'M2', x: 260, y: 100, label: 'Card 6: Observer Event', zh: '卡片 6: 观察者与发布订阅', desc: 'Decoupled updates via event listener maps.' },
+            { id: 7, group: 'M2', x: 260, y: 220, label: 'Card 7: Strategy State', zh: '卡片 7: 策略与状态类路由', desc: 'Conditional decoupling and context state switches.' },
+            { id: 8, group: 'M2', x: 260, y: 340, label: 'Card 8: Template Command', zh: '卡片 8: 模板与命令事务流', desc: 'Abstract step skeletons and execution queues.' },
+            { id: 9, group: 'M2', x: 260, y: 460, label: 'Card 9: Chain of Resp', zh: '卡片 9: 责任链拦截过滤器', desc: 'Linked interceptors and Front Controller servlet entries.' },
+            { id: 10, group: 'M2', x: 260, y: 540, label: 'Card 10: Mediator Memento', zh: '卡片 10: 中介者与备忘录历史', desc: '上帝类解耦与回滚快照.' },
+
+            { id: 11, group: 'M3', x: 440, y: 100, label: 'Card 11: DTO Entity', zh: '卡片 11: DTO与领域对象解耦', desc: 'Object mapping and network boundary separations.' },
+            { id: 12, group: 'M3', x: 440, y: 220, label: 'Card 12: DAO Repository', zh: '卡片 12: DAO与Repository抽象', desc: 'Data access layers and aggregate root persistence.' },
+            { id: 13, group: 'M3', x: 440, y: 340, label: 'Card 13: Front Controller', zh: '卡片 13: 统一分发控制器', desc: 'Servlet mapping dispatch and Intercepting Filters.' },
+            { id: 14, group: 'M3', x: 440, y: 460, label: 'Card 14: Circuit Breaker', zh: '卡片 14: 熔断降级与舱壁隔离', desc: 'Microservice fault isolation state machines.' },
+            { id: 15, group: 'M3', x: 440, y: 540, label: 'Card 15: CQRS EventSource', zh: '卡片 15: CQRS与事件溯源', desc: 'Read-write separation and event replay checkpoints.' },
+
+            { id: 16, group: 'M4', x: 620, y: 100, label: 'Card 16: Java Thread', zh: '卡片 16: Java 线程内核映射', desc: '1:1 OS kernel thread mappings and stackframes.' },
+            { id: 17, group: 'M4', x: 620, y: 220, label: 'Card 17: JMM & Volatile', zh: '卡片 17: JMM与volatile屏障', desc: 'Memory visibility and happens-before execution gates.' },
+            { id: 18, group: 'M4', x: 620, y: 340, label: 'Card 18: ThreadPool', zh: '卡片 18: 线程池工作线程复用', desc: 'ThreadPoolExecutor core limits and queue rejections.' },
+            { id: 19, group: 'M4', x: 620, y: 460, label: 'Card 19: ThreadLocal Leak', zh: '卡片 19: ThreadLocal内存泄漏', desc: 'Weak reference keys and remove() safety cleanups.' },
+
+            { id: 20, group: 'M5', x: 800, y: 100, label: 'Card 20: AQS CLH Queue', zh: '卡片 20: AQS双向CLH队列', desc: 'Volatile state and park/unpark thread synchronizations.' },
+            { id: 21, group: 'M5', x: 800, y: 220, label: 'Card 21: CAS & ABA Version', zh: '卡片 21: CAS自旋与ABA版本号', desc: 'CPU atomic cmpxchg instructions and stamping.' },
+            { id: 22, group: 'M5', x: 800, y: 340, label: 'Card 22: ConcurrentHashMap', zh: '卡片 22: 并发容器分段锁', desc: 'Node CAS bucket locking and red-black balancing.' },
+            { id: 23, group: 'M5', x: 800, y: 460, label: 'Card 23: Sync Lock Upgrade', zh: '卡片 23: Synchronized锁膨胀', desc: 'Biased to lightweight to heavyweight system calls.' },
+            { id: 24, group: 'M5', x: 800, y: 540, label: 'Card 24: Deadlock Check', zh: '卡片 24: 死锁环路监测预防', desc: 'Wait-for graphs and ordering safety policies.' },
+
+            { id: 25, group: 'M6', x: 980, y: 100, label: 'Card 25: Backpressure', zh: '卡片 25: 响应式流背压规范', desc: 'Subscription n-item demand-rate feedback loops.' },
+            { id: 26, group: 'M6', x: 980, y: 220, label: 'Card 26: Flux Mono Sched', zh: '卡片 26: Flux/Mono线程切换', desc: 'Reactive publisher/subscriber thread routing.' },
+            { id: 27, group: 'M6', x: 980, y: 340, label: 'Card 27: CompletableFuture', zh: '卡片 27: CompletableFuture编排', desc: 'Task pipelines, async joins and exceptionals.' },
+            { id: 28, group: 'M6', x: 980, y: 460, label: 'Card 28: ForkJoin Stealing', zh: '卡片 28: ForkJoinPool工作窃取', desc: 'Deques, LIFO executions and FIFO steals.' }
+        ];
+
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+
+        nodes.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `node color${n.group}`;
+            div.style.left = `${n.x}px`;
+            div.style.top = `${n.y}px`;
+            div.innerText = n.label;
+            div.onclick = () => {
+                tooltip.innerHTML = `
+                    <h3>\sign \${n.label}</h3>
+                    <p><strong>Module:</strong> \sign \${n.group} | <strong>Details:</strong> \${n.desc}</p>
+                    <p><strong>Java Classes:</strong> <code>java.util.concurrent.\${n.label.replace(' ', '')}</code></p>
+                `;
+            };
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>

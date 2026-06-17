@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Intel SGX 飞地物理访存与认证仿真演练沙盒</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        input, select, button {
+            background-color: #2D3748;
+            color: white;
+            border: 1px solid #4B5F7A;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4B5F7A;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #5C728F;
+        }
+        .output {
+            background-color: #0d1117;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #6B8272;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            margin-top: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .mem-block {
+            display: inline-block;
+            width: 45px;
+            height: 45px;
+            line-height: 45px;
+            text-align: center;
+            margin: 3px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            background-color: #334155;
+            border: 1px solid #475569;
+        }
+        .mem-epc {
+            background-color: #4B5F7A;
+            border-color: #5C728F;
+        }
+        .mem-locked {
+            background-color: #9C6666;
+            border-color: #B27B7B;
+        }
+    </style>
+</head>
+<body>
+    <h1>Intel SGX 飞地物理访存与认证仿真演练沙盒</h1>
+    
+    <div class="grid">
+        <!-- Sandbox 1: Memory Access & MEE Page Encryption -->
+        <div class="card">
+            <h2>1. 飞地物理访存与 MEE 加密机制</h2>
+            <p>模拟不同 CPU 权限状态下对物理内存 PRM/EPC 的读取与加密校验</p>
+            
+            <label>CPU 当前模式:</label>
+            <select id="cpu-mode">
+                <option value="normal">非飞地模式 (Ring 3 / OS 权限)</option>
+                <option value="enclave">飞地模式 (Enclave 内部执行)</option>
+            </select>
+
+            <label>访问物理地址 (十六进制):</label>
+            <input type="text" id="target-addr" value="0x1008000">
+
+            <button onclick="simulateAccess()">发起物理内存读取</button>
+            
+            <div class="output" id="mem-log">日志就绪...</div>
+            
+            <div style="margin-top:15px;" id="mem-layout">
+                <!-- Visual memory blocks -->
+            </div>
+        </div>
+
+        <!-- Sandbox 2: Attestation Challenge State Machine -->
+        <div class="card">
+            <h2>2. 本地与远程可信认证状态机</h2>
+            <p>执行可信验证流，生成 Report（本地）或 Quote（远程）并通过 PCS 校验</p>
+            
+            <label>验证模式:</label>
+            <select id="attest-type" onchange="toggleAttestUI()">
+                <option value="local">本地认证 (同平台双 Enclave)</option>
+                <option value="remote">远程认证 (跨平台/公钥证书证明)</option>
+            </select>
+
+            <label id="target-lbl">目标飞地 MRENCLAVE 标识:</label>
+            <input type="text" id="attest-mrenclave" value="8f3c2b9a7d1e...">
+
+            <button onclick="startAttestation()">触发可信度量与验证</button>
+            
+            <div class="output" id="attest-log">日志就绪...</div>
+        </div>
+    </div>
+
+    <script>
+        // Init memory visualization
+        const memLayout = document.getElementById('mem-layout');
+        for(let i=0; i<16; i++) {
+            const div = document.createElement('div');
+            div.className = 'mem-block';
+            div.id = 'block-' + i;
+            // mark blocks 6 to 10 as EPC pages
+            if(i >= 6 && i <= 10) {
+                div.className += ' mem-epc';
+                div.innerText = 'EPC';
+            } else {
+                div.innerText = 'Normal';
+            }
+            memLayout.appendChild(div);
+        }
+
+        function simulateAccess() {
+            const mode = document.getElementById('cpu-mode').value;
+            const addrStr = document.getElementById('target-addr').value;
+            const log = document.getElementById('mem-log');
+            const addr = parseInt(addrStr, 16);
+
+            if(isNaN(addr)) {
+                log.innerText = "Error: Invalid physical address format.\n";
+                return;
+            }
+
+            log.innerText = `[MMU] Accessing physical address: 0x\${addr.toString(16).toUpperCase()}\n`;
+            
+            // Map address to block index (0 to 15)
+            const blockIndex = Math.floor((addr % 0x10000) / 4096) % 16;
+            
+            // Highlight accessed block
+            for(let i=0; i<16; i++) {
+                const el = document.getElementById('block-' + i);
+                el.style.transform = 'none';
+                el.style.boxShadow = 'none';
+            }
+            const activeEl = document.getElementById('block-' + blockIndex);
+            if(activeEl) {
+                activeEl.style.transform = 'scale(1.1)';
+                activeEl.style.boxShadow = '0 0 10px #6B8272';
+            }
+
+            const isEPC = (blockIndex >= 6 && blockIndex <= 10);
+            
+            if (isEPC) {
+                if (mode === 'enclave') {
+                    log.innerText += `[EPCM] Success! Address matched active SECS owner ID.\n`;
+                    log.innerText += `[MEE] Decrypting cacheline via AES-XTS (Page decrypted).\n`;
+                    log.innerText += `[MEE] MCTS Merkle-Tree root verify: SUCCESS. Data integrity: OK.\n`;
+                    log.innerText += `[Result] Read Success: [0x5A4F3E2D1B...] (Private Data)`;
+                } else {
+                    log.innerText += `[EPCM] ERROR: Unauthorized Ring 3 process attempted EPC access.\n`;
+                    log.innerText += `[MMU] EPCM violation checked by CPU hardware execution unit.\n`;
+                    log.innerText += `[Result] Access Denied: Triggered #GP (General Protection Exception). CPU state preserved.`;
+                }
+            } else {
+                log.innerText += `[MMU] Accessing normal memory outside PRM.\n`;
+                log.innerText += `[MEE] Encryption bypass (Plaintext DRAM Read).\n`;
+                log.innerText += `[Result] Read Success: [0x00000000] (Public Memory Area)`;
+            }
+        }
+
+        function toggleAttestUI() {
+            const type = document.getElementById('attest-type').value;
+            const lbl = document.getElementById('target-lbl');
+            if(type === 'local') {
+                lbl.innerText = "目标飞地 MRENCLAVE 标识:";
+            } else {
+                lbl.innerText = "外部验证者随机挑战 Challenge (Nonce):";
+            }
+        }
+
+        function startAttestation() {
+            const type = document.getElementById('attest-type').value;
+            const inputVal = document.getElementById('attest-mrenclave').value;
+            const log = document.getElementById('attest-log');
+
+            if(type === 'local') {
+                log.innerText = `[Step 1] Enclave A initiates EREPORT target to Enclave B.\n`;
+                log.innerText += `[Step 2] CPU executes EREPORT instruction.\n`;
+                log.innerText += `         -> Measures Enclave A (MRENCLAVE = 9a2f...)\n`;
+                log.innerText += `         -> Sign Report via Platform symmetric Report Key (MAC generated).\n`;
+                log.innerText += `[Step 3] Enclave B receives Report, calls EGETKEY to fetch Report Key.\n`;
+                log.innerText += `[Step 4] Enclave B recalculates and checks Report MAC checksum.\n`;
+                log.innerText += `[Result] Local Attestation: SUCCESS. Shared Symmetric Session Key established.`;
+            } else {
+                log.innerText = `[Step 1] Client Enclave requests Remote Challenge from Verifier.\n`;
+                log.innerText += `[Step 2] Client executes EREPORT with Verifier Challenge: \${inputVal}\n`;
+                log.innerText += `[Step 3] Report sent to QE (Quoting Enclave) via local attestation.\n`;
+                log.innerText += `[Step 4] QE signs Quote certificate using PCE Private Key.\n`;
+                log.innerText += `[Step 5] Quote sent to Remote Verifier server.\n`;
+                log.innerText += `[Step 6] Verifier checks signature chain via Intel PCS PCK Certificate CA.\n`;
+                log.innerText += `[Result] Remote Attestation: VERIFIED. Genuine Intel hardware enclave confirmed.`;
+            }
+        }
+    </script>
+</body>
+</html>

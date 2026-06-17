@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanitizers 运行时诊断交互仿真实验室</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #94a3b8;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .sandbox-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            display: none;
+        }
+
+        .sandbox-container.active {
+            display: block;
+        }
+
+        .desc-banner {
+            background-color: #1e293b;
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2rem;
+        }
+
+        .panel {
+            background-color: #0b0f19;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel h3 {
+            font-size: 1.1rem;
+            color: #f1f5f9;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.88rem;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-danger {
+            background-color: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+
+        .btn-secondary {
+            background-color: #4b5563;
+        }
+
+        .btn-secondary:hover {
+            background-color: #374151;
+        }
+
+        .log-console {
+            background-color: #05070f;
+            border: 1px solid #1e293b;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 1rem;
+            font-size: 0.82rem;
+            height: 180px;
+            overflow-y: auto;
+            color: #38bdf8;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+        }
+
+        /* ASan specific styles */
+        .memory-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .mem-byte {
+            width: 38px;
+            height: 38px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* TSan specific styles */
+        .threads-clocks {
+            display: flex;
+            justify-content: space-around;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .clock-card {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+            flex: 1;
+        }
+
+        .clock-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            color: #38bdf8;
+            margin-top: 0.5rem;
+        }
+
+        .vars-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .var-box {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .var-slots {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Sanitizers 运行时诊断交互仿真实验室</h1>
+        <p>AddressSanitizer 内存影子映射与 ThreadSanitizer 发生前关系仿真模拟</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('asan')">ASan 内存影子映射与红区隔离</button>
+        <button class="tab-btn" onclick="switchTab('tsan')">TSan 向量时钟与死锁环路检测</button>
+    </div>
+
+    <!-- ASAN SANDBOX -->
+    <div id="asanSandbox" class="sandbox-container active">
+        <div class="desc-banner">AddressSanitizer (ASan) 影子内存模拟器：点击申请堆/栈变量，修改影子映射，查看越界访问与 UAF 的检测原理。</div>
+        <div class="grid-2">
+            <div class="panel">
+                <h3>物理内存状态与影子映射</h3>
+                
+                <div style="margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: bold; color: #a3a3a3;">
+                    应用程序内存物理地址空间:
+                </div>
+                <div class="memory-row" id="appMemRow"></div>
+
+                <div style="margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: bold; color: #a3a3a3;">
+                    对应的影子内存状态字节 (8:1 映射比例):
+                </div>
+                <div class="memory-row" id="shadowMemRow"></div>
+
+                <div style="margin-top: 1rem; font-size: 0.8rem; color: #94a3b8; line-height: 1.5;">
+                    <strong>图例说明:</strong><br>
+                    <span style="color: #22c55e;">■</span> 可正常读写 (0x00) &nbsp;|&nbsp;
+                    <span style="color: #ef4444;">■</span> 越界保护红区 (0xf1/0xfa) &nbsp;|&nbsp;
+                    <span style="color: #a855f7;">■</span> 隔离区已释放堆块 (0xfd)
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>实验控制指令与运行时报告</h3>
+                <div class="actions">
+                    <button class="btn" onclick="asanMalloc()">1. 堆上分配堆块 malloc(16)</button>
+                    <button class="btn btn-secondary" onclick="asanFree()">2. 释放堆块 free(ptr)</button>
+                    <div style="border-top: 1px solid var(--border-color); margin: 0.5rem 0;"></div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="number" id="accessIndex" value="0" style="width: 80px; padding: 0.5rem; background:#111827; border: 1px solid var(--border-color); color: #38bdf8; font-family:'JetBrains Mono'; border-radius:4px;">
+                        <button class="btn" style="flex-grow:1;" onclick="asanAccess(true)">读写该偏移地址</button>
+                    </div>
+                    <button class="btn btn-danger" onclick="asanTriggerOOB()">触发堆越界错误</button>
+                    <button class="btn btn-danger" onclick="asanTriggerUAF()">触发释放后使用错误</button>
+                    <button class="btn btn-secondary" onclick="resetAsan()">重置 ASan</button>
+                </div>
+                <div class="log-console" id="asanConsole">=== ASan Diagnostics Console ===</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TSAN SANDBOX -->
+    <div id="tsanSandbox" class="sandbox-container">
+        <div class="desc-banner">ThreadSanitizer (TSan) 并发竞争模拟器：维护线程的向量时钟，在无锁情况下检测 Data Race，或在锁依赖图上检测有向死锁环。</div>
+        <div class="grid-2">
+            <div class="panel">
+                <h3>线程逻辑时钟与共享变量状态</h3>
+                
+                <div class="threads-clocks">
+                    <div class="clock-card">
+                        <div>Thread A</div>
+                        <div class="clock-val" id="clockA">[0, 0]</div>
+                    </div>
+                    <div class="clock-card">
+                        <div>Thread B</div>
+                        <div class="clock-val" id="clockB">[0, 0]</div>
+                    </div>
+                </div>
+
+                <div class="vars-grid">
+                    <div class="var-box">
+                        <strong style="color: #f1f5f9;">Shared Var1</strong>
+                        <div class="var-slots" id="slotsVar1">Shadow Cells (Max 4): Empty</div>
+                    </div>
+                    <div class="var-box">
+                        <strong style="color: #f1f5f9;">Mutex Lock L1</strong>
+                        <div class="var-slots" id="lockState">State: UNLOCKED</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1rem; font-size: 0.8rem; color: #94a3b8; line-height: 1.5;">
+                    <strong>死锁依赖拓扑有向图:</strong>
+                    <div id="deadlockGraph" style="margin-top: 0.5rem; background:#111827; height: 100px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono'; border: 1px solid var(--border-color); color: #f43f5e;">
+                        No cycles detected. Graph clean.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>触发多线程并发与同步事件</h3>
+                <div class="actions">
+                    <button class="btn" onclick="tsanThreadAction('A', 'write')">线程 A: 写变量 Var1 (无锁)</button>
+                    <button class="btn" onclick="tsanThreadAction('B', 'read')">线程 B: 读变量 Var1 (无锁)</button>
+                    <div style="border-top: 1px solid var(--border-color); margin: 0.5rem 0;"></div>
+                    <button class="btn btn-secondary" onclick="tsanLock('A')">线程 A: 获取互斥锁 L1</button>
+                    <button class="btn btn-secondary" onclick="tsanUnlock('A')">线程 A: 释放互斥锁 L1</button>
+                    <button class="btn btn-secondary" onclick="tsanLock('B')">线程 B: 获取互斥锁 L1</button>
+                    <button class="btn btn-secondary" onclick="tsanUnlock('B')">线程 B: 释放互斥锁 L1</button>
+                    <div style="border-top: 1px solid var(--border-color); margin: 0.5rem 0;"></div>
+                    <button class="btn btn-danger" onclick="tsanTriggerDeadlock()">制造锁顺序依赖有向环 (死锁预警)</button>
+                    <button class="btn btn-secondary" onclick="resetTsan()">重置 TSan</button>
+                </div>
+                <div class="log-console" id="tsanConsole">=== TSan Diagnostics Console ===</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.sandbox-container').forEach(c => c.classList.remove('active'));
+            if (tab === 'asan') {
+                document.querySelector('.tab-btn[onclick="switchTab('asan')"]').classList.add('active');
+                document.getElementById('asanSandbox').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn[onclick="switchTab('tsan')"]').classList.add('active');
+                document.getElementById('tsanSandbox').classList.add('active');
+            }
+        }
+
+        // =====================================================================
+        // ASan Core Simulation Code
+        // =====================================================================
+        let asanState = {
+            mallocAddress: null,
+            allocatedSize: 0,
+            isFreed: false,
+            quarantine: []
+        };
+
+        const appBytes = 24;
+        function renderAsanGrid() {
+            const appRow = document.getElementById('appMemRow');
+            const shadowRow = document.getElementById('shadowMemRow');
+            appRow.innerHTML = '';
+            shadowRow.innerHTML = '';
+
+            for (let i = 0; i < appBytes; i++) {
+                const val = (i % 8 === 0) ? `0x${(1000 + i).toString(16).toUpperCase()}` : '';
+                let bg = '#1e293b';
+                let isPoisoned = false;
+                
+                // Color bytes based on allocation
+                if (asanState.mallocAddress !== null) {
+                    const leftRed = asanState.mallocAddress - 4;
+                    const rightRed = asanState.mallocAddress + asanState.allocatedSize;
+                    if (i >= asanState.mallocAddress && i < asanState.mallocAddress + asanState.allocatedSize) {
+                        bg = asanState.isFreed ? '#a855f7' : '#22c55e';
+                    } else if (i >= leftRed && i < asanState.mallocAddress) {
+                        bg = '#ef4444'; // Redzone
+                    } else if (i >= rightRed && i < rightRed + 4) {
+                        bg = '#ef4444'; // Redzone
+                    }
+                }
+
+                appRow.innerHTML += `<div class="mem-byte" style="background-color: ${bg};" title="Addr: 0x${(1000+i).toString(16).toUpperCase()}">${i}</div>`;
+            }
+
+            // Shadow grid: 1 shadow byte represents 8 app bytes
+            for (let s = 0; s < 3; s++) {
+                let bg = '#1e293b';
+                let code = '0x00';
+                
+                if (asanState.mallocAddress !== null) {
+                    // Determine which app bytes fall in this shadow byte range
+                    const startApp = s * 8;
+                    const endApp = startApp + 8;
+                    
+                    let hasRedzone = false;
+                    let hasFree = false;
+                    let hasClean = false;
+
+                    for (let a = startApp; a < endApp; a++) {
+                        const leftRed = asanState.mallocAddress - 4;
+                        const rightRed = asanState.mallocAddress + asanState.allocatedSize;
+                        if (a >= asanState.mallocAddress && a < asanState.mallocAddress + asanState.allocatedSize) {
+                            if (asanState.isFreed) hasFree = true;
+                            else hasClean = true;
+                        } else if ((a >= leftRed && a < asanState.mallocAddress) || (a >= rightRed && a < rightRed + 4)) {
+                            hasRedzone = true;
+                        }
+                    }
+
+                    if (hasFree) {
+                        bg = '#a855f7';
+                        code = '0xfd';
+                    } else if (hasRedzone) {
+                        bg = '#ef4444';
+                        code = '0xfa';
+                    } else if (hasClean) {
+                        bg = '#22c55e';
+                        code = '0x00';
+                    }
+                }
+
+                shadowRow.innerHTML += `<div class="mem-byte" style="background-color: ${bg}; border: 2px dashed #475569;" title="Shadow of Address 0x${(1000 + s*8).toString(16).toUpperCase()}">${code}</div>`;
+            }
+        }
+
+        function logAsan(msg) {
+            const cons = document.getElementById('asanConsole');
+            cons.innerHTML += '\n' + msg;
+            cons.scrollTop = cons.scrollHeight;
+        }
+
+        function asanMalloc() {
+            asanState.mallocAddress = 8; // allocate from address 8 to 23
+            asanState.allocatedSize = 8;
+            asanState.isFreed = false;
+            renderAsanGrid();
+            logAsan(`[ASan Malloc] Allocated heap buffer at Addr 0x3E8 (index 8), Size: 8 bytes.`);
+            logAsan(`- Left Redzone: index 4..7 poisoned to 0xfa.`);
+            logAsan(`- Right Redzone: index 16..19 poisoned to 0xfa.`);
+            logAsan(`- Shadow addresses mapped successfully.`);
+        }
+
+        function asanFree() {
+            if (asanState.mallocAddress === null) {
+                logAsan("[ASan Warning] No memory allocated to free.");
+                return;
+            }
+            asanState.isFreed = true;
+            renderAsanGrid();
+            logAsan(`[ASan Free] free(ptr) hijacked! Entire block index 8..15 poisoned to 0xfd (freed heap).`);
+            logAsan(`- Block moved to Quarantine FIFO queue.`);
+        }
+
+        function asanAccess(check) {
+            const idx = parseInt(document.getElementById('accessIndex').value);
+            if (asanState.mallocAddress === null) {
+                logAsan("[ASan Error] Accessing address without allocation.");
+                return;
+            }
+            
+            logAsan(`[Memory Access] Reading address offset: ${idx} (Absolute Index: ${idx})`);
+            logAsan(`- Address mapping check: ShadowByte = ((0x${(1000+idx).toString(16).toUpperCase()}) >> 3) + Offset`);
+            
+            const shadowVal = (idx >= 8 && idx < 16) ? (asanState.isFreed ? '0xfd' : '0x00') : ((idx >= 4 && idx < 20) ? '0xfa' : '0x00');
+            
+            logAsan(`- Checking Shadow Memory value... Found: ${shadowVal}`);
+
+            if (shadowVal === '0x00') {
+                logAsan(`- [SUCCESS] Address is clean. Data: OK.`);
+            } else if (shadowVal === '0xfa') {
+                logAsan(`\n=================================================================`);
+                logAsan(`!!! ADDRESSSANITIZER CRASH REPORT !!!`);
+                logAsan(`ERROR: AddressSanitizer: heap-buffer-overflow on address 0x${(1000+idx).toString(16).toUpperCase()}`);
+                logAsan(`READ of size 1 at thread T0`);
+                logAsan(`  #0 0x40124a in main main.cpp:12`);
+                logAsan(`Address is located in redzone [fa] surrounding malloc block [8..15]`);
+                logAsan(`=================================================================\n`);
+            } else if (shadowVal === '0xfd') {
+                logAsan(`\n=================================================================`);
+                logAsan(`!!! ADDRESSSANITIZER CRASH REPORT !!!`);
+                logAsan(`ERROR: AddressSanitizer: heap-use-after-free on address 0x${(1000+idx).toString(16).toUpperCase()}`);
+                logAsan(`READ of size 1 at thread T0`);
+                logAsan(`  #0 0x40129f in main main.cpp:15`);
+                logAsan(`Address was allocated at:`);
+                logAsan(`  #0 malloc at main.cpp:8`);
+                logAsan(`Address was freed at:`);
+                logAsan(`  #0 free at main.cpp:10`);
+                logAsan(`=================================================================\n`);
+            }
+        }
+
+        function asanTriggerOOB() {
+            asanMalloc();
+            document.getElementById('accessIndex').value = 16;
+            asanAccess();
+        }
+
+        function asanTriggerUAF() {
+            asanMalloc();
+            asanFree();
+            document.getElementById('accessIndex').value = 8;
+            asanAccess();
+        }
+
+        function resetAsan() {
+            asanState = {
+                mallocAddress: null,
+                allocatedSize: 0,
+                isFreed: false,
+                quarantine: []
+            };
+            renderAsanGrid();
+            document.getElementById('asanConsole').innerHTML = '=== ASan Diagnostics Console ===';
+            logAsan("ASan sandbox reset complete.");
+        }
+
+        // =====================================================================
+        // TSan Core Simulation Code
+        // =====================================================================
+        let tsanState = {
+            clocks: { 'A': [0, 0], 'B': [0, 0] }, // Vector Clocks for [Thread A, Thread B]
+            lockClock: [0, 0],                     // Vector Clock for Mutex L1
+            isLocked: false,
+            lockHolder: null,
+            slotsVar1: [],                         // TSan Shadow Cells for Var1 (max 4 slots)
+            lockOrderEdges: []                     // Edges for deadlock detection
+        };
+
+        function logTsan(msg) {
+            const cons = document.getElementById('tsanConsole');
+            cons.innerHTML += '\n' + msg;
+            cons.scrollTop = cons.scrollHeight;
+        }
+
+        function renderTsanState() {
+            document.getElementById('clockA').innerText = `[${tsanState.clocks['A'].join(', ')}]`;
+            document.getElementById('clockB').innerText = `[${tsanState.clocks['B'].join(', ')}]`;
+            
+            const lockStateEl = document.getElementById('lockState');
+            if (tsanState.isLocked) {
+                lockStateEl.innerHTML = `State: LOCKED by Thread ${tsanState.lockHolder}<br>Clock: [${tsanState.lockClock.join(', ')}]`;
+            } else {
+                lockStateEl.innerHTML = `State: UNLOCKED<br>Clock: [${tsanState.lockClock.join(', ')}]`;
+            }
+
+            const slotsEl = document.getElementById('slotsVar1');
+            if (tsanState.slotsVar1.length === 0) {
+                slotsEl.innerHTML = 'Shadow Cells (Max 4): Empty';
+            } else {
+                slotsEl.innerHTML = tsanState.slotsVar1.map((slot, i) => 
+                    `Slot ${i+1}: Thread ${slot.thread}, Epoch ${slot.epoch} [${slot.type.toUpperCase()}]`
+                ).join('<br>');
+            }
+        }
+
+        function tsanThreadAction(thread, type) {
+            const tid = (thread === 'A') ? 0 : 1;
+            
+            // 1. Local Epoch Tick
+            tsanState.clocks[thread][tid]++;
+            const currentEpoch = tsanState.clocks[thread][tid];
+            
+            logTsan(`[Thread ${thread} Action] Perform ${type.toUpperCase()} on Shared Var1 (Epoch: ${currentEpoch}).`);
+
+            // 2. Check Data Race
+            let raceDetected = false;
+            let conflictSlot = null;
+
+            for (const slot of tsanState.slotsVar1) {
+                const slotTid = (slot.thread === 'A') ? 0 : 1;
+                // Race condition: if at least one is WRITE, and threads are different, and no happens-before relation
+                if (slot.thread !== thread && (type === 'write' || slot.type === 'write')) {
+                    // Check happens-before relation: does the slot's epoch precede the current thread's vector clock for that thread?
+                    const knewSlotEpoch = tsanState.clocks[thread][slotTid];
+                    if (knewSlotEpoch < slot.epoch) {
+                        raceDetected = true;
+                        conflictSlot = slot;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Record Shadow Cell
+            tsanState.slotsVar1.unshift({
+                thread: thread,
+                epoch: currentEpoch,
+                type: type
+            });
+            if (tsanState.slotsVar1.length > 4) tsanState.slotsVar1.pop(); // keep only last 4
+
+            renderTsanState();
+
+            if (raceDetected) {
+                logTsan(`\n=================================================================`);
+                logTsan(`!!! THREADSANITIZER DATA RACE DETECTED !!!`);
+                logTsan(`WARNING: ThreadSanitizer: data race on variable Var1`);
+                logTsan(`  Write of size 8 by Thread ${thread} (Epoch ${currentEpoch})`);
+                logTsan(`  Previous ${conflictSlot.type.toUpperCase()} by Thread ${conflictSlot.thread} (Epoch ${conflictSlot.epoch})`);
+                logTsan(`  Vector clocks did not establish Happens-Before relation:`);
+                logTsan(`    Thread ${thread} clock for ${conflictSlot.thread} was ${tsanState.clocks[thread][conflictSlot.thread === 'A' ? 0 : 1]} (needed >= ${conflictSlot.epoch})`);
+                logTsan(`=================================================================\n`);
+            } else {
+                logTsan(`- [SAFE] Happens-Before check passed. No races.`);
+            }
+        }
+
+        function tsanLock(thread) {
+            if (tsanState.isLocked) {
+                logTsan(`[TSan Mutex] Thread ${thread} blocked. L1 is already held by Thread ${tsanState.lockHolder}.`);
+                return;
+            }
+            
+            const tid = (thread === 'A') ? 0 : 1;
+            tsanState.isLocked = true;
+            tsanState.lockHolder = thread;
+            
+            // Acquire lock: merge thread's clock with lock's vector clock
+            tsanState.clocks[thread][0] = Math.max(tsanState.clocks[thread][0], tsanState.lockClock[0]);
+            tsanState.clocks[thread][1] = Math.max(tsanState.clocks[thread][1], tsanState.lockClock[1]);
+            
+            logTsan(`[TSan Lock] Thread ${thread} acquired Mutex L1.`);
+            logTsan(`- Merged Thread ${thread} vector clock: [${tsanState.clocks[thread].join(', ')}]`);
+            renderTsanState();
+        }
+
+        function tsanUnlock(thread) {
+            if (!tsanState.isLocked || tsanState.lockHolder !== thread) {
+                logTsan(`[TSan Warning] Thread ${thread} cannot unlock. Not lock holder.`);
+                return;
+            }
+
+            const tid = (thread === 'A') ? 0 : 1;
+            // Release lock: copy thread's clock to lock's vector clock
+            tsanState.lockClock[0] = tsanState.clocks[thread][0];
+            tsanState.lockClock[1] = tsanState.clocks[thread][1];
+            
+            tsanState.isLocked = false;
+            tsanState.lockHolder = null;
+            
+            // Increment local epoch on lock release
+            tsanState.clocks[thread][tid]++;
+
+            logTsan(`[TSan Unlock] Thread ${thread} released Mutex L1.`);
+            logTsan(`- Lock L1 vector clock updated to: [${tsanState.lockClock.join(', ')}]`);
+            renderTsanState();
+        }
+
+        function tsanTriggerDeadlock() {
+            const g = document.getElementById('deadlockGraph');
+            g.style.backgroundColor = '#450a0a';
+            g.style.borderColor = '#f43f5e';
+            g.innerHTML = `
+                &nbsp;&nbsp;⚠️ WARNING: ThreadSanitizer: Lock Inversion detected!<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cycle: Mutex L1 ➜ Mutex L2 ➜ Mutex L1 (Deadlock Risk)
+            `;
+            logTsan(`\n=================================================================`);
+            logTsan(`!!! THREADSANITIZER DEADLOCK WARNING !!!`);
+            logTsan(`WARNING: ThreadSanitizer: lock-order-inversion (potential deadlock)`);
+            logTsan(`  Thread 1 acquired Mutex L1 then requested L2`);
+            logTsan(`  Thread 2 acquired Mutex L2 then requested L1`);
+            logTsan(`  Lock order graph cycle found: L1 ➜ L2 ➜ L1`);
+            logTsan(`=================================================================\n`);
+        }
+
+        function resetTsan() {
+            tsanState = {
+                clocks: { 'A': [0, 0], 'B': [0, 0] },
+                lockClock: [0, 0],
+                isLocked: false,
+                lockHolder: null,
+                slotsVar1: [],
+                lockOrderEdges: []
+            };
+            renderTsanState();
+            document.getElementById('tsanConsole').innerHTML = '=== TSan Diagnostics Console ===';
+            const g = document.getElementById('deadlockGraph');
+            g.style.backgroundColor = '#111827';
+            g.style.borderColor = varColor('--border-color');
+            g.innerHTML = 'No cycles detected. Graph clean.';
+            logTsan("TSan sandbox reset complete.");
+        }
+
+        function varColor(varName) {
+            return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        }
+
+        // Initial setup
+        renderAsanGrid();
+        renderTsanState();
+    </script>
+</body>
+</html>

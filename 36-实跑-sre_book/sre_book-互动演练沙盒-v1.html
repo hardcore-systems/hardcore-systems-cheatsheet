@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang= + map_lang + >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive distributed systems and SRE playground for google/sre-book.">
+    <title>google / sre-book 站点可靠性工程（SRE）互动仿真实验室</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --color-active: #10b981;
+            --color-warn: #f59e0b;
+            --color-danger: #ef4444;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #7A8B99, #BFA88F);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        .grid-labs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 1200px) {
+            .grid-labs {
+                grid-template-columns: 1fr;
+            }
+        }
+        .lab-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .lab-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: #60a5fa;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+        .lab-description {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .input-group label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .input-ctrl {
+            background-color: #0b111e;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.5rem 0.8rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn:hover {
+            background-color: #2563eb;
+        }
+        .btn-secondary {
+            background-color: #475569;
+        }
+        .btn-secondary:hover {
+            background-color: #334155;
+        }
+        .btn-danger {
+            background-color: var(--color-danger);
+        }
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+        .btn:disabled {
+            background-color: #1e293b;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+        
+        /* Alerting sandbox styles */
+        .metric-visualizer {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        .metric-row {
+            display: grid;
+            grid-template-columns: 140px 1fr 150px;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .metric-row:last-child {
+            margin-bottom: 0;
+        }
+        .metric-lbl {
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .prog-bg {
+            background-color: #1e293b;
+            height: 18px;
+            border-radius: 9px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+            position: relative;
+        }
+        .prog-fill {
+            background-color: var(--color-active);
+            height: 100%;
+            width: 100%;
+            transition: width 0.3s, background-color 0.3s;
+        }
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            text-align: center;
+            display: inline-block;
+        }
+        .status-badge.healthy { background-color: rgba(16,185,129,0.2); color: #10b981; }
+        .status-badge.warning { background-color: rgba(245,158,11,0.2); color: #f59e0b; }
+        .status-badge.danger { background-color: rgba(239,68,68,0.2); color: #f87171; animation: flash 1s infinite alternate; }
+        
+        @keyframes flash {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
+        }
+
+        .stat-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background-color: #1a2238;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem;
+            text-align: center;
+        }
+        .stat-card-title {
+            font-size: 0.7rem;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+        .stat-card-val {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Throttling Sandbox visualizer */
+        .flow-visualizer {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #0b111e;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .flow-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .flow-bar-container {
+            display: grid;
+            grid-template-columns: 100px 1fr 60px;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .flow-bar-lbl {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .flow-bar-bg {
+            height: 10px;
+            background-color: #1e293b;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .flow-bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .flow-bar-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            text-align: right;
+        }
+
+        .log-terminal {
+            background-color: #05070c;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.75rem;
+            height: 140px;
+            overflow-y: auto;
+            color: #a7f3d0;
+            line-height: 1.5;
+        }
+        
+        .flex-row-spaced {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>SRE 架构与稳定性仿真演练沙盒</h1>
+        <p>本仿真沙盒深度演练 SRE 核心机制：1. 多窗口多燃烧率告警与错误预算消耗模拟；2. 谷歌客户端自适应限流与服务端优雅降级（核心/非核心流量分流与过载保护）。</p>
+    </header>
+
+    <div class="grid-labs">
+        <!-- Lab 1: Multi-burn-rate Alerting -->
+        <div class="lab-panel">
+            <h2 class="lab-title">实操实验室一：多燃烧率告警算法与错误预算消耗模拟</h2>
+            <p class="lab-description">
+                模拟SLO错误预算消耗。配置月度SLO目标，注入重大灾难或慢性泄漏，快进模拟系统时间，观察多窗口多燃烧率告警机制如何在快速响应事故的同时，规避短暂瞬态毛刺虚警。
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>月度 SLO 目标</label>
+                    <select id="slo-target" class="input-ctrl" onchange="initAlertSandbox()">
+                        <option value="0.001">99.9% (Budget: 43.2 min/m)</option>
+                        <option value="0.01">99.0% (Budget: 432 min/m)</option>
+                        <option value="0.0001">99.99% (Budget: 4.32 min/m)</option>
+                    </select>
+                </div>
+                <button class="btn btn-secondary" onclick="setServiceState('healthy')">系统正常 (0.01%)</button>
+                <button class="btn btn-secondary" onclick="setServiceState('leak')">慢性泄漏 (0.60%)</button>
+                <button class="btn btn-danger" onclick="setServiceState('outage')">注入大事故 (15.0%)</button>
+            </div>
+
+            <div class="controls-row">
+                <button class="btn" onclick="stepAlertSandbox(1)">前进 1 分钟</button>
+                <button class="btn" onclick="stepAlertSandbox(10)">快进 10 分钟</button>
+                <button class="btn" onclick="stepAlertSandbox(60)">快进 1 小时</button>
+                <button class="btn btn-secondary" id="btn-alert-play" onclick="toggleAlertPlay()">自动播放 (1s/m)</button>
+                <button class="btn btn-secondary" onclick="resetAlertSandbox()">重置</button>
+            </div>
+
+            <div class="stat-grid-3">
+                <div class="stat-card">
+                    <div class="stat-card-title">当前系统状态</div>
+                    <div class="stat-card-val" id="alert-state-lbl" style="color: #10b981; font-size: 1.0rem;">HEALTHY</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-title">1小时窗口燃烧率</div>
+                    <div class="stat-card-val" id="alert-burn-1h">0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-title">6小时窗口燃烧率</div>
+                    <div class="stat-card-val" id="alert-burn-6h">0.00</div>
+                </div>
+            </div>
+
+            <div class="metric-visualizer">
+                <div class="metric-row">
+                    <div class="metric-lbl">剩余错误预算</div>
+                    <div class="prog-bg">
+                        <div class="prog-fill" id="alert-budget-bar"></div>
+                    </div>
+                    <div id="alert-budget-lbl" class="flow-bar-val">100.00%</div>
+                </div>
+                <div class="metric-row">
+                    <div class="metric-lbl">1h 告警状态 (>=14.4)</div>
+                    <div class="prog-bg" style="height: 10px; background: #111;">
+                        <div class="prog-fill" id="alert-1h-fill" style="width: 0%; background: #3b82f6;"></div>
+                    </div>
+                    <div><span class="status-badge healthy" id="alert-1h-badge">CLEAR</span></div>
+                </div>
+                <div class="metric-row">
+                    <div class="metric-lbl">6h 告警状态 (>=6.0)</div>
+                    <div class="prog-bg" style="height: 10px; background: #111;">
+                        <div class="prog-fill" id="alert-6h-fill" style="width: 0%; background: #3b82f6;"></div>
+                    </div>
+                    <div><span class="status-badge healthy" id="alert-6h-badge">CLEAR</span></div>
+                </div>
+            </div>
+
+            <div class="flex-row-spaced" style="margin-bottom: 0.5rem;">
+                <h4 style="font-size: 0.85rem; color:#94a3b8">SRE 值班呼叫与故障响应控制台</h4>
+                <span class="status-badge healthy" id="pager-alarm-badge" style="font-size: 0.85rem; padding: 0.3rem 0.8rem;">✅ SYSTEM NORMAL</span>
+            </div>
+            <div class="log-terminal" id="log-alert">
+                -- Alert simulator initialized. Choose service state and step time. --
+            </div>
+        </div>
+
+        <!-- Lab 2: Client Throttling & Server Load Shedding -->
+        <div class="lab-panel">
+            <h2 class="lab-title">实操实验室二：谷歌客户端自适应限流与服务端优雅降级</h2>
+            <p class="lab-description">
+                模拟谷歌客户端自适应限流与服务端优雅降级（Load Shedding）。对比在服务超载时，客户端如何在网卡前拦截过载；以及服务端如何通过流量优先级分流，丢弃低保真广告请求，保全核心扣款成功率。
+            </p>
+
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>客户端自适应限流</label>
+                    <select id="client-throttle" class="input-ctrl" onchange="updateThrottlingConfig()">
+                        <option value="on">Enabled (Google Formula)</option>
+                        <option value="off">Disabled (Send Everything)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>自适应激进系数 K</label>
+                    <input type="range" id="client-k" class="input-ctrl" min="1.1" max="3.0" step="0.1" value="2.0" oninput="updateThrottlingConfig()">
+                    <span id="client-k-val" style="font-size:0.75rem; text-align:right;">2.0</span>
+                </div>
+                <div class="input-group">
+                    <label>服务端优雅降级</label>
+                    <select id="server-shed" class="input-ctrl">
+                        <option value="on">Enabled (Drop Low-Pri)</option>
+                        <option value="off">Disabled (Queue & Crash)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <div class="input-group" style="flex-grow: 1;">
+                    <label>并发请求量 (RPS)</label>
+                    <input type="range" id="traffic-load" min="40" max="250" step="10" value="80" oninput="updateTrafficLoad()">
+                    <span id="traffic-load-lbl" style="font-size:0.8rem; font-weight:bold; font-family: 'JetBrains Mono'; text-align:right;">80 RPS</span>
+                </div>
+                <button class="btn btn-danger" onclick="injectTrafficSpike()">注入瞬间洪峰 (250 RPS)</button>
+            </div>
+
+            <div class="flow-visualizer">
+                <div class="flow-bars">
+                    <div class="flow-bar-container">
+                        <div class="flow-bar-lbl">原始请求量</div>
+                        <div class="flow-bar-bg"><div class="flow-bar-fill" id="bar-client-in" style="width: 0%; background: #3b82f6;"></div></div>
+                        <div class="flow-bar-val" id="val-client-in">0 RPS</div>
+                    </div>
+                    <div class="flow-bar-container">
+                        <div class="flow-bar-lbl" style="color: #ef4444;">客户端限流</div>
+                        <div class="flow-bar-bg"><div class="flow-bar-fill" id="bar-client-drop" style="width: 0%; background: #ef4444;"></div></div>
+                        <div class="flow-bar-val" id="val-client-drop" style="color: #ef4444;">0 RPS</div>
+                    </div>
+                    <div class="flow-bar-container">
+                        <div class="flow-bar-lbl">网卡出流量</div>
+                        <div class="flow-bar-bg"><div class="flow-bar-fill" id="bar-net-sent" style="width: 0%; background: #94a3b8;"></div></div>
+                        <div class="flow-bar-val" id="val-net-sent">0 RPS</div>
+                    </div>
+                    <div class="flow-bar-container">
+                        <div class="flow-bar-lbl" style="color: #10b981;">服务端处理</div>
+                        <div class="flow-bar-bg"><div class="flow-bar-fill" id="bar-server-acc" style="width: 0%; background: #10b981;"></div></div>
+                        <div class="flow-bar-val" id="val-server-acc" style="color: #10b981;">0 RPS</div>
+                    </div>
+                    <div class="flow-bar-container">
+                        <div class="flow-bar-lbl" style="color: #f59e0b;">服务端拒降</div>
+                        <div class="flow-bar-bg"><div class="flow-bar-fill" id="bar-server-drop" style="width: 0%; background: #f59e0b;"></div></div>
+                        <div class="flow-bar-val" id="val-server-drop" style="color: #f59e0b;">0 RPS</div>
+                    </div>
+                </div>
+
+                <div class="flex-row-spaced" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.8rem;">
+                    <div>
+                        <span class="flow-bar-lbl">服务端 CPU 载荷</span>
+                        <div class="prog-bg" style="width: 180px; margin-top: 0.25rem;">
+                            <div class="prog-fill" id="server-cpu-bar" style="width: 0%; background: #10b981;"></div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="flow-bar-lbl">服务端运行状态</span><br/>
+                        <span class="status-badge healthy" id="server-state-badge">HEALTHY</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.8rem;">
+                    <div>
+                        <strong>核心流量 (支付接口)</strong><br/>
+                        交易成功率: <span id="rate-high" style="color: #10b981; font-weight: bold;">100%</span><br/>
+                        平均耗时: <span id="lat-high">50ms</span>
+                    </div>
+                    <div>
+                        <strong>非核心流量 (广告推荐)</strong><br/>
+                        业务成功率: <span id="rate-low" style="color: #10b981; font-weight: bold;">100%</span><br/>
+                        平均耗时: <span id="lat-low">50ms</span>
+                    </div>
+                </div>
+            </div>
+
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color:#94a3b8">限流自愈与过载保护实时终端</h4>
+            <div class="log-terminal" id="log-throttle">
+                -- Throttling playground active. Slide Traffic to simulate concurrency. --
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Lab 1: Multi-burn-rate Alerting
+        // ==========================================
+        let sloTarget = 0.001; // 99.9%
+        let monthlyBudgetTotal = 43200; // in "minutes" of traffic. SLO=99.9% allowed error mins = 43.2 min in a 30d month
+        let remainingBudget = 43200; // minutes
+        let history = []; // array of {requests, errors, state} for last 360 steps (6h)
+        let alertState = 'healthy';
+        let alertPlayInterval = null;
+
+        function initAlertSandbox() {
+            sloTarget = parseFloat(document.getElementById('slo-target').value);
+            // Monthly minutes = 30d * 24h * 60m = 43200m
+            monthlyBudgetTotal = 43200 * sloTarget;
+            remainingBudget = monthlyBudgetTotal;
+            history = [];
+            
+            // pre-populate with 360 healthy minutes
+            for(let i=0; i<360; i++) {
+                history.push({ requests: 10000, errors: Math.random() < 0.2 ? 1 : 0 });
+            }
+            
+            updateAlertUI();
+            const logEl = document.getElementById('log-alert');
+            logEl.innerHTML = `-- SLO target changed to ${(100 - sloTarget*100).toFixed(2)}%. Allowed Monthly Budget: ${monthlyBudgetTotal.toFixed(2)} min. --`;
+        }
+
+        function setServiceState(state) {
+            alertState = state;
+            const lbl = document.getElementById('alert-state-lbl');
+            lbl.innerText = state.toUpperCase();
+            if (state === 'healthy') {
+                lbl.style.color = '#10b981';
+                logAlert(`[SERVICE CHANGE] System normalized. Injecting 0.01% baseline errors.`);
+            } else if (state === 'leak') {
+                lbl.style.color = '#f59e0b';
+                logAlert(`[SERVICE OUTAGE] Injected Slow Leak! Service error rate increases to 0.60% (Burn rate = 6.0).`);
+            } else if (state === 'outage') {
+                lbl.style.color = '#ef4444';
+                logAlert(`[SERVICE OUTAGE] Injected Major Disaster! Core Service error rate spikes to 15.00% (Burn rate = 150.0).`);
+            }
+        }
+
+        function logAlert(msg) {
+            const el = document.getElementById('log-alert');
+            const d = new Date();
+            const timeStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+            el.innerHTML = `[${timeStr}] ${msg}\n` + el.innerHTML;
+        }
+
+        function stepAlertSandbox(steps) {
+            for(let step = 0; step < steps; step++) {
+                let requests = 10000;
+                let errorRate = 0.0001; // healthy 0.01%
+                if (alertState === 'leak') {
+                    errorRate = 0.006; // 0.60%
+                } else if (alertState === 'outage') {
+                    errorRate = 0.15; // 15%
+                }
+                
+                // Add some variance
+                let errors = Math.round(requests * (errorRate + (Math.random() - 0.5) * (errorRate * 0.1)));
+                if (errors < 0) errors = 0;
+                
+                history.push({ requests, errors });
+                if (history.length > 360) history.shift();
+                
+                // Deduct from budget
+                let currentStepFailurePercent = errors / requests;
+                // If SLO is 99.9%, allowable error is 0.001. A full step of failure consumes 1 step * (error / allowable_error)
+                let budgetConsumedMins = (currentStepFailurePercent / sloTarget);
+                remainingBudget -= budgetConsumedMins;
+                if (remainingBudget < 0) remainingBudget = 0;
+            }
+            updateAlertUI();
+        }
+
+        function updateAlertUI() {
+            // calculate burn rates
+            // 1h window (last 60 mins)
+            let req1h = 0, err1h = 0;
+            let len = history.length;
+            for(let i = Math.max(0, len-60); i < len; i++) {
+                req1h += history[i].requests;
+                err1h += history[i].errors;
+            }
+            let errRate1h = err1h / req1h;
+            let burn1h = errRate1h / sloTarget;
+
+            // 6h window (all 360 mins)
+            let req6h = 0, err6h = 0;
+            for(let i = 0; i < len; i++) {
+                req6h += history[i].requests;
+                err6h += history[i].errors;
+            }
+            let errRate6h = err6h / req6h;
+            let burn6h = errRate6h / sloTarget;
+
+            document.getElementById('alert-burn-1h').innerText = burn1h.toFixed(2);
+            document.getElementById('alert-burn-6h').innerText = burn6h.toFixed(2);
+
+            // update alert statuses
+            let alert1hActive = burn1h >= 14.4;
+            let alert6hActive = burn6h >= 6.0;
+
+            const badge1h = document.getElementById('alert-1h-badge');
+            const fill1h = document.getElementById('alert-1h-fill');
+            fill1h.style.width = `${Math.min(100, (burn1h / 14.4) * 100)}%`;
+            if (alert1hActive) {
+                badge1h.innerText = 'PAGING';
+                badge1h.className = 'status-badge danger';
+                fill1h.style.backgroundColor = '#ef4444';
+            } else {
+                badge1h.innerText = 'CLEAR';
+                badge1h.className = 'status-badge healthy';
+                fill1h.style.backgroundColor = '#3b82f6';
+            }
+
+            const badge6h = document.getElementById('alert-6h-badge');
+            const fill6h = document.getElementById('alert-6h-fill');
+            fill6h.style.width = `${Math.min(100, (burn6h / 6) * 100)}%`;
+            if (alert6hActive) {
+                badge6h.innerText = 'PAGING';
+                badge6h.className = 'status-badge danger';
+                fill6h.style.backgroundColor = '#ef4444';
+            } else {
+                badge6h.innerText = 'CLEAR';
+                badge6h.className = 'status-badge healthy';
+                fill6h.style.backgroundColor = '#3b82f6';
+            }
+
+            // Pager alarm status
+            const pagerBadge = document.getElementById('pager-alarm-badge');
+            if (alert1hActive || alert6hActive) {
+                pagerBadge.innerText = '🚨 ALARM ACTIVE (PAGING ON-CALL)';
+                pagerBadge.className = 'status-badge danger';
+                
+                let reasons = [];
+                if (alert1hActive) reasons.push(`1h Burn Rate ${burn1h.toFixed(1)} >= 14.4`);
+                if (alert6hActive) reasons.push(`6h Burn Rate ${burn6h.toFixed(1)} >= 6.0`);
+                logAlert(`[ALERT STATUS] Pager triggered! Reason: ${reasons.join(' & ')}`);
+            } else {
+                if (pagerBadge.className.includes('danger')) {
+                    logAlert(`[ALERT STATUS] All windows cleared. Alarm stopped.`);
+                }
+                pagerBadge.innerText = '✅ SYSTEM NORMAL';
+                pagerBadge.className = 'status-badge healthy';
+            }
+
+            // Budget progress
+            const budgetPercent = (remainingBudget / monthlyBudgetTotal) * 100;
+            const bar = document.getElementById('alert-budget-bar');
+            bar.style.width = `${budgetPercent.toFixed(2)}%`;
+            document.getElementById('alert-budget-lbl').innerText = `${budgetPercent.toFixed(2)}%`;
+            
+            if (budgetPercent > 50) {
+                bar.style.backgroundColor = '#10b981';
+            } else if (budgetPercent > 20) {
+                bar.style.backgroundColor = '#f59e0b';
+            } else {
+                bar.style.backgroundColor = '#ef4444';
+            }
+            
+            if (budgetPercent <= 0) {
+                logAlert(`[CRITICAL] Error Budget fully exhausted (0%)! Automated Release Freeze activated.`);
+            }
+        }
+
+        function toggleAlertPlay() {
+            const btn = document.getElementById('btn-alert-play');
+            if (alertPlayInterval) {
+                clearInterval(alertPlayInterval);
+                alertPlayInterval = null;
+                btn.innerText = 'Auto Play';
+                btn.className = 'btn btn-secondary';
+            } else {
+                alertPlayInterval = setInterval(() => {
+                    stepAlertSandbox(1);
+                }, 1000);
+                btn.innerText = 'Pause';
+                btn.className = 'btn';
+            }
+        }
+
+        function resetAlertSandbox() {
+            if(alertPlayInterval) toggleAlertPlay();
+            initAlertSandbox();
+        }
+
+        // ==========================================
+        // Lab 2: Client Throttling & Server Load Shedding
+        // ==========================================
+        let trafficLoad = 80; // RPS
+        let clientThrottle = 'on';
+        let factorK = 2.0;
+        let serverShed = 'on';
+        let serverCapacity = 100; // RPS
+        
+        let clientHistory = []; // rolling window of {requests, accepts} for last 10 ticks
+        for(let i=0; i<10; i++) {
+            clientHistory.push({ requests: 80, accepts: 80 });
+        }
+        
+        let throttleTicker = null;
+
+        function updateThrottlingConfig() {
+            clientThrottle = document.getElementById('client-throttle').value;
+            factorK = parseFloat(document.getElementById('client-k').value);
+            document.getElementById('client-k-val').innerText = factorK.toFixed(1);
+        }
+
+        function updateTrafficLoad() {
+            trafficLoad = parseInt(document.getElementById('traffic-load').value);
+            document.getElementById('traffic-load-lbl').innerText = `${trafficLoad} RPS`;
+        }
+
+        function injectTrafficSpike() {
+            document.getElementById('traffic-load').value = 250;
+            updateTrafficLoad();
+            logThrottle(`[LOAD SPIKE] Sudden spike injected! Volume jumps to 250 RPS.`);
+        }
+
+        function logThrottle(msg) {
+            const el = document.getElementById('log-throttle');
+            const d = new Date();
+            const timeStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+            el.innerHTML = `[${timeStr}] ${msg}\n` + el.innerHTML;
+        }
+
+        function startThrottleSim() {
+            if (throttleTicker) clearInterval(throttleTicker);
+            throttleTicker = setInterval(() => {
+                tickThrottleSim();
+            }, 1000);
+        }
+
+        function tickThrottleSim() {
+            let totalRequests = trafficLoad;
+            
+            // gRPC/HTTP distribution: 60% High priority, 40% Low priority
+            let highPriIn = Math.round(totalRequests * 0.60);
+            let lowPriIn = totalRequests - highPriIn;
+
+            // 1. Client Throttling calculation (Google Formula)
+            let sumReq = 0, sumAcc = 0;
+            clientHistory.forEach(h => { sumReq += h.requests; sumAcc += h.accepts; });
+            
+            // Client drop probability
+            let pReject = 0;
+            if (clientThrottle === 'on') {
+                pReject = Math.max(0, (sumReq - factorK * sumAcc) / (sumReq + 1));
+            }
+
+            let highPriClientSent = 0;
+            let lowPriClientSent = 0;
+            
+            for(let i=0; i<highPriIn; i++) {
+                if (Math.random() >= pReject) highPriClientSent++;
+            }
+            for(let i=0; i<lowPriIn; i++) {
+                if (Math.random() >= pReject) lowPriClientSent++;
+            }
+
+            let clientThrottledCount = totalRequests - (highPriClientSent + lowPriClientSent);
+            let networkSentCount = highPriClientSent + lowPriClientSent;
+
+            // 2. Server Processing
+            let highPriServerAcc = 0;
+            let lowPriServerAcc = 0;
+            let serverRejectedCount = 0; // 503 load shed
+            let serverDroppedTimeout = 0; // OOM/timeouts
+
+            let totalNetworkIn = networkSentCount;
+
+            if (totalNetworkIn <= serverCapacity) {
+                // Server can handle all traffic cleanly
+                highPriServerAcc = highPriClientSent;
+                lowPriServerAcc = lowPriClientSent;
+            } else {
+                // Overloaded backend!
+                if (serverShed === 'on') {
+                    // Graceful Degradation: Shed Low priority first
+                    highPriServerAcc = Math.min(highPriClientSent, serverCapacity);
+                    let remainingCap = serverCapacity - highPriServerAcc;
+                    
+                    lowPriServerAcc = Math.min(lowPriClientSent, remainingCap);
+                    serverRejectedCount = networkSentCount - (highPriServerAcc + lowPriServerAcc); // dropped low-pri
+                } else {
+                    // No load shedding: Thread pool exhausts, queue latency spikes to 1000ms.
+                    // Random drops due to queue overflows & timeouts. Uptime success plunges.
+                    let totalProcessed = Math.round(serverCapacity * 0.50); // efficiency drops to 50% due to lock thrashing & context switches
+                    
+                    let pSuccess = totalProcessed / totalNetworkIn;
+                    for(let i=0; i<highPriClientSent; i++) {
+                        if (Math.random() < pSuccess) highPriServerAcc++;
+                        else serverDroppedTimeout++;
+                    }
+                    for(let i=0; i<lowPriClientSent; i++) {
+                        if (Math.random() < pSuccess) lowPriServerAcc++;
+                        else serverDroppedTimeout++;
+                    }
+                }
+            }
+
+            let totalAccepted = highPriServerAcc + lowPriServerAcc;
+
+            // Update client history
+            clientHistory.push({ requests: totalRequests, accepts: totalAccepted });
+            if (clientHistory.length > 10) clientHistory.shift();
+
+            // Calculate metrics
+            let serverCpu = Math.min(100, Math.round((totalNetworkIn / serverCapacity) * 100));
+            if (serverShed === 'off' && totalNetworkIn > serverCapacity) {
+                serverCpu = 100; // thrashed
+            }
+
+            // Update UI Bars
+            document.getElementById('val-client-in').innerText = `${totalRequests} RPS`;
+            document.getElementById('bar-client-in').style.width = `${Math.min(100, (totalRequests/250)*100)}%`;
+
+            document.getElementById('val-client-drop').innerText = `${clientThrottledCount} RPS`;
+            document.getElementById('bar-client-drop').style.width = `${Math.min(100, (clientThrottledCount/250)*100)}%`;
+
+            document.getElementById('val-net-sent').innerText = `${networkSentCount} RPS`;
+            document.getElementById('bar-net-sent').style.width = `${Math.min(100, (networkSentCount/250)*100)}%`;
+
+            document.getElementById('val-server-acc').innerText = `${totalAccepted} RPS`;
+            document.getElementById('bar-server-acc').style.width = `${Math.min(100, (totalAccepted/250)*100)}%`;
+
+            document.getElementById('val-server-drop').innerText = `${serverRejectedCount + serverDroppedTimeout} RPS`;
+            document.getElementById('bar-server-drop').style.width = `${Math.min(100, ((serverRejectedCount + serverDroppedTimeout)/250)*100)}%`;
+
+            // CPU & State
+            const cpuBar = document.getElementById('server-cpu-bar');
+            cpuBar.style.width = `${serverCpu}%`;
+            if (serverCpu < 60) {
+                cpuBar.style.backgroundColor = '#10b981';
+            } else if (serverCpu < 90) {
+                cpuBar.style.backgroundColor = '#f59e0b';
+            } else {
+                cpuBar.style.backgroundColor = '#ef4444';
+            }
+
+            const stateBadge = document.getElementById('server-state-badge');
+            if (serverCpu >= 95) {
+                if (serverShed === 'on') {
+                    stateBadge.innerText = 'LOAD SHEDDING';
+                    stateBadge.className = 'status-badge warning';
+                } else {
+                    stateBadge.innerText = 'CRASHING (504)';
+                    stateBadge.className = 'status-badge danger';
+                }
+            } else {
+                stateBadge.innerText = 'HEALTHY';
+                stateBadge.className = 'status-badge healthy';
+            }
+
+            // High/Low rates
+            let highRate = highPriIn > 0 ? (highPriServerAcc / highPriIn) * 100 : 100;
+            let lowRate = lowPriIn > 0 ? (lowPriServerAcc / lowPriIn) * 100 : 100;
+            
+            document.getElementById('rate-high').innerText = `${highRate.toFixed(0)}%`;
+            document.getElementById('rate-high').style.color = highRate > 90 ? '#10b981' : (highRate > 50 ? '#f59e0b' : '#ef4444');
+            document.getElementById('lat-high').innerText = (serverShed === 'off' && totalNetworkIn > serverCapacity) ? '820ms' : '50ms';
+
+            document.getElementById('rate-low').innerText = `${lowRate.toFixed(0)}%`;
+            document.getElementById('rate-low').style.color = lowRate > 90 ? '#10b981' : (lowRate > 50 ? '#f59e0b' : '#ef4444');
+            document.getElementById('lat-low').innerText = serverRejectedCount > 0 ? '5ms (dropped)' : ((serverShed === 'off' && totalNetworkIn > serverCapacity) ? '820ms' : '50ms');
+
+            // Logs
+            if (pReject > 0) {
+                logThrottle(`[CLIENT THROTTLE] Client local drop rate: ${(pReject*100).toFixed(1)}%. Blocked ${clientThrottledCount} requests before network card.`);
+            }
+            if (serverRejectedCount > 0) {
+                logThrottle(`[SERVER SHED] Server dynamically dropped ${serverRejectedCount} low-priority requests to protect checkout transactions.`);
+            }
+            if (serverDroppedTimeout > 0) {
+                logThrottle(`[SERVER OVERLOAD] Queue full! ${serverDroppedTimeout} requests timed out (504 Gateway Timeout). CPU thrashed.`);
+            }
+        }
+
+        // Initialize sandbox systems
+        initAlertSandbox();
+        startThrottleSim();
+    </script>
+</body>
+</html>

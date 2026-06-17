@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenSSL Cryptography & TLS Protocol Knowledge Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151d30;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --border-color: #24324f;
+            --m1-color: #4B5F7A;
+            --m2-color: #6B8272;
+            --m3-color: #9C6666;
+            --m4-color: #7A7A7A;
+            --m5-color: #9A825A;
+            --m6-color: #755B77;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            font-size: 1rem;
+            color: #94a3b8;
+        }
+
+        .ladder-section {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            background: rgba(21, 29, 48, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .ladder-section h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #3b82f6;
+        }
+
+        .ladder-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .ladder-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .ladder-item {
+            background: #111827;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .ladder-item.l2 {
+            grid-column: 1 / -1;
+            border-left-color: #8b5cf6;
+        }
+
+        .ladder-item h3 {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+        }
+
+        .ladder-item p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .ladder-item code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #a855f7;
+        }
+
+        .controls {
+            max-width: 1400px;
+            margin: 0 auto 1.5rem auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-input {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            width: 300px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            background: #1e293b;
+            color: #94a3b8;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: none;
+        }
+
+        .filter-btn.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .cards-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.2rem;
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--module-color);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            background-color: var(--module-color);
+            color: white;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-body {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>OPENSSL CRYPTOGRAPHY MAP</h1>
+        <p>High-Density Technical System Cards Mapping</p>
+    </header>
+
+    <div class="ladder-section">
+        <h2>📂 L0 Essence</h2>
+        <div class="ladder-grid">
+            <div class="ladder-item">
+                <h3>L0 Essence</h3>
+                <p><strong>The essence of cryptographic secure communication is to establish a secure channel over an insecure network using symmetric/asymmetric algorithms ensuring confidentiality, integrity, authenticity, and non-repudiation. Its implementation centers on the TLS handshake state machine, hardware accelerator engines, and secure entropy source maintenance.</strong></p>
+            </div>
+            <div class="ladder-item">
+                <h3>L1 Logical Framework</h3>
+                <p>1. **Negotiation & Authentication**: Client and Server negotiate ciphers and verify identity using X.509 certificate chains within a single round-trip (1-RTT) in TLS 1.3.<br>    2. **Anti-Eavesdropping Key Exchange**: Generate ephemeral share keys using ECDHE (Elliptic Curve Diffie-Hellman Ephemeral) to derive shared symmetric session keys providing forward secrecy.<br>    3. **Authenticated Encryption (AEAD)**: Employ dual-purpose AEAD ciphers (e.g., AES-GCM) in the record protocol to secure payload data with high-strength symmetric encryption and anti-tamper MAC integrity verification.<br>    4. **Hardware Acceleration**: Automatically route cryptographic tasks via the EVP abstract layer to CPU AES-NI instructions or dedicated QAT accelerators, eliminating computation bottlenecks.</p>
+            </div>
+            <div class="ladder-item l2">
+                <h3>L2 Data Flow Topology</h3>
+                <p><code>`ClientHello` ➜ (Negotiate suites and share keys) ➜ `ServerHello & Cert` ➜ (ECDHE secret extract) ➜ `HKDF key derivation` ➜ `Symmetric key established` ➜ `AEAD Record Encryption` ➜ `Encrypted Application Data`</code></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search keywords...">
+        <div class="filter-buttons" id="filterButtons">
+            <button class="filter-btn active" data-module="all">All Modules</button>
+            <button class="filter-btn" data-module="M1">M1: Cryptography Basics</button> <button class="filter-btn" data-module="M2">M2: Symmetric Encryption & MAC</button> <button class="filter-btn" data-module="M3">M3: Asymmetric Encryption & PKI</button> <button class="filter-btn" data-module="M4">M4: TLS Handshake & HKDF</button> <button class="filter-btn" data-module="M5">M5: Memory Security & Side-channel</button> <button class="filter-btn" data-module="M6">M6: Hardware Acceleration & Provider</button>
+        </div>
+    </div>
+
+    <main class="cards-grid" id="cardsGrid"></main>
+
+    <script>
+        const cardsData = [{'num': 1, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Entropy Sources & DRBG Security Boundaries', 'body': '*   **Core Definition**: Cryptographic strength relies on a cryptographically secure Deterministic Random Bit Generator (DRBG) fed by high-entropy sources.\n*   **Bottom Mechanism**: OpenSSL gathers physical entropy from the OS (such as CPU RdRand instructions and kernel `/dev/urandom` interrupt noise). It feeds this into a NIST SP800-90A compliant DRBG, preventing state backtracking based on computational complexity, ensuring secure key and IV generation.'}, {'num': 2, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'EVP High-Level Unified Cryptographic API', 'body': '*   **Core Definition**: The EVP API provides a unified, abstract interface for symmetric and asymmetric cryptographic operations.\n*   **Bottom Mechanism**: EVP decouples application logic from specific algorithm implementations through object-oriented context binding. For instance, passing `EVP_aes_256_gcm()` to `EVP_EncryptInit_ex` allows the code to execute AES-GCM without exposing low-level structural details, enabling seamless Provider swaps.'}, {'num': 3, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Symmetric Block Ciphers & Padding Schemes', 'body': '*   **Core Definition**: Block ciphers (e.g., AES) require padding schemes to encrypt data that is not a multiple of the block size.\n*   **Bottom Mechanism**: Traditional CBC mode chains cipherblocks by XORing the previous ciphertext block with the current plaintext. PKCS'}, {'num': 4, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'AEAD Authenticated Encryption & Integrity', 'body': '*   **Core Definition**: AEAD ciphers combine encryption and integrity checking into a single operation.\n*   **Bottom Mechanism**: AES-GCM merges Galois Field multiplication (GMAC) with CTR mode encryption. It outputs the ciphertext alongside a 128-bit authentication Tag. Decryption forces the hardware to verify the Tag against the AAD first. Any bit manipulation triggers authentication failure, preventing ciphertext modification attacks.'}, {'num': 5, 'moduleId': 'M1', 'moduleColor': '#4B5F7A', 'title': 'Message Digest & HMAC Verification', 'body': '*   **Core Definition**: HMAC is a key-hashed message authentication code that guarantees message integrity and authenticity.\n*   **Bottom Mechanism**: HMAC uses a nested hashing structure: $HMAC_K(M) = H((K^+ \\oplus opad) \\parallel H((K^+ \\oplus ipad) \\parallel M))$. This design mathematically eliminates length extension attacks common in standard hashing functions, preventing signature forge attempts.'}, {'num': 6, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'Diffie-Hellman & Ephemeral Key Exchange (ECDHE)', 'body': '*   **Core Definition**: Diffie-Hellman allows two parties to agree on a shared secret over an insecure channel.\n*   **Bottom Mechanism**: Ephemeral Elliptic Curve Diffie-Hellman (ECDHE) generates a private scalar $d$ and public point $Q = d \\cdot G$ for each session. The shared secret is derived as $S = d_{client} \\cdot Q_{server} = d_{client} d_{server} G$. Discarding the private key after the session ensures Forward Secrecy.'}, {'num': 7, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'RSA Asymmetric Cipher & OAEP Padding', 'body': '*   **Core Definition**: RSA relies on the mathematical complexity of prime factorization, requiring secure padding for confidentiality.\n*   **Bottom Mechanism**: Legacy RSA PKCS'}, {'num': 8, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'ECC Curves & ECDSA Signature Verification', 'body': '*   **Core Definition**: ECC provides asymmetric security based on elliptic curve discrete logarithm problems using shorter keys.\n*   **Bottom Mechanism**: ECDSA signature generation ($r, s$) requires a unique random nonce $k$. If $k$ is reused, the private key can be mathematically extracted. OpenSSL implements RFC 6979 to derive $k$ deterministically from the private key and message hash, eliminating nonce reuse vulnerabilities.'}, {'num': 9, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'ASN.1 Standards & DER/PEM Serialization', 'body': '*   **Core Definition**: ASN.1 is a standard language for describing structured cryptographic objects such as keys and certificates.\n*   **Bottom Mechanism**: DER is a binary, space-efficient Distinguished Encoding Rules format utilizing Tag-Length-Value (TLV) encoding. PEM is a Base64 encoded DER file wrapped in headers like `-----BEGIN CERTIFICATE-----` to facilitate transport over text-based networks.'}, {'num': 10, 'moduleId': 'M2', 'moduleColor': '#6B8272', 'title': 'X.509 Certificate Chain Trust Validation', 'body': "*   **Core Definition**: X.509 defines the standard format for public-key certificates linking identities to public keys.\n*   **Bottom Mechanism**: Validation traverses a tree to a trusted Root CA. The client checks the CA's signature on the certificate: $S = Sign_{CA}(Hash(CertificateBody))$. A valid cryptographic chain validates the server's identity, preventing man-in-the-middle attacks."}, {'num': 11, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'TLS 1.2 Handshake & RTT Delay', 'body': '*   **Core Definition**: The TLS 1.2 handshake negotiates security parameters and establishes keys in two network round-trips (2-RTT).\n*   **Bottom Mechanism**: The steps involve: 1. `ClientHello`/`ServerHello` (cipher suite negotiation); 2. `Certificate` / `ServerKeyExchange` (CA validation and DH parameters); 3. `ClientKeyExchange` (client sends key exchange material); 4. `Finished`. This results in a 2-RTT latency penalty before data transmission.'}, {'num': 12, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'TLS 1.3 1-RTT Handshake Optimization', 'body': '*   **Core Definition**: TLS 1.3 simplifies the handshake to a single round-trip (1-RTT) to reduce latency.\n*   **Bottom Mechanism**: The client speculatively includes a Key Share (e.g., X25519 public key) in the `ClientHello`. The server calculates the shared secret immediately, returning its Key Share and encrypted certificate in `ServerHello`. Symmetrical session keys are established in 1-RTT.'}, {'num': 13, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'HKDF Key Derivation Tree', 'body': '*   **Core Definition**: HKDF is the core key derivation function in TLS 1.3 used to extract and expand keys.\n*   **Bottom Mechanism**: Steps include: 1. **Extract**: $PRK = HMAC\\_Hash(salt, IKM)$ concentrates entropy into a pseudorandom key; 2. **Expand**: $OKM = HKDF\\_Expand(PRK, info, L)$ generates independent session keys (Client/Server write keys and IVs) iteratively, avoiding cross-key leakage.'}, {'num': 14, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'Session Tickets & 0-RTT Replay Risks', 'body': '*   **Core Definition**: Session resumption allows returning clients to skip handshake validation, while 0-RTT enables sending payload in the first packet.\n*   **Bottom Mechanism**: The server encrypts session state into a Ticket session bundle given to the client. Upon reconnecting, the client sends this Ticket to restore session state. However, 0-RTT data lack replay protection; attackers can intercept and re-send these packets (Replay Attack). It must be restricted to idempotent GET requests.'}, {'num': 15, 'moduleId': 'M3', 'moduleColor': '#9C6666', 'title': 'TLS Record Protocol Frame Encapsulation', 'body': '*   **Core Definition**: The Record Protocol is responsible for fragmenting, compressing, and encrypting transport payload.\n*   **Bottom Mechanism**: Plaintext is partitioned into frames up to 16KB. Each frame gets a header (type, version, length), and is encrypted using the session AEAD cipher keyed with a monotonic Sequence Number. The receiver checks the sequence number, neutralizing packet injection and out-of-order replay attacks.'}, {'num': 16, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'OPENSSL_malloc Secure Memory Management', 'body': '*   **Core Definition**: OpenSSL manages secure memory pools to prevent sensitive key material from leaking to disk or memory space.\n*   **Bottom Mechanism**: The allocator locks memory pages (using OS calls like `mlock`), preventing the OS from swapping the pages to swap partitions on disk. It intercepts out-of-memory states and halts immediately on corruption to avoid exploitation.'}, {'num': 17, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'Timing Attacks & Constant-Time Operations', 'body': '*   **Core Definition**: Timing attacks extract keys by measuring differences in execution times during cryptographic calculations.\n*   **Bottom Mechanism**: Code branch logic like `if (key_bit == 1)` alters CPU execution timing. OpenSSL uses constant-time algorithms for critical calculations, utilizing bitwise masks (`val & mask`) instead of conditional branches to ensure execution time is independent of key values.'}, {'num': 18, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'Zeroization & Memory Cleansing', 'body': '*   **Core Definition**: Zeroization ensures that sensitive cryptographic variables are erased immediately after use.\n*   **Bottom Mechanism**: Standard `memset` calls can be optimized out by compilers if the memory is not accessed again (Dead-code elimination). OpenSSL implements `OPENSSL_cleanse`, using memory barrier primitives and non-inlined pointers to force zeroing in physical memory.'}, {'num': 19, 'moduleId': 'M4', 'moduleColor': '#7A7A7A', 'title': 'Heartbleed Vulnerability Root Cause (CVE-2014-0160)', 'body': "*   **Core Definition**: Heartbleed was a critical vulnerability in OpenSSL's implementation of the TLS Heartbeat extension.\n*   **Bottom Mechanism**: The server read a client-reported payload length field without verifying the actual packet size. When allocating the response buffer, it executed `memcpy` based on the fake, larger length, reading adjacent process memory containing session keys and returning it to the attacker."}, {'num': 20, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'Side-Channel Cache Timing & RSA Blinding', 'body': "*   **Core Definition**: Cache timing attacks observe CPU cache misses to infer exponent patterns in modular exponentiation.\n*   **Bottom Mechanism**: OpenSSL applies RSA Blinding: it multiplies the plaintext $M$ by a random factor $r^e \\pmod N$ before modular exponentiation: $M' = M \\cdot r^e \\pmod N$. Decryption outputs are multiplied by $r^{-1}$ to remove the bias. This randomizes CPU cache access patterns, nullifying cache analysis."}, {'num': 21, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'EVP_PKEY Asymmetric Interface Abstraction', 'body': '*   **Core Definition**: EVP_PKEY wraps diverse asymmetric algorithms (RSA, ECC, DH) under a unified key abstraction structure.\n*   **Bottom Mechanism**: It wraps concrete key structures (`RSA*`, `EC_KEY*`) into a generic `EVP_PKEY` handler. Operations like signature generation (`EVP_PKEY_sign`) use unified wrappers, isolating application logic from changes in the underlying asymmetric curves or math libraries.'}, {'num': 22, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'SSL_CTX Configuration Context Management', 'body': '*   **Core Definition**: SSL_CTX is a shared context that configures certificates, trusted CA roots, and protocol parameters for TLS connections.\n*   **Bottom Mechanism**: Designed as a singleton wrapper, SSL_CTX loads CA certificates, CRLs, and enforce cipher suites (e.g., disabling SSLv3 and legacy cipher algorithms). Connection-specific `SSL*` structures inherit these settings, optimizing memory.'}, {'num': 23, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'BIO I/O Stream Pipeline Abstraction', 'body': '*   **Core Definition**: BIO (Basic Input/Output) is an abstraction layer that wraps files, sockets, memory buffers, and SSL layers into stream pipelines.\n*   **Bottom Mechanism**: BIO blocks can be chained together: `BIO_new_ssl` ➜ `BIO_push` ➜ `BIO_new_socket`. Writing to the top BIO automatically filters data down, encrypting it before writing to the underlying network socket.'}, {'num': 24, 'moduleId': 'M5', 'moduleColor': '#9A825A', 'title': 'OpenSSL Engine Hardware Integration Interface (v1.1.1)', 'body': '*   **Core Definition**: The Engine interface allowed OpenSSL v1.1.1 to offload cryptographic calculations to external ASIC hardware.\n*   **Bottom Mechanism**: It exposes a callback vtable for cryptographic algorithms. Hardware vendors provided dynamic libraries registering implementations (e.g., `ENGINE_set_RSA`), letting OpenSSL dynamically route calls to accelerator cards.'}, {'num': 25, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'OpenSSL 3.0 Provider Slot Architecture', 'body': '*   **Core Definition**: Providers replace Engines in OpenSSL 3.0, introducing a modular architecture.\n*   **Bottom Mechanism**: Primitives are categorized into namespaces: default, fips, and legacy. Algorithms are queried by name strings (e.g., `"AES-256-GCM"`). This removes compile-time dependencies, letting developers load, unload, and prioritize custom cryptographic providers at runtime.'}, {'num': 26, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'Intel QAT Cryptographic Core Offloading', 'body': '*   **Core Definition**: Intel QuickAssist Technology (QAT) offloads heavy cryptographic workloads to external acceleration chips.\n*   **Bottom Mechanism**: The QAT Provider routes asymmetric and symmetric operations to physical PCIe accelerators. Tasks are queued to hardware ring buffers asynchronously, allowing the CPU to execute network routing while the chip handles encryption.'}, {'num': 27, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'AES-NI & CPU Vector Cryptographic Instructions', 'body': '*   **Core Definition**: Hardware-accelerated instructions built into the CPU (e.g., Intel AES-NI) speed up block encryption.\n*   **Bottom Mechanism**: EVP automatically queries CPU capability flags. If supported, it executes assembly code leveraging instructions like `AESENC` / `AESDEC` and `PCLMULQDQ` (carry-less multiplication for GCM). This accelerates GCM throughput by orders of magnitude while reducing CPU load.'}, {'num': 28, 'moduleId': 'M6', 'moduleColor': '#755B77', 'title': 'Cipher Suite Auditing & Policy Enforcement', 'body': '*   **Core Definition**: Compliance auditing requires disabling legacy and compromised algorithms in corporate servers.\n*   **Bottom Mechanism**: Weak algorithms like RC4 (vulnerable to bias attacks), 3DES (short keys and slow execution), and MD5 (hash collision risks) are disabled. The SSL_CTX blocks these suites via list filters (e.g., `DEFAULT:!RC4:!3DES:!MD5`), preventing downgrade attacks.'}];
+        const cardsGrid = document.getElementById('cardsGrid');
+        const searchInput = document.getElementById('searchInput');
+        const filterButtons = document.getElementById('filterButtons');
+
+        let activeFilter = 'all';
+        let searchQuery = '';
+
+        function render() {
+            cardsGrid.innerHTML = '';
+            const filtered = cardsData.filter(c => {
+                const matchesF = activeFilter === 'all' || c.moduleId === activeFilter;
+                const matchesS = c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.body.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesF && matchesS;
+            });
+
+            filtered.forEach(c => {
+                const el = document.createElement('div');
+                el.className = 'card';
+                el.style.setProperty('--module-color', c.moduleColor);
+                el.innerHTML = `
+                    <div class="card-header">
+                        <span style="font-size:0.75rem; color:#94a3b8;">${c.moduleId}</span>
+                        <span class="card-num">Card ${c.num}</span>
+                    </div>
+                    <h3 class="card-title">${c.title}</h3>
+                    <p class="card-body">${c.body.replace(/
+/g, '<br>')}</p>
+                `;
+                cardsGrid.appendChild(el);
+            });
+        }
+
+        searchInput.addEventListener('input', e => { searchQuery = e.target.value; render(); });
+        filterButtons.addEventListener('click', e => {
+            if (e.target.classList.contains('filter-btn')) {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                activeFilter = e.target.dataset.module;
+                render();
+            }
+        });
+        render();
+    </script>
+</body>
+</html>
