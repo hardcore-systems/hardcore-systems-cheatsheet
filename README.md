@@ -1,6 +1,8 @@
 # 🚀 Hardcore Systems Cheatsheet (硬核系统工程可视化速查海报)
 
-> **37 个标杆级开源项目与底层巨著的高密卡片系统。一图攻克大厂架构设计、OS内核与分布式共识。**
+> **37 个标杆级开源项目与底层巨著的高密可视化卡片系统。一图速通大厂系统架构、操作系统内核与分布式共识算法。**
+> 
+> **A high-density visual cheatsheet system compressing 37 benchmark open-source codebases and system engineer classics. Speedrun OS kernels, distributed databases, and high-performance networks in 3 hours.**
 
 [![GitHub Stars](https://img.shields.io/github/stars/hardcore-systems/hardcore-systems-cheatsheet?style=for-the-badge&color=blue)](https://github.com/hardcore-systems/hardcore-systems-cheatsheet)
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-pink?style=for-the-badge&logo=github)](https://github.com/sponsors/bsjzmj)
@@ -8,24 +10,34 @@
 
 ---
 
-## 🖼️ Preview (效果预览)
+## 🖼️ Landscape Preview (效果预览)
 
-<!-- 放置一张超炫的双页 A4 landscape 实体拼接效果图，或者 HTML 交互沙盒的录屏 GIF -->
-![Landscape Preview Mockup](https://raw.githubusercontent.com/hardcore-systems/hardcore-systems-cheatsheet/main/docs/rocksdb/cheatsheet.pdf) *(高清矢量 PDF 与交互式沙盒示意)*
+本项目中的每一份可视化海报都由专业的 **XeLaTeX + PGF/TikZ** 绘图系统配合定制的 **莫兰迪（Morandi）美学配色** 精心渲染而成，旨在通过最直观的物理拓扑图，揭示巨型系统底层的真相。
+
+* 📥 **[RocksDB 视觉卡片预览 (高清矢量 PDF)](https://raw.githubusercontent.com/hardcore-systems/hardcore-systems-cheatsheet/main/docs/rocksdb/cheatsheet.pdf)**
+* 💻 **[RocksDB 在线知识图谱](https://hardcore-systems.github.io/hardcore-systems-cheatsheet/rocksdb/)** | **[RocksDB 交互式运行沙盒](https://hardcore-systems.github.io/hardcore-systems-cheatsheet/rocksdb/sandbox.html)**
 
 ---
 
-## 💡 Why This? (为什么需要这个？)
+## 💡 Why This? / 核心设计哲学
 
-现代系统工程师面临着两大痛点：
-1. **源码过于浩瀚**：如 Linux 内核与 Kubernetes 动辄百万行代码，缺乏清晰的第一性原理物理骨架。
-2. **文档过于抽象**：常规的架构图丢失了页缓存、锁竞争、内存屏障等“低频低噪”的底层信号。
+现代软件工程师、系统设计师和架构师在提升自身技术深度时，常常面临两大窒息痛点：
+1. **源码浩如烟海，缺乏“第一性原理”骨架**：像 Linux 内核、Kubernetes、V8 引擎等巨型项目，动辄数百万行代码。在没有全局宏观“物理拓扑大图”的情况下，直接通读源码就像在没有地图的原始森林里散步，极易迷失于细枝末节。
+2. **官方文档过于抽象，丢失核心信号**：常规的技术博客和架构图总是习惯于画一些抽象的“方块与箭头”，隐藏了最关键的低级细节（如页缓存 Page Cache、锁竞争 Lock Contention、内存屏障 Memory Barrier、并发冲突控制机制等）。
 
-我们通过 **SOP 级题材解构**，将 37 个极具挑战的系统工程划分为：
-* **L0 单句本质**：直击架构哲学。
-* **L1 四行逻辑**：厘清核心模块交互。
-* **L2 物理拓扑图**：还原最真实的数据流向。
-* **M1~M6 速查卡片**：28 个核心概念高密覆盖，杜绝空字模板。
+为了打破这种“知识黑盒”，我们提出了一套 **“SOP 级题材解构法”**。对于每一个复杂的底层技术栈，我们均将其精确提炼并解构成以下物理层级：
+* **L0 单句本质 (One-Sentence Essence)**：以最纯粹的第一性原解释该项目在计算机世界里的根本立足点。
+* **L1 四行核心逻辑 (4-Line Core Logic)**：用 4 行代码或极致伪代码，提炼系统最核心的工作循环（Work Loop）或状态扭转过程。
+* **L2 物理数据流拓扑图 (L2 Architecture & Data Flow)**：拒绝抽象，还原真正的物理内存布局、磁盘文件组织、或网络数据包交互时序图。
+* **M1 ~ M6 核心速查卡片 (28 Concept Cards Matrix)**：每张速查卡片均覆盖 28 个核心工业概念（如协议细节、关键算法、性能优化与生产排雷技巧），信息密度极高，绝无凑字数的多余文案。
+
+---
+
+## 🏭 Special Traffic Whitepaper (特别策划引流白皮书)
+
+针对当前热门的 **互联网程序员转型智能制造/工业 IT/工业自动化** 趋势，本项目特别整理并发布了一份深度市场与技术路径分析报告。这份报告已经开源并放在仓库中，它可以帮助您快速梳理并理解制造业 IT 的全貌：
+👉 **[制造业 IT 与工业自动化 (PLC/SCADA/MES/WMS) 市场可行性与打法分析报告](./工业IT与自动化市场可行性分析报告.md)**
+*(包含：ISA-95 五层工控模型、OPC UA 信息模型、Modbus 规约、PLC 循环扫描与中断、MES 制造执行核心流、WMS 状态机、以及 28 张工业 IT 核心卡片的设计蓝图。)*
 
 ---
 
@@ -80,7 +92,34 @@
 - **[ ] 离线单文件 HTML 互动演练沙盒**：断网可用，内置 LocalStorage 自动保存的“心智审计日志”与“算法运行状态机”。
 - **[ ] 完整编译脚本源码 (XeLaTeX & Python Compiler)**：自主扩展并定制您自己的系统设计速查卡片。
 
-👉 [立刻获取 37 本系统工程全量大礼包](https://gumroad.com)
+👉 **[立刻获取 37 本系统工程全量大礼包](https://gumroad.com)**
+
+---
+
+## 🔧 How to Use & Print Guide (打印与使用指南)
+
+为了让这套可视化卡片系统发挥最大的价值，我们建议您按照以下方式进行使用和打印：
+1. **墙面极客壁挂 (Poster Decor)**：我们强烈建议将高清晰度矢量 PDF（付费包提供）以 **A3 或 A2 画幅** 打印出来，使用哑光铜版纸（Matte Paper, 300+ DPI），双页拼接挂在书房或办公室的墙上。这不仅是一张随手可查的技术地图，更是一张硬核极客的身份勋章。
+2. **面试速通复习 (Interview Speedrun)**：在面试或系统架构设计前，花 15-30 分钟阅读对应卡片的 `L2 物理拓扑图` 与 `M1~M6 速查矩阵`，能够瞬间激活您的底层记忆，在讨论架构方案时轻松聊出真实的内存模型、I/O 通道与协议细节。
+3. **本地断网仿真 (Offline Sandbox)**：付费包中提供了单文件 HTML 版本的交互仿真沙盒。您可以将这些网页下载到本地，断网状态下（如飞机上、咖啡馆或强隔离内网环境）依然可以顺畅运行，直观查看算法状态机。
+
+---
+
+## 💬 Frequently Asked Questions (常见问题解答)
+
+#### Q1: 为什么每张速查卡片只限制在双页 (2 Pages)？
+**A**: 信息压缩（Compression）本身就是极高的价值。很多技术资料动辄上百页，包含大量冗长的文字和无用的修饰。我们认为：**只有被极度压缩、直击本质的知识，才最容易在大脑中形成长期的直觉性记忆**。我们将内容死死限制在 2 个 Page 里，强迫自己只留下纯粹的信号，过滤掉杂质和噪音。
+
+#### Q2: 本项目是完全免费的吗？
+**A**: 本项目采用 **Freemium（免费+付费增值）** 模式：
+* **免费内容**：GitHub 仓库中公开的所有速查 Markdown 详细文本、低分辨率预览 PDF、以及托管在 GitHub Pages 上的在线知识图谱和交互式沙盒网页，全部对社区 **100% 免费**。
+* **商业付费包**：如果您需要用于打印的高清无水印矢量 PDF（适合 A4/A3/A2 打印）、断网可用的离线版 HTML 互动沙盒、以及用于自定义编译修改的 **XeLaTeX 源码 + Python Compiler 编译器脚本**，可以前往 [Gumroad 商业包链接](https://gumroad.com) 解锁。您的支持将帮助我们持续拆解并产出更多高质量的技术海报。
+
+#### Q3: 为什么我在公开的 Git 仓库里找不到 XeLaTeX 源码和 Python 编译脚本？
+**A**: 为了防止有不良商家直接复制我们的源码进行二次售卖，并保护我们自主研发的可视化 XeLaTeX 编译器套件，我们对编译器及源码进行了商业闭源保护。所有生成工具链均只在付费 Gumroad Bundle 中提供。
+
+#### Q4: 是否可以为本项目贡献内容或提交报错？
+**A**: 非常欢迎！由于这套速查卡片包含大量深度的操作系统内核、汇编指令、以及复杂的分布式系统协议细节，难免会出现文字拼写或局部概念偏差。如果您在阅读过程中发现任何错误，欢迎直接提交 **Issue** 或 **Pull Request** 修改 Markdown 文本。我们会在第一时间校验并在下一次 PDF 编译中予以修正，您的名字将被记录在贡献者名单中。
 
 ---
 
