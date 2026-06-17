@@ -123,6 +123,14 @@
 
 ---
 
+## 🧠 Career & Mind Counterpart (开发者心智系统工程)
+
+除了硬核技术，现代研发人员的职业晋升同样依赖于职场沟通、向上管理与心理认知等软实力。欢迎访问我们的开发者软实力海报项目：
+👉 **[Developer Mind OS (开发者心智系统可视化速查指南)](https://github.com/developer-mind-OS/developer-soft-skills-guide)**
+*(包含 12 本经典职场、心理学与系统思维著作如《向上管理》、《思考快与慢》、《反脆弱》等的高清速查卡与交互沙盒。)*
+
+---
+
 ## ⚖️ License (版权声明)
 
 本项目文本及低清 PDF 遵循 [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/) 许可协议。
