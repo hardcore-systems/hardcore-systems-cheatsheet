@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>dae eBPF TC Redirect & TProxy DNS Sandbox</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .btn {
+            background-color: #151D30;
+            color: white;
+            border: 1px solid #24324F;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            background-color: #2D3748;
+            border-color: #4B5F7A;
+        }
+        .input-text {
+            background-color: #0D1117;
+            color: white;
+            border: 1px solid #24324F;
+            padding: 7px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            width: 130px;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 250px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid #24324F;
+        }
+        .status-badge {
+            background-color: #1A202C;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px dashed #4B5F7A;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .pipeline-layout {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            margin-top: 25px;
+            height: 100px;
+            position: relative;
+        }
+        .pipeline-node {
+            background-color: #1E2530;
+            border: 2px solid #4B5F7A;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 10px;
+            width: 80px;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+        .pipeline-arrow {
+            font-size: 18px;
+            color: #7A7A7A;
+            z-index: 1;
+        }
+        .bypass-active {
+            border-color: #9C6666 !important;
+            box-shadow: 0 0 10px rgba(156, 102, 102, 0.5);
+        }
+        .node-active {
+            border-color: #6B8272 !important;
+            box-shadow: 0 0 10px rgba(107, 130, 114, 0.5);
+            background-color: #243028;
+        }
+        .table-display {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+            margin-top: 5px;
+        }
+        .table-display th, .table-display td {
+            border: 1px solid #24324F;
+            padding: 4px 6px;
+            text-align: left;
+        }
+        .table-display th {
+            background-color: #1A202C;
+            color: #9A825A;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>dae eBPF TC Redirect & TProxy DNS Sandbox</h1>
+        <div class="grid">
+            <!-- Sandbox 1: eBPF Redirect -->
+            <div class="card">
+                <h2>eBPF TC & SOCKMAP Packet Redirection Simulator</h2>
+                <div class="control-group">
+                    <button class="btn" style="background-color:#4B5F7A;" onclick="sendPacket()">Send TCP Packet (to WAN)</button>
+                    <label style="font-size:11px; cursor:pointer;">
+                        <input type="checkbox" id="bypass-check" onchange="toggleBypass()"> Enable eBPF msg_redirect (Bypass Stack)
+                    </label>
+                </div>
+                <div class="visualizer" id="ebpf-vis">
+                    <div class="status-badge">
+                        <span id="stat-latency">Data Path Latency: 35µs</span>
+                        <span id="stat-softirq">CPU Softirq Load: 18%</span>
+                    </div>
+                    <div class="pipeline-layout">
+                        <div class="pipeline-node" id="ebpf-node-nic">NIC Driver</div>
+                        <div class="pipeline-arrow" id="arrow-1">→</div>
+                        <div class="pipeline-node" id="ebpf-node-tc">TC Ingress Hook</div>
+                        <div class="pipeline-arrow" id="arrow-2">→</div>
+                        <div class="pipeline-node" id="ebpf-node-stack">TCP/IP Stack</div>
+                        <div class="pipeline-arrow" id="arrow-3">→</div>
+                        <div class="pipeline-node" id="ebpf-node-proxy">Local Proxy Socket</div>
+                    </div>
+                    <div id="bypass-path" style="position:absolute; bottom:30px; left:120px; width:220px; text-align:center; display:none; color:#9C6666; font-size:10px; font-weight:bold; border: 1px dashed #9C6666; padding: 5px; border-radius: 4px;">
+                        SOCKMAP msg_redirect (Kernel Bypass Shortcut)
+                    </div>
+                </div>
+                <div class="console" id="ebpf-console">
+                    [Kernel Interface] Network card driver running. Ingress TC filter loaded.
+                </div>
+            </div>
+
+            <!-- Sandbox 2: TProxy & DNS Spoofing -->
+            <div class="card">
+                <h2>TProxy & DNS Spoofing Split Routing Simulator</h2>
+                <div class="control-group">
+                    <span style="font-size:11px;">Enter Query Domain:</span>
+                    <input type="text" class="input-text" id="dns-input" value="google.com">
+                    <button class="btn" style="background-color:#6B8272;" onclick="resolveDNS()">Send DNS Request (Port 53)</button>
+                    <button class="btn" style="background-color:#7A7A7A;" onclick="resetSvc()">Reset Sandbox</button>
+                </div>
+                <div class="visualizer" id="tproxy-vis" style="min-height:250px;">
+                    <div class="status-badge" style="border-style: solid; border-color:#24324F;">
+                        <span style="color:#9A825A; font-weight:bold;">Active NAT Maps / Cache</span>
+                    </div>
+                    <table class="table-display">
+                        <thead>
+                            <tr>
+                                <th>Domain Name</th>
+                                <th>Resolved IP</th>
+                                <th>Routing Decision</th>
+                                <th>Tunnel Tag</th>
+                            </tr>
+                        </thead>
+                        <tbody id="map-table-body">
+                            <tr>
+                                <td>* (Default)</td>
+                                <td>-</td>
+                                <td>Direct route</td>
+                                <td>Direct WAN</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="pipeline-layout" style="margin-top:15px; height:80px;">
+                        <div class="pipeline-node" id="dns-node-query">DNS Query</div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-node" id="dns-node-action">dae Engine</div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-node" id="dns-node-out">Tunnel Output</div>
+                    </div>
+                </div>
+                <div class="console" id="tproxy-console">
+                    [TProxy Console] DNS Spoofing interface ready. Intercepting port 53.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const isEn = true;
+
+        // Localized Console Messages
+        const msgTcPkt = isEn ? "[TC Ingress] Captured TCP segment. Querying SOCKMAP..." : "[TC Ingress] 捕获入站 TCP 段，查询 SOCKMAP 映射表...";
+        const msgStandardRoute = isEn ? "[TCP/IP Stack] Miss. Packet routed through standard Linux networking protocols. Softirq triggered. Delay: 35µs." : "[TCP/IP Stack] SOCKMAP 未命中，进入普通 Linux 协议栈分流路由，触发 CPU 软中断。延迟：35微秒。";
+        const msgRedirectRoute = isEn ? "[eBPF msg_redirect] Hit! SOCKMAP redirecting payload directly to target buffer. Stack bypassed. Delay: 2µs!" : "[eBPF msg_redirect] 命中！SOCKMAP 直接将载荷拷贝至目标接收缓冲区，完成协议栈旁路物理短路。延迟：2微秒！";
+        
+        const msgDnsQuery = (domain) => isEn ? `[DNS] Intercepted port 53 UDP query for domain: ${domain}` : `[DNS] 拦截端口 53 UDP DNS 请求，查询域名: ${domain}`;
+        const msgDnsDirect = (ip) => isEn ? `[Trie Filter] Direct domain rule. Resolved via normal upstream: ${ip}. Bypass proxy.` : `[Trie 前缀树] 匹配为直连域名规则。普通上游解析 IP: ${ip}，直连出站。`;
+        const msgDnsProxy = (fakeIp, domain) => isEn ? `[DNS Spoofing] Proxy domain rule. Spoofing DNS response: returning Fake IP ${fakeIp}. Registered mapping.` : `[DNS 劫持] 匹配为代理分流域名。就地伪装 DNS 回包，返回 Fake IP ${fakeIp}，注册双向映射表。`;
+        const msgDnsSyn = (fakeIp, domain) => isEn ? `[TProxy] TCP SYN captured to Fake IP ${fakeIp}. Resolving mapping back to ${domain}. Wrapping in VLESS...` : `[TProxy 透明代理] 捕获发送至 Fake IP ${fakeIp} 的 TCP SYN，重构映射还原真实域名 ${domain}，打包写入 VLESS 隧道出站。`;
+
+        let bypassEnabled = false;
+
+        function toggleBypass() {
+            bypassEnabled = document.getElementById('bypass-check').checked;
+            const pathDiv = document.getElementById('bypass-path');
+            const latencyText = document.getElementById('stat-latency');
+            const softirqText = document.getElementById('stat-softirq');
+
+            if (bypassEnabled) {
+                pathDiv.style.display = 'block';
+                latencyText.innerText = "Data Path Latency: 2µs";
+                softirqText.innerText = "CPU Softirq Load: 0.5%";
+            } else {
+                pathDiv.style.display = 'none';
+                latencyText.innerText = "Data Path Latency: 35µs";
+                softirqText.innerText = "CPU Softirq Load: 18%";
+            }
+        }
+
+        function sendPacket() {
+            const consoleBox = document.getElementById('ebpf-console');
+            clearNodes();
+            
+            document.getElementById('ebpf-node-nic').classList.add('node-active');
+            consoleBox.innerHTML = isEn ? "[NIC] Packet arrival at eth0 interface." : "[网卡驱动] eth0 接口收到物理网口数据帧。";
+            
+            setTimeout(() => {
+                document.getElementById('ebpf-node-tc').classList.add('node-active');
+                consoleBox.innerHTML += "\\n" + msgTcPkt;
+                consoleBox.scrollTop = consoleBox.scrollHeight;
+                
+                setTimeout(() => {
+                    if (bypassEnabled) {
+                        document.getElementById('ebpf-node-proxy').classList.add('node-active');
+                        consoleBox.innerHTML += "\\n" + msgRedirectRoute;
+                    } else {
+                        document.getElementById('ebpf-node-stack').classList.add('node-active');
+                        consoleBox.innerHTML += "\\n" + msgStandardRoute;
+                        
+                        setTimeout(() => {
+                            document.getElementById('ebpf-node-proxy').classList.add('node-active');
+                            consoleBox.innerHTML += "\\n" + (isEn ? "[Socket] Handed over to Local Proxy process." : "[套接字] 载荷成功投递到本地透明代理进程。");
+                            consoleBox.scrollTop = consoleBox.scrollHeight;
+                        }, 500);
+                    }
+                    consoleBox.scrollTop = consoleBox.scrollHeight;
+                }, 500);
+            }, 400);
+        }
+
+        function clearNodes() {
+            document.getElementById('ebpf-node-nic').className = 'pipeline-node';
+            document.getElementById('ebpf-node-tc').className = 'pipeline-node';
+            document.getElementById('ebpf-node-stack').className = 'pipeline-node';
+            document.getElementById('ebpf-node-proxy').className = 'pipeline-node';
+        }
+
+        // Sandbox 2 Logic
+        let nextFakeIpCounter = 5;
+
+        function resolveDNS() {
+            const domain = document.getElementById('dns-input').value.trim();
+            const consoleBox = document.getElementById('tproxy-console');
+            const tbody = document.getElementById('map-table-body');
+            
+            if (!domain) return;
+            
+            // clear active nodes
+            document.getElementById('dns-node-query').className = 'pipeline-node';
+            document.getElementById('dns-node-action').className = 'pipeline-node';
+            document.getElementById('dns-node-out').className = 'pipeline-node';
+            
+            document.getElementById('dns-node-query').classList.add('node-active');
+            consoleBox.innerHTML = msgDnsQuery(domain);
+            
+            setTimeout(() => {
+                document.getElementById('dns-node-action').classList.add('node-active');
+                
+                // Determine direct vs proxy
+                const isDirect = domain.includes("baidu") || domain.includes("direct") || domain.includes("qq.com");
+                
+                if (isDirect) {
+                    const realIp = `110.242.68.${Math.floor(Math.random() * 200 + 4)}`;
+                    consoleBox.innerHTML += "\\n" + msgDnsDirect(realIp);
+                    
+                    // Update table
+                    tbody.innerHTML += `<tr><td>${domain}</td><td>${realIp}</td><td>Direct Route</td><td>WAN Interface</td></tr>`;
+                    
+                    setTimeout(() => {
+                        document.getElementById('dns-node-out').classList.add('node-active');
+                        consoleBox.innerHTML += "\\n" + (isEn ? "[WAN] Routed packet via physical interface directly." : "[物理接口] 网络包直接经物理网卡直接发出。");
+                        consoleBox.scrollTop = consoleBox.scrollHeight;
+                    }, 500);
+                } else {
+                    const fakeIp = `198.18.0.${nextFakeIpCounter++}`;
+                    consoleBox.innerHTML += "\\n" + msgDnsProxy(fakeIp, domain);
+                    
+                    // Update table
+                    tbody.innerHTML += `<tr><td>${domain}</td><td><span style="color:#9C6666; font-weight:bold;">${fakeIp}</span></td><td>ip rule ➜ TProxy</td><td>VLESS Tunnel</td></tr>`;
+                    
+                    setTimeout(() => {
+                        consoleBox.innerHTML += "\\n" + msgDnsSyn(fakeIp, domain);
+                        document.getElementById('dns-node-out').classList.add('node-active');
+                        consoleBox.scrollTop = consoleBox.scrollHeight;
+                    }, 800);
+                }
+                consoleBox.scrollTop = consoleBox.scrollHeight;
+            }, 600);
+        }
+
+        function resetSvc() {
+            document.getElementById('map-table-body').innerHTML = `
+                <tr>
+                    <td>* (Default)</td>
+                    <td>-</td>
+                    <td>Direct route</td>
+                    <td>Direct WAN</td>
+                </tr>
+            `;
+            document.getElementById('dns-input').value = "google.com";
+            document.getElementById('dns-node-query').className = 'pipeline-node';
+            document.getElementById('dns-node-action').className = 'pipeline-node';
+            document.getElementById('dns-node-out').className = 'pipeline-node';
+            clearNodes();
+            document.getElementById('bypass-check').checked = false;
+            toggleBypass();
+            
+            document.getElementById('ebpf-console').innerHTML = isEn ? "[Kernel Interface] Sandbox reset." : "[内核接口] 模拟器重置成功。";
+            document.getElementById('tproxy-console').innerHTML = isEn ? "[TProxy Console] Sandbox reset." : "[TProxy 控制台] 模拟器重置成功。";
+            nextFakeIpCounter = 5;
+        }
+    </script>
+</body>
+</html>

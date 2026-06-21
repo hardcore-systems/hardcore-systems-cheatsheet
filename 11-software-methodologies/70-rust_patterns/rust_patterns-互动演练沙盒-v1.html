@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Rust Typestate 编译期状态转移与自引用固定双仿真沙盒</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+            font-size: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            font-size: 12px;
+        }
+        select, .btn {
+            background-color: #151D30;
+            color: white;
+            border: 1px solid #24324F;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .btn {
+            background-color: #9C6666;
+            font-weight: bold;
+            border: none;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 280px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-sizing: border-box;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            box-sizing: border-box;
+        }
+        .step-row {
+            background-color: #1A202C;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px dashed #4B5F7A;
+            font-size: 11px;
+        }
+        .flow-display {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex: 1;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .code-box {
+            background-color: #0D1117;
+            border: 1px solid #24324F;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 10px;
+            color: #E2E8F0;
+        }
+        .state-nodes {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .state-bubble {
+            padding: 8px 16px;
+            background-color: #1A202C;
+            border: 1px solid #7A7A7A;
+            border-radius: 20px;
+            font-size: 11px;
+            text-align: center;
+            font-weight: bold;
+            color: #7A7A7A;
+            transition: all 0.3s;
+        }
+        .state-bubble.active {
+            background-color: #4B5F7A;
+            border-color: #4B5F7A;
+            color: white;
+            box-shadow: 0 0 10px rgba(75,95,122,0.5);
+        }
+        .memory-layout {
+            display: flex;
+            gap: 20px;
+            justify-content: space-around;
+            flex: 1;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .memory-segment {
+            flex: 1;
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            height: 180px;
+            box-sizing: border-box;
+        }
+        .mem-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #9A825A;
+            border-bottom: 1px solid #24324F;
+            padding-bottom: 4px;
+            text-align: center;
+        }
+        .mem-cell {
+            background-color: #0D1117;
+            border: 1px solid #4B5F7A;
+            border-radius: 4px;
+            padding: 5px;
+            font-size: 9px;
+            font-family: monospace;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+        .ptr-line {
+            color: #FF4D4D;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rust Typestate 编译期状态转移与自引用固定双仿真沙盒</h1>
+        <div class="grid">
+            <!-- Sandbox 1: Typestate -->
+            <div class="card">
+                <h2>Typestate 状态机编译期约束仿真</h2>
+                <div class="control-group">
+                    <div class="row">
+                        <strong>安全保障机制选择:</strong>
+                        <select id="typestate-mode" onchange="resetTypestate()">
+                            <option value="enabled">Typestate Pattern (Compile-time Checked)</option>
+                            <option value="disabled">Runtime Checked State Pattern</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <strong>状态机方法操作:</strong>
+                        <button class="btn" onclick="triggerOp('connect')">connect()</button>
+                        <button class="btn" onclick="triggerOp('handshake')">complete_handshake()</button>
+                        <button class="btn" onclick="triggerOp('send')">send()</button>
+                        <button class="btn" onclick="triggerOp('disconnect')">disconnect()</button>
+                    </div>
+                </div>
+                <div class="visualizer">
+                    <div class="flow-display">
+                        <div class="state-nodes">
+                            <div class="state-bubble active" id="bubble-closed">Closed</div>
+                            <div class="state-bubble" id="bubble-connecting">Connecting</div>
+                            <div class="state-bubble" id="bubble-connected">Connected</div>
+                        </div>
+                        <div class="code-box" id="code-preview">
+                            let conn: Connection&lt;Closed&gt; = Connection::new();
+                        </div>
+                    </div>
+                    <div class="step-row" id="typestate-status">
+                        <strong>Compilation Status:</strong> OK (No issues detected)
+                    </div>
+                </div>
+                <div class="console" id="typestate-console">
+                    [控制台] 连接状态成功初始化为 Closed 状态。
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Pinning -->
+            <div class="card">
+                <h2>{lbl_pinning}</h2>
+                <div class="control-group">
+                    <div class="row">
+                        <strong>{lbl_pin_op}</strong>
+                        <button class="btn" style="background-color:#7A7A7A;" onclick="runMemorySim('move_unpinned')">Move Unpinned Struct</button>
+                        <button class="btn" style="background-color:#9A825A;" onclick="runMemorySim('pin_heap')">Pin Struct on Heap</button>
+                    </div>
+                </div>
+                <div class="visualizer">
+                    <div class="memory-layout">
+                        <!-- Stack -->
+                        <div class="memory-segment">
+                            <div class="mem-title">Stack Memory</div>
+                            <div class="mem-cell" id="stack-c1">
+                                <span>Address: 0x1000</span>
+                                <span id="stack-v1">SelfRef { data: "RUST" }</span>
+                            </div>
+                            <div class="mem-cell" id="stack-c2">
+                                <span>Address: 0x1020</span>
+                                <span id="stack-v2">Empty</span>
+                            </div>
+                            <div class="mem-cell" id="stack-c3">
+                                <span>Pointer Ref:</span>
+                                <span id="stack-ptr-val" class="ptr-line">points to 0x1000</span>
+                            </div>
+                        </div>
+                        <!-- Heap -->
+                        <div class="memory-segment">
+                            <div class="mem-title">Heap Memory</div>
+                            <div class="mem-cell" style="height:100px;justify-content:center;align-items:center;" id="heap-cell">
+                                <span id="heap-val">Empty / Unallocated</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="step-row" id="pin-status">
+                        <strong>Memory Status:</strong> Stable (Struct allocated on stack)
+                    </div>
+                </div>
+                <div class="console" id="pin-console">
+                    [控制台] 尚未钉住的自引用结构体已分配在栈地址 0x1000 处。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sandbox 1: Typestate
+        let activeState = "closed"; // closed, connecting, connected
+
+        function resetTypestate() {
+            activeState = "closed";
+            updateTypestateUi();
+            const isEn = false;
+            document.getElementById("typestate-status").innerHTML = `<strong>Compilation Status:</strong> OK`;
+            document.getElementById("typestate-console").innerText = isEn ? "[Console] Reset. Initial state Connection<Closed>." : "[控制台] 已重置。初始状态为 Connection<Closed>。";
+        }
+
+        function updateTypestateUi() {
+            document.getElementById("bubble-closed").className = "state-bubble" + (activeState === "closed" ? " active" : "");
+            document.getElementById("bubble-connecting").className = "state-bubble" + (activeState === "connecting" ? " active" : "");
+            document.getElementById("bubble-connected").className = "state-bubble" + (activeState === "connected" ? " active" : "");
+
+            const codeBox = document.getElementById("code-preview");
+            if (activeState === "closed") {
+                codeBox.innerHTML = `let conn: Connection&lt;Closed&gt; = Connection::new();`;
+            } else if (activeState === "connecting") {
+                codeBox.innerHTML = `let conn: Connection&lt;Connecting&gt; = conn.connect();`;
+            } else {
+                codeBox.innerHTML = `let conn: Connection&lt;Connected&gt; = conn.complete_handshake();\nconn.send("payload");`;
+            }
+        }
+
+        function triggerOp(op) {
+            const mode = document.getElementById("typestate-mode").value;
+            const isEn = false;
+            const consoleBox = document.getElementById("typestate-console");
+            const statusBox = document.getElementById("typestate-status");
+
+            if (mode === "enabled") {
+                // Typestate checked at compile time
+                if (op === "connect") {
+                    if (activeState === "closed") {
+                        activeState = "connecting";
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK</span>`;
+                        consoleBox.innerText = isEn ?
+                            `[Compiler Check] OK\\n -> Method .connect() consumed Connection<Closed> and returned Connection<Connecting> successfully.` :
+                            `[编译检查] 通过\\n -> connect() 方法强力消费了 Connection<Closed>，安全派生并返回了 Connection<Connecting>。`;
+                    } else {
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#FF4D4D;">Compile Error!</span>`;
+                        consoleBox.innerText = isEn ?
+                            `error[E0599]: no method named 'connect' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.` :
+                            `编译器报错[E0599]: 在当前状态 Connection<${{activeState.toUpperCase()}}> 下未定义 connect() 方法！编译失败阻断。`;
+                    }
+                } else if (op === "handshake") {
+                    if (activeState === "connecting") {
+                        activeState = "connected";
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK</span>`;
+                        consoleBox.innerText = isEn ?
+                            `[Compiler Check] OK\\n -> Method .complete_handshake() consumed Connection<Connecting> and returned Connection<Connected>.` :
+                            `[编译检查] 通过\\n -> complete_handshake() 消费了 Connection<Connecting>，安全返回 Connection<Connected>。`;
+                    } else {
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#FF4D4D;">Compile Error!</span>`;
+                        consoleBox.innerText = isEn ?
+                            `error[E0599]: no method named 'complete_handshake' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.` :
+                            `编译器报错[E0599]: 无法在此状态 Connection<${{activeState.toUpperCase()}}> 下调用 complete_handshake()！编译静态拦截。`;
+                    }
+                } else if (op === "send") {
+                    if (activeState === "connected") {
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK</span>`;
+                        consoleBox.innerText = isEn ?
+                            `[Compiler Check] OK\\n -> Method .send() called on Connection<Connected>. Data successfully sent over active socket.` :
+                            `[编译检查] 通过\\n -> send() 方法在 Connection<Connected> 激活状态下被调用，数据帧安全发往套接字物理通道。`;
+                    } else {
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#FF4D4D;">Compile Error!</span>`;
+                        consoleBox.innerText = isEn ?
+                            `error[E0599]: no method named 'send' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.` :
+                            `核心编译器拦截报错[E0599]: 没有在状态 Connection<${{activeState.toUpperCase()}}> 上定义 send()！非法数据发送在编译阶段已被拦截。`;
+                    }
+                } else if (op === "disconnect") {
+                    if (activeState === "connected") {
+                        activeState = "closed";
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK</span>`;
+                        consoleBox.innerText = isEn ?
+                            `[Compiler Check] OK\\n -> Method .disconnect() consumed Connection<Connected> and returned Connection<Closed>.` :
+                            `[编译检查] 通过\\n -> disconnect() 消费 Connection<Connected> 回退并返回了初始 Connection<Closed>。`;
+                    } else {
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#FF4D4D;">Compile Error!</span>`;
+                        consoleBox.innerText = isEn ?
+                            `error[E0599]: no method named 'disconnect' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.` :
+                            `编译器报错[E0599]: 无法在未连接状态 Connection<${{activeState.toUpperCase()}}> 下触发 disconnect() 方法！编译失败。`;
+                    }
+                }
+            } else {
+                // Runtime checked State Pattern: all methods compiled, check status at runtime
+                if (op === "connect") {
+                    if (activeState === "closed") {
+                        activeState = "connecting";
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK (Runtime Clean)</span>`;
+                        consoleBox.innerText = isEn ? `[Runtime OK] State shifted to Connecting.` : `[运行状态] 状态转移至 Connecting。`;
+                    } else {
+                        statusBox.innerHTML = `<strong>Runtime PANIC!</strong>`;
+                        consoleBox.innerText = isEn ?
+                            `thread 'main' panicked at 'Invalid connection call in state: ${{activeState}}', src/main.rs:18:9` :
+                            `线程 'main' 抛出 Panic 恐慌: '非法 connect() 调用，当前状态为: ${{activeState}}', src/main.rs:18:9`;
+                    }
+                } else if (op === "handshake") {
+                    if (activeState === "connecting") {
+                        activeState = "connected";
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK (Runtime Clean)</span>`;
+                        consoleBox.innerText = isEn ? `[Runtime OK] Handshake completed. State is now Connected.` : `[运行状态] 握手完毕，状态转换为 Connected。`;
+                    } else {
+                        statusBox.innerHTML = `<strong>Runtime PANIC!</strong>`;
+                        consoleBox.innerText = isEn ?
+                            `thread 'main' panicked at 'Invalid handshake call in state: ${{activeState}}', src/main.rs:24:9` :
+                            `线程 'main' 抛出 Panic 恐慌: '无法在 ${{activeState}} 状态下进行 complete_handshake()!', src/main.rs:24:9`;
+                    }
+                } else if (op === "send") {
+                    if (activeState === "connected") {
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK (Runtime Clean)</span>`;
+                        consoleBox.innerText = isEn ? `[Runtime OK] Data sent.` : `[运行状态] 数据发送成功。`;
+                    } else {
+                        statusBox.innerHTML = `<strong>Runtime PANIC!</strong>`;
+                        consoleBox.innerText = isEn ?
+                            `thread 'main' panicked at 'Attempted to send over a closed/connecting connection!', src/main.rs:30:9` :
+                            `致命异常！线程 'main' 抛出 Panic: '试图在非 Connected（${{activeState}}）连接上发送数据！程序崩溃下线。', src/main.rs:30:9`;
+                    }
+                } else if (op === "disconnect") {
+                    if (activeState === "connected") {
+                        activeState = "closed";
+                        statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK (Runtime Clean)</span>`;
+                        consoleBox.innerText = isEn ? `[Runtime OK] Disconnected.` : `[运行状态] 已断开连接。`;
+                    } else {
+                        statusBox.innerHTML = `<strong>Runtime PANIC!</strong>`;
+                        consoleBox.innerText = isEn ?
+                            `thread 'main' panicked at 'Not connected!', src/main.rs:36:9` :
+                            `线程 'main' 抛出 Panic: '尚未连接，无法执行 disconnect()!', src/main.rs:36:9`;
+                    }
+                }
+            }
+            updateTypestateUi();
+        }
+
+        // Sandbox 2: Pinning & Memory Move
+        let isPinned = false;
+
+        function runMemorySim(action) {
+            const isEn = false;
+            const consoleBox = document.getElementById("pin-console");
+            const statusBox = document.getElementById("pin-status");
+
+            if (action === 'move_unpinned') {
+                isPinned = false;
+                // Move from stack 0x1000 to stack 0x1020
+                document.getElementById("stack-v1").innerText = "Empty";
+                document.getElementById("stack-v2").innerText = "SelfRef { data: 'RUST' }";
+                
+                // Unpinned pointer stays pointing to 0x1000
+                document.getElementById("stack-ptr-val").innerText = "points to 0x1000 (Stale!)";
+                document.getElementById("stack-ptr-val").style.color = "#FF4D4D";
+                
+                statusBox.innerHTML = `<strong>Memory Status:</strong> <span style="color:#FF4D4D;">Undefined Behavior (UB)!</span>`;
+                consoleBox.innerText = isEn ?
+                    `[Memory Move Event]\\n` +
+                    ` -> Struct moved from 0x1000 to 0x1020.\\n` +
+                    ` -> ERROR: The internal pointer 'ptr' still points to 0x1000 (dangling pointer).\\n` +
+                    ` -> Dereferencing this pointer now accesses unallocated/dirty stack memory, triggering Undefined Behavior!` :
+                    `[内存移动事件]\\n` +
+                    ` -> 结构体发生 Move，物理地址由 0x1000 被拷贝移动到了 0x1020 处。\\n` +
+                    ` -> 侧漏警告: 结构体内的自引用指针 'ptr' 仍固执地指向原地址 0x1000 (悬空野指针)！\\n` +
+                    ` -> 异常结果: 尝试解引用读取该指针将访问已被注销的栈位置，引发 Undefined Behavior（未定义行为）内存破坏崩溃！`;
+            } else if (action === 'pin_heap') {
+                isPinned = true;
+                // Pin struct on the heap at 0x8000
+                document.getElementById("stack-v1").innerText = "Pin<Box<SelfRef>>";
+                document.getElementById("stack-v2").innerText = "Empty";
+                document.getElementById("heap-val").innerHTML = `SelfRef {<br>&nbsp;&nbsp;data: "RUST",<br>&nbsp;&nbsp;ptr: 0x8000<br>}<br><span style="color:#39D353;font-size:9px;">[Pinned on Heap]</span>`;
+                
+                // Pointer points to heap block 0x8000 and is locked
+                document.getElementById("stack-ptr-val").innerText = "points to 0x8000 (Pinned)";
+                document.getElementById("stack-ptr-val").style.color = "#39D353";
+                
+                statusBox.innerHTML = `<strong>Memory Status:</strong> <span style="color:#39D353;">Safe (Heap Pinned)</span>`;
+                consoleBox.innerText = isEn ?
+                    `[Memory Pin Event]\\n` +
+                    ` -> Struct pinned on the heap at Address 0x8000 via Box::pin.\\n` +
+                    ` -> The Pin wrapper guarantees the heap block will not move in memory.\\n` +
+                    ` -> Moving the Pin smart pointer on the stack does not shift the underlying data. Safe and stable.` :
+                    `[内存固定事件]\\n` +
+                    ` -> 通过 Box::pin 将自引用结构体分配并固定在堆内存地址 0x8000 处。\\n` +
+                    ` -> Pinning 强力保证该堆段物理页面在生命期内绝对不会在内存发生移动。\\n` +
+                    ` -> 即使栈上的 Pin 智能指针自身如何移动，堆上实际数据的自引用指针 0x8000 依然百分百对齐，彻底免疫悬空指针错误。`;
+            }
+        }
+    </script>
+</body>
+</html>

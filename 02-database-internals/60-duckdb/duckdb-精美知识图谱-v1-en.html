@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>DuckDB Architecture Map</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+            font-size: 24px;
+        }
+        #canvas-container {
+            width: 1100px;
+            height: 600px;
+            margin: 0 auto;
+            position: relative;
+            background-color: #1A202C;
+            border: 2px solid #24324F;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .node {
+            position: absolute;
+            width: 130px;
+            height: 50px;
+            border-radius: 4px;
+            color: white;
+            font-size: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4px;
+            cursor: pointer;
+            box-sizing: border-box;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.2s ease;
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        #tooltip {
+            width: 1100px;
+            margin: 15px auto;
+            padding: 15px;
+            background-color: #2D3748;
+            border-left: 5px solid #4B5F7A;
+            border-radius: 4px;
+            min-height: 80px;
+        }
+        .colorM1 { background-color: #4B5F7A; }
+        .colorM2 { background-color: #6B8272; }
+        .colorM3 { background-color: #9C6666; }
+        .colorM4 { background-color: #7A7A7A; }
+        .colorM5 { background-color: #9A825A; }
+        .colorM6 { background-color: #755B77; }
+    </style>
+</head>
+<body>
+    <h1>DuckDB Architecture Map</h1>
+    <div id="canvas-container"></div>
+    <div id="tooltip">
+        <h3>Click a card to inspect DuckDB's components</h3>
+    </div>
+
+    <script>
+        const nodes = [
+            { id: 1, group: 'M1', x: 80, y: 80, label: 'Card 1: Columnar RowGroup', zh: '卡片 1: 列式布局与行组', desc: 'Slices columns into horizontal Row Groups of 122,880 rows.' },
+            { id: 2, group: 'M1', x: 80, y: 160, label: 'Card 2: Block Storage', zh: '卡片 2: 段存储块管理器', desc: 'Manages database files using 256KB block sizes and header offsets.' },
+            { id: 3, group: 'M1', x: 80, y: 240, label: 'Card 3: Buffer Manager', zh: '卡片 3: 缓冲区管理限制', desc: 'Pages block segments in and out of memory with eviction queues.' },
+            { id: 4, group: 'M1', x: 80, y: 320, label: 'Card 4: Zone Map Indexes', zh: '卡片 4: Zone Map区间过滤', desc: 'Stores segment Min-Max metadata, skipping irrelevant data.' },
+            { id: 5, group: 'M1', x: 80, y: 400, label: 'Card 5: In-Memory WAL', zh: '卡片 5: 内存WAL与持久化', desc: 'Writes transactional append-only log to disk and checkpoints on merge.' },
+            
+            { id: 6, group: 'M2', x: 260, y: 80, label: 'Card 6: Vectorized Exec', zh: '卡片 6: 向量化计算核心', desc: 'Processes vector arrays of 1024 values to utilize L1 caches.' },
+            { id: 7, group: 'M2', x: 260, y: 160, label: 'Card 7: Volcano vs Vector', zh: '卡片 7: 火山对比与折衷', desc: 'Compares row-by-row dynamic dispatches with vectorized batch loops.' },
+            { id: 8, group: 'M2', x: 260, y: 240, label: 'Card 8: SIMD Acceleration', zh: '卡片 8: SIMD 硬件指令加速', desc: 'Autovectorizes contiguous memory loops into parallel AVX instructions.' },
+            { id: 9, group: 'M2', x: 260, y: 320, label: 'Card 9: Dynamic Casting', zh: '卡片 9: 动态类型投影转换', desc: 'Casts types in vector batches and utilizes selection arrays to avoid copies.' },
+            { id: 10, group: 'M2', x: 260, y: 400, label: 'Card 10: Window Buffer', zh: '卡片 10: 窗口函数向量缓存', desc: 'Stores sliding windows in chunk buffers to run vectorized aggregates.' },
+
+            { id: 11, group: 'M3', x: 440, y: 80, label: 'Card 11: Epoch Manager', zh: '卡片 11: 事务 Epoch 周期', desc: 'Traces transactional visibilities based on monotonic Epoch counters.' },
+            { id: 12, group: 'M3', x: 440, y: 160, label: 'Card 12: MVCC Visibility', zh: '卡片 12: MVCC 可见性读路径', desc: 'Compares read epochs with insert/delete epochs for lock-free reading.' },
+            { id: 13, group: 'M3', x: 440, y: 240, label: 'Card 13: Logical Deletes', zh: '卡片 13: 逻辑删除与版本链', desc: 'Registers transaction ids in Delete Vectors and cascades updates in chains.' },
+            { id: 14, group: 'M3', x: 440, y: 320, label: 'Card 14: Column Compaction', zh: '卡片 14: 列式数据归并压实', desc: 'Performs compaction and applies RLE or Bit-Packing compressions.' },
+            { id: 15, group: 'M3', x: 440, y: 400, label: 'Card 15: ACID Checkpoint', zh: '卡片 15: ACID 合规与 Checkpoint', desc: 'Flushes metadata blocks and WAL segments, invalidating logs on rollback.' },
+
+            { id: 16, group: 'M4', x: 620, y: 80, label: 'Card 16: Push Model', zh: '卡片 16: Push 模式执行管线', desc: 'Scan nodes push vectorized chunks forward through pipelines.' },
+            { id: 17, group: 'M4', x: 620, y: 160, label: 'Card 17: Parallel Scan', zh: '卡片 17: 并行扫描与窃取', desc: 'Runs parallel scans on row groups with tasks shared via work stealing.' },
+            { id: 18, group: 'M4', x: 620, y: 240, label: 'Card 18: Hash Join', zh: '卡片 18: 内存型哈希连接', desc: 'Builds cache-friendly tables in RAM and probes data in batches.' },
+            { id: 19, group: 'M4', x: 620, y: 320, label: 'Card 19: External Sort', zh: '卡片 19: 外部归并排序溢出', desc: 'Spills sorted runs to temporary disk files on memory limits.' },
+            { id: 20, group: 'M4', x: 620, y: 400, label: 'Card 20: Memory Spill', zh: '卡片 20: 内存超限磁盘溢出', desc: 'Memory Manager offloads large aggregation structures to temporary disks.' },
+
+            { id: 21, group: 'M5', x: 800, y: 80, label: 'Card 21: Parquet Zero-Copy', zh: '卡片 21: Parquet 零拷贝', desc: 'Maps Parquet data blocks directly into memory Vectors, ignoring copies.' },
+            { id: 22, group: 'M5', x: 800, y: 180, label: 'Card 22: Arrow Memory Map', zh: '卡片 22: Arrow 格式映射', desc: 'Bypasses serialization costs by sharing pointers with Arrow frames.' },
+            { id: 23, group: 'M5', x: 800, y: 280, label: 'Card 23: CSV/JSON Scanners', zh: '卡片 23: CSV 与 JSON 解析', desc: 'Parallel parser detects delimiters and runs runtime type inferences.' },
+            { id: 24, group: 'M5', x: 800, y: 380, label: 'Card 24: Embedded Safety', zh: '卡片 24: 嵌入式库与并发锁', desc: 'C++ embedded library with thread-safe Mutex locks protecting catalogs.' },
+
+            { id: 25, group: 'M6', x: 980, y: 80, label: 'Card 25: Catalog Metadata', zh: '卡片 25: 目录与模式元数据', desc: 'Manages namespace schemas and tracks versioning via Epoch MVCC.' },
+            { id: 26, group: 'M6', x: 980, y: 180, label: 'Card 26: UDF Plugins SDK', zh: '卡片 26: UDF 与插件开发', desc: 'Exposes C++ extension SDKs with vectorized custom calculations.' },
+            { id: 27, group: 'M6', x: 980, y: 280, label: 'Card 27: Profiling Diagnostics', zh: '卡片 27: 执行计划剖析遥测', desc: 'Traces operator execution details and records spill sizes.' },
+            { id: 28, group: 'M6', x: 980, y: 380, label: 'Card 28: Resource Limits', zh: '卡片 28: 资源限制与硬限额', desc: 'Throttles or aborts query executions when exceeding memory limits.' }
+        ];
+
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+
+        nodes.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `node color${n.group}`;
+            div.style.left = `${n.x}px`;
+            div.style.top = `${n.y}px`;
+            div.innerText = n.label;
+            div.onclick = () => {
+                tooltip.innerHTML = `
+                    <h3>${n.label}</h3>
+                    <p><strong>Module:</strong> ${n.group} | <strong>Details:</strong> ${n.desc}</p>
+                `;
+            };
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>

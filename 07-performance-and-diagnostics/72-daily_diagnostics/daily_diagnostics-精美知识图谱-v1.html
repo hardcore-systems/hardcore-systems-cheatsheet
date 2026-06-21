@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>线上故障定位与性能榨汁机图谱</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #1A202C;
+            color: #E2E8F0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            cursor: grab;
+        }
+        #canvas {
+            position: absolute;
+            transform-origin: 0 0;
+        }
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3000px;
+            height: 2000px;
+            pointer-events: none;
+        }
+        .card {
+            position: absolute;
+            width: 130px;
+            height: 80px;
+            background-color: #2D3748;
+            border-radius: 4px;
+            padding: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border-top: 4px solid #E2E8F0;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.5);
+        }
+        .card-num {
+            font-size: 8px;
+            color: #A0AEC0;
+            font-weight: bold;
+        }
+        .card-title {
+            font-size: 10px;
+            font-weight: bold;
+            margin-top: 4px;
+            height: 28px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-zh {
+            font-size: 8px;
+            color: #CBD5E0;
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        #header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: bold;
+            color: #FFFFFF;
+        }
+        #header p {
+            margin: 5px 0 0 0;
+            font-size: 11px;
+            color: #A0AEC0;
+        }
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(26, 32, 44, 0.8);
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #4A5568;
+            font-size: 9px;
+            z-index: 10;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>线上故障定位与性能榨汁机图谱</h1>
+        <p>Drag to pan. Left click on a card to see dependencies. Double click cards to see system details.</p>
+    </div>
+    
+    <div id="legend">
+        <div class="legend-item"><div class="legend-color" style="background: #4B5F7A;"></div>M1: Runtime & Memory (内存诊断)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #6B8272;"></div>M2: Scheduling & Hardware Cache (内核并发)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #9C6666;"></div>M3: Database & Index Optimizations (索引死锁)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #7A7A7A;"></div>M4: Storage IO & Sockets (零拷贝网络)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #9A825A;"></div>M5: Async Sockets & Parallel Vector (向量异步)</div>
+    </div>
+
+    <div id="canvas-container">
+        <div id="canvas">
+            <svg id="links-svg"></svg>
+            <div id="cards-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const cards = [{'id': 1, 'title': 'JVM GC Tuning', 'zh': 'JVM垃圾回收参数微调', 'x': 100, 'y': 120, 'color': '#4B5F7A'}, {'id': 2, 'title': 'Go Allocator pprof', 'zh': 'Go内存逃逸与pprof采样', 'x': 240, 'y': 120, 'color': '#4B5F7A'}, {'id': 3, 'title': 'Python Async Loop', 'zh': 'Python异步循环阻塞诊断', 'x': 380, 'y': 120, 'color': '#4B5F7A'}, {'id': 4, 'title': 'heaptrack Leaks', 'zh': '堆内存泄漏检测监控', 'x': 520, 'y': 120, 'color': '#4B5F7A'}, {'id': 5, 'title': 'JVM CPU 100%', 'zh': 'top-Hp定位JVM百分百CPU', 'x': 660, 'y': 120, 'color': '#4B5F7A'}, {'id': 6, 'title': 'Go GC write barrier', 'zh': 'Go写屏障开销与停顿分析', 'x': 800, 'y': 120, 'color': '#4B5F7A'}, {'id': 7, 'title': 'Thread Pool Formula', 'zh': '线程池最佳线程数配比计算', 'x': 100, 'y': 260, 'color': '#6B8272'}, {'id': 8, 'title': 'Flame Graph', 'zh': 'CPU栈采样SVGs火焰图分析', 'x': 240, 'y': 260, 'color': '#6B8272'}, {'id': 9, 'title': 'Cacheline align', 'zh': 'L1缓存行对齐防止虚共享', 'x': 380, 'y': 260, 'color': '#6B8272'}, {'id': 10, 'title': 'CPU Affinity', 'zh': '线程CPU亲和性与核心绑定', 'x': 520, 'y': 260, 'color': '#6B8272'}, {'id': 11, 'title': 'Context Switch', 'zh': '自愿与非自愿上下文切换削减', 'x': 660, 'y': 260, 'color': '#6B8272'}, {'id': 12, 'title': 'JVM Safepoint', 'zh': 'JVM安全点停顿排查方法', 'x': 800, 'y': 260, 'color': '#6B8272'}, {'id': 13, 'title': 'B+Tree Selection', 'zh': 'MySQL B+树寻址与回表消除', 'x': 100, 'y': 400, 'color': '#9C6666'}, {'id': 14, 'title': 'MySQL Lock Deadlock', 'zh': 'INNODB死锁日志与区间锁分析', 'x': 240, 'y': 400, 'color': '#9C6666'}, {'id': 15, 'title': 'HikariCP pool', 'zh': '连接池主轴公式与高并发优化', 'x': 380, 'y': 400, 'color': '#9C6666'}, {'id': 16, 'title': 'Redis Slow Big Key', 'zh': 'Redis慢查询与大Key驱逐治理', 'x': 520, 'y': 400, 'color': '#9C6666'}, {'id': 17, 'title': 'Redis LFU Sample', 'zh': 'Redis LFU采样计数衰减策略', 'x': 660, 'y': 400, 'color': '#9C6666'}, {'id': 18, 'title': 'CQRS separating', 'zh': 'CQRS数据模型异步隔离同步', 'x': 800, 'y': 400, 'color': '#9C6666'}, {'id': 19, 'title': 'Page Cache Flush', 'zh': 'OS脏页背景冲刷比例控制', 'x': 100, 'y': 540, 'color': '#7A7A7A'}, {'id': 20, 'title': 'Disk IO Scheduler', 'zh': 'BFQ/mq-deadline/None调度', 'x': 240, 'y': 540, 'color': '#7A7A7A'}, {'id': 21, 'title': 'TCP Socket Window', 'zh': 'BDP带宽延迟积TCP窗口调优', 'x': 380, 'y': 540, 'color': '#7A7A7A'}, {'id': 22, 'title': 'Zero-copy sendfile', 'zh': 'sendfile/mmap零拷贝网络分发', 'x': 520, 'y': 540, 'color': '#7A7A7A'}, {'id': 23, 'title': 'TIME_WAIT reuse', 'zh': 'tcp_tw_reuse重用TIME_WAIT', 'x': 660, 'y': 540, 'color': '#7A7A7A'}, {'id': 24, 'title': 'Async IO vs Thread', 'zh': 'epoll非阻塞与阻塞连接比对', 'x': 800, 'y': 540, 'color': '#7A7A7A'}, {'id': 25, 'title': 'Epoll Thundering Herd', 'zh': 'Epoll惊群与多路复用饥饿', 'x': 100, 'y': 680, 'color': '#9A825A'}, {'id': 26, 'title': 'SIMD Vector', 'zh': 'AVX-512寄存器单指令多数据', 'x': 240, 'y': 680, 'color': '#9A825A'}, {'id': 27, 'title': 'APM latency trace', 'zh': '分布式全链路APM分段响应度量', 'x': 380, 'y': 680, 'color': '#9A825A'}, {'id': 28, 'title': 'Lock Reduction AQS', 'zh': 'AQS并发挂起与Disruptor无锁队列', 'x': 520, 'y': 680, 'color': '#9A825A'}];
+        const links = [{'source': 1, 'target': 12}, {'source': 2, 'target': 6}, {'source': 3, 'target': 24}, {'source': 4, 'target': 1}, {'source': 5, 'target': 8}, {'source': 7, 'target': 11}, {'source': 8, 'target': 7}, {'source': 9, 'target': 28}, {'source': 10, 'target': 9}, {'source': 11, 'target': 10}, {'source': 13, 'target': 14}, {'source': 15, 'target': 13}, {'source': 16, 'target': 17}, {'source': 19, 'target': 20}, {'source': 21, 'target': 23}, {'source': 22, 'target': 19}, {'source': 24, 'target': 25}, {'source': 26, 'target': 9}, {'source': 27, 'target': 28}];
+
+        const canvas = document.getElementById('canvas');
+        const container = document.getElementById('canvas-container');
+        const cardsContainer = document.getElementById('cards-container');
+        const svg = document.getElementById('links-svg');
+
+        let isDragging = false;
+        let startX, startY;
+        let translateX = 50, translateY = 50;
+
+        container.addEventListener('mousedown', (e) => {
+            if (e.target === container || e.target.id === 'canvas' || e.target.tagName === 'svg') {
+                isDragging = true;
+                container.style.cursor = 'grabbing';
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                canvas.style.transform = `translate(${translateX}px, ${translateY}px)`;
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            container.style.cursor = 'grab';
+        });
+
+        // Render nodes
+        cards.forEach(card => {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.style.left = card.x + 'px';
+            div.style.top = card.y + 'px';
+            div.style.borderTopColor = card.color;
+            div.id = 'card-' + card.id;
+
+            div.innerHTML = `
+                <div class="card-num">Card ${card.id.toString().padStart(2, '0')}</div>
+                <div class="card-title">${card.title}</div>
+                <div class="card-zh">${card.zh}</div>
+            `;
+            cardsContainer.appendChild(div);
+        });
+
+        // Render edges
+        function drawLinks() {
+            svg.innerHTML = '';
+            links.forEach(link => {
+                const sNode = cards.find(c => c.id === link.source);
+                const tNode = cards.find(c => c.id === link.target);
+                if (sNode && tNode) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', sNode.x + 65);
+                    line.setAttribute('y1', sNode.y + 40);
+                    line.setAttribute('x2', tNode.x + 65);
+                    line.setAttribute('y2', tNode.y + 40);
+                    line.setAttribute('stroke', '#4A5568');
+                    line.setAttribute('stroke-width', '1.5');
+                    line.setAttribute('marker-end', 'url(#arrow)');
+                    svg.appendChild(line);
+                }
+            });
+        }
+
+        // Draw an arrowhead marker
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', 'arrow');
+        marker.setAttribute('viewBox', '0 0 10 10');
+        marker.setAttribute('refX', '40'); // offset arrowhead from node center
+        marker.setAttribute('refY', '5');
+        marker.setAttribute('markerWidth', '6');
+        marker.setAttribute('markerHeight', '6');
+        marker.setAttribute('orient', 'auto-start-reverse');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+        path.setAttribute('fill', '#4A5568');
+        marker.appendChild(path);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+
+        drawLinks();
+        canvas.style.transform = `translate(${translateX}px, ${translateY}px)`;
+    </script>
+</body>
+</html>

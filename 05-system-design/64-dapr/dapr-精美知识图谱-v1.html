@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Dapr 声明式云原生边车架构大图</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+            font-size: 24px;
+        }
+        #canvas-container {
+            width: 1100px;
+            height: 600px;
+            margin: 0 auto;
+            position: relative;
+            background-color: #1A202C;
+            border: 2px solid #24324F;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .node {
+            position: absolute;
+            width: 130px;
+            height: 50px;
+            border-radius: 4px;
+            color: white;
+            font-size: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4px;
+            cursor: pointer;
+            box-sizing: border-box;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.2s ease;
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        #tooltip {
+            width: 1100px;
+            margin: 15px auto;
+            padding: 15px;
+            background-color: #2D3748;
+            border-left: 5px solid #4B5F7A;
+            border-radius: 4px;
+            min-height: 80px;
+        }
+        .colorM1 { background-color: #4B5F7A; }
+        .colorM2 { background-color: #6B8272; }
+        .colorM3 { background-color: #9C6666; }
+        .colorM4 { background-color: #7A7A7A; }
+        .colorM5 { background-color: #9A825A; }
+        .colorM6 { background-color: #755B77; }
+    </style>
+</head>
+<body>
+    <h1>Dapr 声明式云原生边车架构大图</h1>
+    <div id="canvas-container"></div>
+    <div id="tooltip">
+        <h3>点击卡片查看 Dapr 分布式运行时底层组件</h3>
+    </div>
+
+    <script>
+        const nodes = [
+            { id: 1, group: 'M1', x: 80, y: 80, label: 'Card 1: App Bridge', zh: '卡片 1: App-Sidecar 桥接', desc: 'App communicates with local Dapr sidecar over loopback ports (HTTP 3500, gRPC 50001).' },
+            { id: 2, group: 'M1', x: 80, y: 160, label: 'Card 2: API Abstraction', zh: '卡片 2: 统一 API 抽象设计', desc: 'Abstracts store and pubsub interfaces to support infrastructure swap without code changes.' },
+            { id: 3, group: 'M1', x: 80, y: 240, label: 'Card 3: Lifecycle Hook', zh: '卡片 3: 端口生命周期拦截', desc: 'Shares NetNS inside Kubernetes pods, blocking traffic until app ports are ready.' },
+            { id: 4, group: 'M1', x: 80, y: 320, label: 'Card 4: Sidecar Process Proxy', zh: '卡片 4: Sidecar 双向进程代理', desc: 'Acts as bidirectional communication bridge and caches messages on app crashes.' },
+            { id: 5, group: 'M1', x: 80, y: 400, label: 'Card 5: Seamless Integration', zh: '卡片 5: 应用无感集成机制', desc: 'Auto-injects Sidecars using Pod annotations without manual container setups.' },
+            
+            { id: 6, group: 'M2', x: 260, y: 80, label: 'Card 6: Pluggable Stores', zh: '卡片 6: 可插拔状态存储引擎', desc: 'YAML-driven configuration swaps Redis, Postgres, or CosmosDB instantly.' },
+            { id: 7, group: 'M2', x: 260, y: 160, label: 'Card 7: ETag Optimistic Lock', zh: '卡片 7: ETag 并发冲突乐观锁', desc: 'Validates key version states using ETags, throwing 409 Conflict on mismatch.' },
+            { id: 8, group: 'M2', x: 260, y: 240, label: 'Card 8: State Transactions', zh: '卡片 8: 状态 API 分布式事务', desc: 'Combines bulk read/write operations into atomic DB transactions.' },
+            { id: 9, group: 'M2', x: 260, y: 320, label: 'Card 9: Distributed Lock', zh: '卡片 9: 分布式锁 API', desc: 'Exposes lock/unlock leases with TTLs, shielding apps from custom locks.' },
+            { id: 10, group: 'M2', x: 260, y: 400, label: 'Card 10: State TTL', zh: '卡片 10: 状态值过期与 TTL 控制', desc: 'Specifies key lifetimes (ttlInSeconds) for automatic storage cleanup.' },
+
+            { id: 11, group: 'M3', x: 440, y: 80, label: 'Card 11: CloudEvents specs', zh: '卡片 11: CloudEvents 标准包装', desc: 'Wraps message payloads in standard headers to carry tracing contexts.' },
+            { id: 12, group: 'M3', x: 440, y: 160, label: 'Card 12: Pluggable Brokers', zh: '卡片 12: 可插拔消息代理组件', desc: 'Steers pub/sub pathways to Redis, Kafka, or RabbitMQ dynamically.' },
+            { id: 13, group: 'M3', x: 440, y: 240, label: 'Card 13: Subscription Registry', zh: '卡片 13: 声明式与动态订阅注册', desc: 'Registers topic listeners and pushes incoming events to apps via HTTP POST.' },
+            { id: 14, group: 'M3', x: 440, y: 320, label: 'Card 14: Retry Backoff', zh: '卡片 14: 弹性重试与指数退避', desc: 'Throttles event delivery retries using exponential backoffs to prevent storms.' },
+            { id: 15, group: 'M3', x: 440, y: 400, label: 'Card 15: DLQ Routing', zh: '卡片 15: 死信队列 (DLQ) 流转', desc: 'Bypasses stuck flows by isolating toxic messages to custom dead-letter topics.' },
+
+            { id: 16, group: 'M4', x: 620, y: 80, label: 'Card 16: Virtual Actor', zh: '卡片 16: 虚拟 Actor 激活休眠', desc: 'Loads stateful Actors on demand and garbagges idle ones to reclaim RAM.' },
+            { id: 17, group: 'M4', x: 620, y: 160, label: 'Card 17: Placement service', zh: '卡片 17: Actor Placement 路由', desc: 'Tracks Actor addresses in consistent hashing rings and balances nodes.' },
+            { id: 18, group: 'M4', x: 620, y: 240, label: 'Card 18: Actor Turn lock', zh: '卡片 18: Actor 一致性状态并发锁', desc: 'Enforces turn-based thread queuing and auto-loads/saves state.' },
+            { id: 19, group: 'M4', x: 620, y: 320, label: 'Card 19: Timers & Reminders', zh: '卡片 19: Actor 定时与提醒器', desc: 'Timers expire on deactivation; Reminders persist to wake up Actors.' },
+            { id: 20, group: 'M4', x: 620, y: 400, label: 'Card 20: Reentrancy Lockout', zh: '卡片 20: 协同调用与防死锁机制', desc: 'Allows cyclic reentrant actor calls (A->B->A) via shared reentrancy IDs.' },
+
+            { id: 21, group: 'M5', x: 800, y: 80, label: 'Card 21: Input Bindings', zh: '卡片 21: 输入绑定监听', desc: 'Captures external changes and POSTs events to application endpoints.' },
+            { id: 22, group: 'M5', x: 800, y: 180, label: 'Card 22: Output Bindings', zh: '卡片 22: 输出绑定触发', desc: 'POSTs commands to AWS S3, SendGrid, or Lambda via declarative bindings.' },
+            { id: 23, group: 'M5', x: 800, y: 280, label: 'Card 23: Declarative YAML', zh: '卡片 23: 声明式元数据配置', desc: 'Configures life components and injects vault secrets dynamically.' },
+            { id: 24, group: 'M5', x: 800, y: 380, label: 'Card 24: Bidirectional Stream', zh: '卡片 24: 双向数据流协议管道', desc: 'Maintains long-lived socket/gRPC data tunnels to lower overhead.' },
+
+            { id: 25, group: 'M6', x: 980, y: 80, label: 'Card 25: mTLS Mutual Auth', zh: '卡片 25: 双向 TLS 身份认证', desc: 'Encrypts node traffic and rotates keys via the Sentry CA service.' },
+            { id: 26, group: 'M6', x: 980, y: 180, label: 'Card 26: SPIFFE Identities', zh: '卡片 26: SPIFFE 统一身份管理', desc: 'Assigns unified identities in SAN attributes to enforce ACL policies.' },
+            { id: 27, group: 'M6', x: 980, y: 280, label: 'Card 27: Circuit Breakers', zh: '卡片 27: 弹性熔断与断路器配置', desc: 'Trips connections on down-level error thresholds in external files.' },
+            { id: 28, group: 'M6', x: 980, y: 380, label: 'Card 28: OpenTelemetry OTel', zh: '卡片 28: OpenTelemetry 链路追踪', desc: 'Propagates trace context headers across components for audit views.' }
+        ];
+
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+
+        nodes.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `node color${n.group}`;
+            div.style.left = `${n.x}px`;
+            div.style.top = `${n.y}px`;
+            div.innerText = n.zh;
+            div.onclick = () => {
+                tooltip.innerHTML = `
+                    <h3>${n.zh}</h3>
+                    <p><strong>Module:</strong> ${n.group} | <strong>Details:</strong> ${n.desc}</p>
+                `;
+            };
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>

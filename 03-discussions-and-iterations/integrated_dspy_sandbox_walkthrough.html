@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>DSPy Prompt 演变与 Agent 自愈融合演练</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #0B0C0E;
+            color: #D3D4DB;
+            font-family: 'Inter', sans-serif;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Outfit', sans-serif;
+            margin-top: 0;
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #7A8B99, #B58A7D);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #8C8E96;
+            font-size: 15px;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+        .run-card {
+            background: rgba(20, 22, 26, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 50px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+        .run-card h3 {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        .prompt-section {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 16px;
+            border-radius: 6px;
+            border-left: 4px solid #7A8B99;
+            margin-bottom: 24px;
+        }
+        pre {
+            margin: 0;
+            background: #08090B;
+            padding: 14px;
+            border-radius: 6px;
+            overflow-x: auto;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        pre code {
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            color: #A3A5AE;
+        }
+        h5 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #5E6266;
+            margin-bottom: 8px;
+        }
+        .step-card {
+            background: rgba(255,255,255,0.01);
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .step-card h6 {
+            font-size: 14px;
+            color: #7A8B99;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .observation-box {
+            background: #0E1013;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.02);
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .critique-section {
+            background: rgba(181, 138, 125, 0.05);
+            border: 1px dashed rgba(181, 138, 125, 0.3);
+            padding: 24px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        .critique-section h5 {
+            color: #B58A7D;
+        }
+        .critique-section p {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #CBB9B4;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>DSPy Prompt 演变与 Agent 自愈融合演练</h1>
+    <div class="subtitle">展示外层编译器（Prompt Compiler）如何利用 TextGrad 自动纠正内层执行 Agent（Software Engineer Agent）的 ReAct 决策系统提示词。</div>
+    
+    
+        <div class="run-card">
+            <h3>Run 1 — 🟢 SUCCESS (5 Steps Taken)</h3>
+            <div class="prompt-section">
+                <h5>System Prompt Used:</h5>
+                <pre><code>You are an assistant. Your task is to fix a bug in 'broken_code.py' to make the tests pass successfully.
+You must interact with the environment using the following JSON tool calling format. At each step, output ONLY a JSON object representing your action. Do not output markdown tick marks around the JSON.
+
+Available Actions:
+1. Read a file:
+   {"thought": "reasoning", "action": "read_file", "filename": "broken_code.py"}
+2. Write a file:
+   {"thought": "reasoning", "action": "write_file", "filename": "broken_code.py", "content": "file contents..."}
+3. Run test suite:
+   {"thought": "reasoning", "action": "run_tests"}
+4. Finish task:
+   {"thought": "reasoning", "action": "finish"}
+
+Always start by running the tests to see the initial status.</code></pre>
+            </div>
+            
+            <h4>Execution Trace:</h4>
+            
+            <div class="step-card">
+                <h6>Step 1: run_tests</h6>
+                <p><strong>Thought:</strong> I need to start by running the tests to see the current status and identify the bug.</p>
+                <p><strong>Parameters:</strong> None</p>
+                <div class="observation-box">
+                    <strong>Status:</strong> failed<br><pre><code>
+EE
+======================================================================
+ERROR: test_log_invalid (__main__.TestCode.test_log_invalid)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\材料\拆书\硬核技术系统工程\03-discussions-and-iterations\integrated_sandbox\test_code.py", line 11, in test_log_invalid
+    self.assertIsNone(calculate_log(0))
+                      ^^^^^^^^^^^^^^^^
+  File "D:\材料\拆书\硬核技术系统工程\03-discussions-and-iterations\integrated_sandbox\broken_code.py", line 4, in calculate_log
+    return math.log(x)
+           ^^^^
+NameError: name 'math' is not defined. Did you forget to import 'math'
+
+======================================================================
+ERROR: test_log_one (__main__.TestCode.test_log_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\材料\拆书\硬核技术系统工程\03-discussions-and-iterations\integrated_sandbox\test_code.py", line 7, in test_log_one
+    self.assertAlmostEqual(calculate_log(1), 0.0)
+                           ^^^^^^^^^^^^^^^^
+  File "D:\材料\拆书\硬核技术系统工程\03-discussions-and-iterations\integrated_sandbox\broken_code.py", line 4, in calculate_log
+    return math.log(x)
+           ^^^^
+NameError: name 'math' is not defined. Did you forget to import 'math'
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.002s
+
+FAILED (errors=2)
+</code></pre>
+                </div>
+            </div>
+            
+            <div class="step-card">
+                <h6>Step 2: read_file</h6>
+                <p><strong>Thought:</strong> The error shows that 'math' is not imported. I need to read the broken_code.py file to see the current code and fix it by adding the import.</p>
+                <p><strong>Parameters:</strong> <code>{"filename": "broken_code.py"}</code></p>
+                <div class="observation-box">
+                    <strong>Read Content:</strong><br><pre><code class='python'>def calculate_log(x):
+    # Bug 1: forgets to import 'math'
+    # Bug 2: crashes on x <= 0 (math domain error) instead of returning None
+    return math.log(x)
+</code></pre>
+                </div>
+            </div>
+            
+            <div class="step-card">
+                <h6>Step 3: write_file</h6>
+                <p><strong>Thought:</strong> The code has two bugs: missing import math, and it should return None for x <= 0 instead of crashing. I'll fix both.</p>
+                <p><strong>Parameters:</strong> <code>{"filename": "broken_code.py", "content": "import math\n\ndef calculate_log(x):\n    if x <= 0:\n        return None\n    return math.log(x)\n"}</code></p>
+                <div class="observation-box">
+                    <strong>Message:</strong> File broken_code.py updated successfully.
+                </div>
+            </div>
+            
+            <div class="step-card">
+                <h6>Step 4: run_tests</h6>
+                <p><strong>Thought:</strong> Now I'll run the tests to see if the fix works.</p>
+                <p><strong>Parameters:</strong> None</p>
+                <div class="observation-box">
+                    <strong>Status:</strong> success<br><pre><code>
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK
+</code></pre>
+                </div>
+            </div>
+            
+            <div class="step-card">
+                <h6>Step 5: finish</h6>
+                <p><strong>Thought:</strong> All tests pass. The bug is fixed.</p>
+                <p><strong>Parameters:</strong> None</p>
+                <div class="observation-box">
+                    <strong>Status:</strong> success<br><pre><code>
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK
+</code></pre>
+                </div>
+            </div>
+            
+            
+            
+            <div class="critique-section">
+                <h5>Textual Backpropagation (Prompt Compiler Critique):</h5>
+                <p>The agent successfully fixed the bug in one attempt. However, the trace shows that the agent initially ran tests without reading the file first, which is fine. The agent correctly identified the missing import and the edge case. No mistakes were made. The prompt is already effective, but could be slightly improved by encouraging reading the file before making changes to understand the full context. Also, the prompt could explicitly mention checking for missing imports and edge cases. The current prompt is minimal and works, but adding these guidelines could prevent potential inefficiencies in more complex scenarios.</p>
+                <h5>Refined Prompt for Next Run:</h5>
+                <pre><code>You are an assistant. Your task is to fix a bug in 'broken_code.py' to make the tests pass successfully.
+You must interact with the environment using the following JSON tool calling format. At each step, output ONLY a JSON object representing your action. Do not output markdown tick marks around the JSON.
+
+Available Actions:
+1. Read a file:
+   {"thought": "reasoning", "action": "read_file", "filename": "broken_code.py"}
+2. Write a file:
+   {"thought": "reasoning", "action": "write_file", "filename": "broken_code.py", "content": "file contents..."}
+3. Run test suite:
+   {"thought": "reasoning", "action": "run_tests"}
+4. Finish task:
+   {"thought": "reasoning", "action": "finish"}
+
+Always start by running the tests to see the initial status. Then read the file to understand the code. When fixing bugs, check for missing imports, edge cases (e.g., invalid inputs), and logical errors. Ensure your fix addresses all test failures.</code></pre>
+            </div>
+            
+        </div>
+        
+        <div class="run-card">
+            <h3>Run 2 — 🟢 SUCCESS (5 Steps Taken)</h3>
+            <div class="prompt-section">
+                <h5>System Prompt Used:</h5>
+                <pre><code>You are an assistant. Your task is to fix a bug in 'broken_code.py' to make the tests pass successfully.
+You must interact with the environment using the following JSON tool calling format. At each step, output ONLY a JSON object representing your action. Do not output markdown tick marks around the JSON.
+
+Available Actions:
+1. Read a file:
+   {"thought": "reasoning", "action": "read_file", "filename": "broken_code.py"}
+2. Write a file:
+   {"thought": "reasoning", "action": "write_file", "filename": "broken_code.py", "content": "file contents..."}
+3. Run test suite:
+   {"thought": "reasoning", "action": "run_tests"}
+4. Finish task:
+   {"thought": "reasoning", "action": "finish"}
+
+Always start by running the tests to see the initial status. Then read the file to understand the code. When fixing bugs, check for missing imports, edge cases (e.g., invalid inputs), and logical errors. Ensure your fix addresses all test failures.</code></pre>
+            </div>
+            
+            <h4>Execution Trace:</h4>
+            
+            <div class="step-card">
+                <h6>Step 1: run_tests</h6>
+                <p><strong>Thought:</strong> Start by running the tests to see the initial status.</p>
+                <p><strong>Parameters:</strong> None</p>
+                <div class="observation-box">
+                    <strong>Status:</strong> failed<br><pre><code>
+EE
+======================================================================
+ERROR: test_log_invalid (__main__.TestCode.test_log_invalid)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\材料\拆书\硬核技术系统工程\03-discussions-and-iterations\integrated_sandbox\test_code.py", line 11, in test_log_invalid
+    self.assertIsNone(calculate_log(0))
+                      ^^^^^^^^^^^^^^^^
+  File "D:\材料\拆书\硬核技术系统工程\03-discussions-and-iterations\integrated_sandbox\broken_code.py", line 4, in calculate_log
+    return math.log(x)
+           ^^^^
+NameError: name 'math' is not defined. Did you forget to import 'math'
+
+======================================================================
+ERROR: test_log_one (__main__.TestCode.test_log_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\材料\拆书\硬核技术系统工程\03-discussions-and-iterations\integrated_sandbox\test_code.py", line 7, in test_log_one
+    self.assertAlmostEqual(calculate_log(1), 0.0)
+                           ^^^^^^^^^^^^^^^^
+  File "D:\材料\拆书\硬核技术系统工程\03-discussions-and-iterations\integrated_sandbox\broken_code.py", line 4, in calculate_log
+    return math.log(x)
+           ^^^^
+NameError: name 'math' is not defined. Did you forget to import 'math'
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+FAILED (errors=2)
+</code></pre>
+                </div>
+            </div>
+            
+            <div class="step-card">
+                <h6>Step 2: read_file</h6>
+                <p><strong>Thought:</strong> The tests fail because 'math' is not imported. I need to read the file to see the full code.</p>
+                <p><strong>Parameters:</strong> <code>{"filename": "broken_code.py"}</code></p>
+                <div class="observation-box">
+                    <strong>Read Content:</strong><br><pre><code class='python'>def calculate_log(x):
+    # Bug 1: forgets to import 'math'
+    # Bug 2: crashes on x <= 0 (math domain error) instead of returning None
+    return math.log(x)
+</code></pre>
+                </div>
+            </div>
+            
+            <div class="step-card">
+                <h6>Step 3: write_file</h6>
+                <p><strong>Thought:</strong> The code has two bugs: missing import math and no handling for x <= 0. I'll fix both.</p>
+                <p><strong>Parameters:</strong> <code>{"filename": "broken_code.py", "content": "import math\n\ndef calculate_log(x):\n    if x <= 0:\n        return None\n    return math.log(x)\n"}</code></p>
+                <div class="observation-box">
+                    <strong>Message:</strong> File broken_code.py updated successfully.
+                </div>
+            </div>
+            
+            <div class="step-card">
+                <h6>Step 4: run_tests</h6>
+                <p><strong>Thought:</strong> Now run the tests to verify the fix.</p>
+                <p><strong>Parameters:</strong> None</p>
+                <div class="observation-box">
+                    <strong>Status:</strong> success<br><pre><code>
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK
+</code></pre>
+                </div>
+            </div>
+            
+            <div class="step-card">
+                <h6>Step 5: finish</h6>
+                <p><strong>Thought:</strong> All tests pass. Task complete.</p>
+                <p><strong>Parameters:</strong> None</p>
+                <div class="observation-box">
+                    <strong>Status:</strong> success<br><pre><code>
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK
+</code></pre>
+                </div>
+            </div>
+            
+            
+            
+        </div>
+        
+</body>
+</html>

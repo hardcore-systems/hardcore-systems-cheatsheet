@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>自动提示词演进 (TextGrad) 演练大图</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #0E1012;
+            color: #E2E2E6;
+            font-family: 'Inter', sans-serif;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Outfit', sans-serif;
+        }
+        h1 {
+            font-size: 36px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #7A8B99, #9E828A);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #9EA2A7;
+            font-size: 16px;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+        .iteration-card {
+            background: rgba(26, 29, 32, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .iteration-card h4 {
+            font-size: 22px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .score-badge {
+            background: rgba(125, 143, 123, 0.15);
+            color: #7D8F7B;
+            border: 1px solid #7D8F7B;
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .prompt-box {
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 4px solid #7A8B99;
+            padding: 16px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 24px;
+        }
+        .prompt-box code {
+            color: #7A8B99;
+            font-weight: 600;
+        }
+        .grid-two {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .panel {
+            background: #14171A;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .panel h5, .prompt-box h5, .critique-box h5 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #5E6266;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+        pre {
+            margin: 0;
+            background: #0E1012;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+        pre code {
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            color: #A1A2A6;
+        }
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        li {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        li:contains("PASS") || li {
+            background: rgba(125, 143, 123, 0.05);
+            color: #7D8F7B;
+            border-left: 3px solid #7D8F7B;
+        }
+        /* Small hack for styling fail items */
+        li {
+            background: rgba(181, 138, 125, 0.05);
+            color: #B58A7D;
+            border-left: 3px solid #B58A7D;
+        }
+        .critique-box {
+            background: rgba(158, 130, 138, 0.05);
+            border: 1px dashed rgba(158, 130, 138, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .critique-box p {
+            font-size: 13px;
+            color: #9E828A;
+            line-height: 1.6;
+            margin: 0;
+        }
+    </style>
+    <script>
+        // Simple DOM adjustment to color pass/fail items dynamically
+        window.addEventListener('DOMContentLoaded', () => {
+            const lis = document.querySelectorAll('li');
+            lis.forEach(li => {
+                if (li.textContent.includes("PASS")) {
+                    li.style.background = "rgba(125, 143, 123, 0.05)";
+                    li.style.color = "#7D8F7B";
+                    li.style.borderLeft = "3px solid #7D8F7B";
+                } else {
+                    li.style.background = "rgba(181, 138, 125, 0.05)";
+                    li.style.color = "#B58A7D";
+                    li.style.borderLeft = "3px solid #B58A7D";
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>自动提示词编译与演化 (TextGrad) 演练大图</h1>
+    <div class="subtitle">基于离散编译沙盒的“文本反向传播（Textual Backpropagation）” turn-by-turn 实跑记录。</div>
+    
+    
+        <div class="iteration-card">
+            <h4>Iteration 1 — Score: <span class="score-badge">30/70</span></h4>
+            <div class="prompt-box">
+                <h5>Current Prompt (当前输入提示词):</h5>
+                <code>write css for a button</code>
+            </div>
+            
+            <div class="grid-two">
+                <div class="panel">
+                    <h5>Generated CSS Output (模型生成的CSS):</h5>
+                    <pre><code class="css">Here's a comprehensive CSS button stylesheet with various button styles:
+
+## Basic Button Styles
+
+```css
+/* Base button styles */
+.btn {
+  display: inline-block;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  line-height: 1.5;
+  user-select: none;
+}
+
+/* Primary button */
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  background-color: #004085;
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+/* Secondary button */
+.btn-secondary {
+  background-color</code></pre>
+                </div>
+                <div class="panel">
+                    <h5>Compiler Feedback (沙箱编译报告):</h5>
+                    <ul><li>FAIL: Response contains markdown wrappers (```css ... ```). The prompt must enforce returning ONLY the raw CSS string without any tick marks.</li><li>FAIL: Missing Morandi color code. The button style must use a low-saturation Morandi palette hex code (e.g. #7A8B99, #7D8F7B, or #9E828A).</li><li>PASS: Contains an interactive :hover selector state (+10 points)</li><li>PASS: Contains a box-shadow styling definition (+10 points)</li><li>PASS: Contains a transition animation curve (+10 points)</li></ul>
+                </div>
+            </div>
+            
+            <div class="critique-box">
+                <h5>Text Gradient (Critique / 优化分析):</h5>
+                <p>The current prompt is too vague and does not specify the required output format or color palette. The model output included markdown wrappers and used a blue primary color instead of a Morandi palette. The prompt must explicitly instruct to return only raw CSS without markdown, use a Morandi color code, and include the required properties.</p>
+            </div>
+            
+        </div>
+        
+        <div class="iteration-card">
+            <h4>Iteration 2 — Score: <span class="score-badge">70/70</span></h4>
+            <div class="prompt-box">
+                <h5>Current Prompt (当前输入提示词):</h5>
+                <code>Write CSS for a button. Return ONLY the raw CSS code without any markdown wrappers (no ```css or ```). The button must use a low-saturation Morandi palette hex code (e.g., #7A8B99, #7D8F7B, or #9E828A) as the background color. Include the following: an interactive :hover selector state, a box-shadow styling definition, and a transition animation curve. Do not include any explanations or additional text.</code>
+            </div>
+            
+            <div class="grid-two">
+                <div class="panel">
+                    <h5>Generated CSS Output (模型生成的CSS):</h5>
+                    <pre><code class="css">button {
+  background-color: #7A8B99;
+  color: #ffffff;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+button:hover {
+  background-color: #6B7A86;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}</code></pre>
+                </div>
+                <div class="panel">
+                    <h5>Compiler Feedback (沙箱编译报告):</h5>
+                    <ul><li>PASS: Response is strictly raw CSS code without markdown wrappers (+20 points)</li><li>PASS: Contains a valid Morandi color token (Slate Blue/Moss Green/Plum Rose/Terracotta/Indigo/Antique Gold) (+20 points)</li><li>PASS: Contains an interactive :hover selector state (+10 points)</li><li>PASS: Contains a box-shadow styling definition (+10 points)</li><li>PASS: Contains a transition animation curve (+10 points)</li></ul>
+                </div>
+            </div>
+            
+        </div>
+        
+</body>
+</html>

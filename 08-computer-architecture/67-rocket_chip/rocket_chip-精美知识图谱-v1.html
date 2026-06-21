@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Rocket Chip 参数化 SoC 生成器图谱</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+            font-size: 20px;
+        }
+        #canvas-container {
+            width: 1000px;
+            height: 650px;
+            margin: 0 auto;
+            position: relative;
+            background-color: #1A202C;
+            border: 2px solid #24324F;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .node {
+            position: absolute;
+            width: 150px;
+            height: 45px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            padding: 5px;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            filter: brightness(1.2);
+        }
+        #tooltip {
+            width: 80%;
+            margin: 20px auto 0 auto;
+            padding: 15px;
+            background-color: #2D3748;
+            border-left: 5px solid #4B5F7A;
+            border-radius: 4px;
+            min-height: 80px;
+            box-sizing: border-box;
+        }
+        .colorM1 { background-color: #4B5F7A; }
+        .colorM2 { background-color: #6B8272; }
+        .colorM3 { background-color: #9C6666; }
+        .colorM4 { background-color: #7A7A7A; }
+        .colorM5 { background-color: #9A825A; }
+    </style>
+</head>
+<body>
+    <h1>Rocket Chip 参数化 SoC 生成器图谱</h1>
+    <div id="canvas-container"></div>
+    <div id="tooltip">
+        <h3>点击卡片查看 Rocket Chip 芯片生成器组件与总线机制</h3>
+    </div>
+
+    <script>
+        const nodes = [
+            { id: 1, group: 'M1', x: 50, y: 50, label: 'Card 1: Chisel HCL', zh: '卡片 1: Chisel 硬件描述语言', desc: 'Object-oriented hardware generation language compiling to FIRRTL AST.' },
+            { id: 2, group: 'M1', x: 50, y: 130, label: 'Card 2: Cake Config', zh: '卡片 2: 蛋糕模式与配置参数化', desc: 'Mixes Traits configs to parameterized subsystems dynamically.' },
+            { id: 3, group: 'M1', x: 50, y: 210, label: 'Card 3: Rocket Core', zh: '卡片 3: Rocket Core 五级流水', desc: 'Classic single-issue in-order execution with forwarding and stalls.' },
+            { id: 4, group: 'M1', x: 50, y: 290, label: 'Card 4: FPU & MMU', zh: '卡片 4: FPU 与 MMU 虚拟转换', desc: 'Hardware Page Table Walker and dual-precision floating-point logic.' },
+            { id: 5, group: 'M1', x: 50, y: 370, label: 'Card 5: Instruction Cache', zh: '卡片 5: 指令 Cache 与 ITim', desc: 'Single-port RAM, non-blocking fetch, tightly-coupled memories.' },
+            { id: 6, group: 'M1', x: 50, y: 450, label: 'Card 6: Data Cache MSHR', zh: '卡片 6: 数据 Cache 与 MSHR', desc: 'Non-blocking HellaCache handling multiple misses via MSHRs.' },
+            
+            { id: 7, group: 'M2', x: 230, y: 50, label: 'Card 7: TileLink Channels', zh: '卡片 7: TileLink 五通道模型', desc: 'Decoupled physical channels A-E supporting MSI transactions.' },
+            { id: 8, group: 'M2', x: 230, y: 130, label: 'Card 8: MSI Coherency', zh: '卡片 8: 缓存一致性 MSI 协议', desc: 'Coordinates probe and release operations over L1/L2 domains.' },
+            { id: 9, group: 'M2', x: 230, y: 210, label: 'Card 9: SystemBus Interconnect', zh: '卡片 9: 系统总线（SystemBus）', desc: 'Links cores, L2 cash, peripherals, and DMA adapters.' },
+            { id: 10, group: 'M2', x: 230, y: 290, label: 'Card 10: Bus Adapters', zh: '卡片 10: 总线桥接与适配器', desc: 'Translates signals to AXI4/APB formats and asynchronous boundary.' },
+            { id: 11, group: 'M2', x: 230, y: 370, label: 'Card 11: Crossbar Arbitration', zh: '卡片 11: 交叉开关与总线仲裁', desc: 'Performs priority arbitration to prevent cyclic deadlocks.' },
+            { id: 12, group: 'M2', x: 230, y: 450, label: 'Card 12: MMIO Controllers', zh: '卡片 12: MMIO 自动映射', desc: 'Resolves physical peripheral registry addresses automatically.' },
+
+            { id: 13, group: 'M3', x: 410, y: 50, label: 'Card 13: Debug JTAG Module', zh: '卡片 13: 硬件调试与 JTAG', desc: 'Implements RISC-V Debug spec 0.13 to halt and step cores.' },
+            { id: 14, group: 'M3', x: 410, y: 130, label: 'Card 14: BootROM Reset', zh: '卡片 14: BootROM 与 Reset 引导', desc: 'PC jumps to reset vectors, loads devicetrees, and invokes SBI.' },
+            { id: 15, group: 'M3', x: 410, y: 210, label: 'Card 15: Interrupt PLIC', zh: '卡片 15: PLIC 与 CLINT 中断', desc: 'Coordinates hardware interrupts priority and core time ticks.' },
+            { id: 16, group: 'M3', x: 410, y: 290, label: 'Card 16: FIRRTL Compiler', zh: '卡片 16: FIRRTL 硬件编译器', desc: 'Transforms high-level Chisel IR down to synthesizable Verilog.' },
+            { id: 17, group: 'M3', x: 410, y: 370, label: 'Card 17: Verilog Simulation', zh: '卡片 17: Verilog 与 RTL 仿真', desc: 'Uses Verilator C++ simulation model and loadmem interfaces.' },
+            { id: 18, group: 'M3', x: 410, y: 450, label: 'Card 18: Clock Gating Power', zh: '卡片 18: 时钟域与低功耗控制', desc: 'Enforces clock dividers and gates to minimize dynamic power.' },
+            { id: 19, group: 'M3', x: 410, y: 530, label: 'Card 19: Physical SRAM Macros', zh: '卡片 19: SRAM 物理宏映射', desc: 'Decouples registers code and maps to process technology memory blocks.' },
+
+            { id: 20, group: 'M4', x: 590, y: 50, label: 'Card 20: RoCC Interface', zh: '卡片 20: RoCC 协处理器接口', desc: 'Enables custom accelerators integration using custom opcodes.' },
+            { id: 21, group: 'M4', x: 590, y: 160, label: 'Card 21: Performance HPM', zh: '卡片 21: 硬件性能监控 HPM', desc: 'Monitors cycles, instructions, and cache hit metrics.' },
+            { id: 22, group: 'M4', x: 590, y: 270, label: 'Card 22: PMP Protections', zh: '卡片 22: PMP 物理内存保护', desc: 'Validates address registers privileges during execution MEM stage.' },
+            { id: 23, group: 'M4', x: 590, y: 380, label: 'Card 23: Coherency Hub', zh: '卡片 23: 多核一致性广播 Hub', desc: 'Coordinates L1 cache synchronization when L2 directory is absent.' },
+            { id: 24, group: 'M4', x: 590, y: 490, label: 'Card 24: DMA Agent', zh: '卡片 24: DMA 直接内存存取', desc: 'Enables front bus DMA transactions with snooping logic.' },
+
+            { id: 25, group: 'M5', x: 770, y: 90, label: 'Card 25: Main Entry.scala', zh: '卡片 25: Main.scala 编译入口', desc: 'Driver orchestrating parameters reading and Verilog codes emission.' },
+            { id: 26, group: 'M5', x: 770, y: 210, label: 'Card 26: Cache Config', zh: '卡片 26: Cache 容量与相联配置', desc: 'Maps specification variables to actual decoders circuits.' },
+            { id: 27, group: 'M5', x: 770, y: 330, label: 'Card 27: C++ Sim Harness', zh: '卡片 27: Harness C++ 仿真绑定', desc: 'Coordinates wave dumping and memory bridge loops.' },
+            { id: 28, group: 'M5', x: 770, y: 450, label: 'Card 28: Multitile Subsystems', zh: '卡片 28: 异构多核 Tile 配置', desc: 'Spins up asymmetric tiles (e.g. big.LITTLE) on one TileLink.' }
+        ];
+
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+
+        nodes.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `node color${n.group}`;
+            div.style.left = `${n.x}px`;
+            div.style.top = `${n.y}px`;
+            div.innerText = n.zh;
+            div.onclick = () => {
+                tooltip.innerHTML = `
+                    <h3>\${n.zh}</h3>
+                    <p><strong>Module:</strong> \${n.group} | <strong>Details:</strong> \${n.desc}</p>
+                `;
+            };
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Cilium eBPF XDP/tc-bpf & sockops Redirect Simulator</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        select, input, .btn {
+            background-color: #151D30;
+            color: white;
+            border: 1px solid #24324F;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .btn {
+            background-color: #9C6666;
+            font-weight: bold;
+            border: none;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 280px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .flow-step {
+            background-color: #1A202C;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px dashed #4B5F7A;
+            font-size: 11px;
+        }
+        .maglev-table-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 10px;
+        }
+        .maglev-slot {
+            width: 25px;
+            height: 20px;
+            font-size: 9px;
+            background-color: #24324F;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            font-weight: bold;
+        }
+        .maglev-slot.active {
+            background-color: #9C6666;
+            border: 1px solid #E2E8F0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cilium eBPF XDP/tc-bpf & sockops Redirect Simulator</h1>
+        <div class="grid">
+            <!-- Sandbox 1: eBPF Datapath -->
+            <div class="card">
+                <h2>Cilium eBPF XDP/tc-bpf Datapath Routing</h2>
+                <div class="control-group">
+                    <div class="row">
+                        <span>Src IP: </span>
+                        <input type="text" id="pkt-src" value="10.244.1.5" style="width:90px;">
+                        <span>Dst IP: </span>
+                        <input type="text" id="pkt-dst" value="10.244.2.100" style="width:90px;">
+                    </div>
+                    <div class="row">
+                        <select id="pkt-type">
+                            <option value="TCP_SYN">TCP SYN (K8s Service VIP: 10.96.0.1)</option>
+                            <option value="UDP_DNS">UDP DNS Query (10.96.0.10)</option>
+                            <option value="SPAM">Blacklisted Spam Flow (DDoS Attack)</option>
+                        </select>
+                        <button class="btn" onclick="sendPacket()">Send Network Packet</button>
+                    </div>
+                </div>
+                <div class="visualizer" id="datapath-visualizer">
+                    <div class="flow-step" id="xdp-step">XDP Driver Stage: (Waiting...)</div>
+                    <div class="flow-step" id="tc-step">tc Ingress Hook Stage: (Waiting...)</div>
+                    <div class="flow-step" id="ct-step">Conntrack BPF Map Mapping: (Waiting...)</div>
+                    <div class="flow-step" id="nat-step" style="color:#9A825A; font-weight:bold;">NAT & L3 Routing Result: (Waiting...)</div>
+                </div>
+                <div class="console" id="datapath-console">
+                    [Kernel Log] Ready. Configure inputs and click Send Network Packet to simulate packet tracing.
+                </div>
+            </div>
+
+            <!-- Sandbox 2: sockops & Maglev Hashing -->
+            <div class="card">
+                <h2>Cilium sockops & Maglev Consistent Hashing</h2>
+                <div class="control-group">
+                    <div class="row">
+                        <button class="btn" onclick="triggerSockops()">Simulate Local Connection</button>
+                    </div>
+                    <div class="row" style="margin-top:10px; border-top:1px solid #24324F; padding-top:10px;">
+                        <span>Src IP/Port:</span>
+                        <input type="text" id="flow-hash-input" value="10.244.1.5:49822" style="width:120px;">
+                        <button class="btn" style="background-color:#755B77;" onclick="hashFlow()">Hash IP Flow to Maglev Table</button>
+                    </div>
+                </div>
+                <div class="visualizer">
+                    <div class="flow-step" id="sockmap-step">SOCKMAP Registration: (Waiting...)</div>
+                    <div class="flow-step" id="bypass-step">TCP protocol stack bypass logic: (Waiting...)</div>
+                    <div class="flow-step">
+                        <strong>Maglev Lookup Table (Lookup Slots):</strong>
+                        <div class="maglev-table-box" id="maglev-table-box">
+                            <!-- Rendered by JS -->
+                        </div>
+                    </div>
+                </div>
+                <div class="console" id="sockops-console">
+                    [System Observer] Click Sockops Redirect to simulate TCP short-circuiting, or Hash IP Flow to see Maglev consistency.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sandbox 1: eBPF Datapath
+        function sendPacket() {
+            const src = document.getElementById('pkt-src').value;
+            const dst = document.getElementById('pkt-dst').value;
+            const type = document.getElementById('pkt-type').value;
+            const isEn = true;
+            const consoleBox = document.getElementById('datapath-console');
+
+            if (type === 'SPAM') {
+                document.getElementById('xdp-step').innerHTML = "<strong>XDP Stage:</strong> Action=XDP_DROP (DDoS filter hit)";
+                document.getElementById('tc-step').innerHTML = "<strong>tc Ingress:</strong> Bypassed (Dropped by XDP)";
+                document.getElementById('ct-step').innerHTML = "<strong>Conntrack Map:</strong> No Entry created";
+                document.getElementById('nat-step').innerHTML = "<strong>Routing Result:</strong> PACKET DISCARDED";
+                
+                consoleBox.innerHTML = isEn ?
+                    `[XDP] Dropped packet from ${src} at driver level. No sk_buff memory allocated.` :
+                    `[XDP 拦截] 检测到恶意流量源 ${src}，在网卡驱动 DMA 环形缓冲区触发 XDP_DROP 丢弃，物理内存零开销。`;
+            } else if (type === 'TCP_SYN') {
+                // Service VIP load balancing
+                document.getElementById('xdp-step').innerHTML = "<strong>XDP Stage:</strong> Action=XDP_PASS";
+                document.getElementById('tc-step').innerHTML = "<strong>tc Ingress:</strong> L3/L4 parsed, VIP (10.96.0.1) detected";
+                document.getElementById('ct-step').innerHTML = "<strong>Conntrack Map:</strong> Created (10.244.1.5:49811 -> 10.96.0.1:80)";
+                document.getElementById('nat-step').innerHTML = `<strong>Routing:</strong> DNAT to Pod Backend 10.244.2.100. Redirect to Interface index 5`;
+
+                consoleBox.innerHTML = isEn ?
+                    `[tc-bpf] Intercepted Service VIP. Rewrote destination IP to 10.244.2.100. Recalculated TCP checksum. Redirected to lxc_net.` :
+                    `[tc-bpf 路由] 拦截 K8s Service 虚拟 IP (10.96.0.1)。查找 Maglev 表分配后端，执行 DNAT 重写目的 IP 为 Pod B (10.244.2.100)，重算 TCP 校验和并通过 bpf_redirect 直接转发。`;
+            } else {
+                // DNS UDP Query
+                document.getElementById('xdp-step').innerHTML = "<strong>XDP Stage:</strong> Action=XDP_PASS";
+                document.getElementById('tc-step').innerHTML = "<strong>tc Ingress:</strong> UDP DNS Query (10.96.0.10) parsed";
+                document.getElementById('ct-step').innerHTML = "<strong>Conntrack Map:</strong> Created (10.244.1.5:53210 -> 10.96.0.10:53)";
+                document.getElementById('nat-step').innerHTML = `<strong>Routing:</strong> DNAT to CoreDNS Pod 10.244.1.2. Direct redirection.`;
+
+                consoleBox.innerHTML = isEn ?
+                    `[tc-bpf] UDP Session registered in CT Map. DNAT payload mapped to CoreDNS container.` :
+                    `[tc-bpf 路由] UDP 域名解析流就绪，Conntrack 注册临时会话，DNAT 将包头修改为本地 CoreDNS Pod (10.244.1.2) 并放行。`;
+            }
+        }
+
+        // Sandbox 2: sockops & Maglev
+        // Initialize Maglev Lookup Table (31 slots)
+        const maglevTableSize = 31;
+        let maglevTable = [];
+        const backends = ["Pod-A", "Pod-B", "Pod-C"];
+        for(let i=0; i<maglevTableSize; i++) {
+            maglevTable.push(backends[i % backends.length]);
+        }
+
+        function drawMaglev(highlightIndex = -1) {
+            const box = document.getElementById('maglev-table-box');
+            box.innerHTML = '';
+            maglevTable.forEach((b, idx) => {
+                const activeClass = idx === highlightIndex ? 'active' : '';
+                box.innerHTML += `<div class="maglev-slot \${activeClass}" title="Slot \${idx}: \${b}">\${b[4]}\${idx}</div>`;
+            });
+        }
+
+        function triggerSockops() {
+            const isEn = true;
+            const consoleBox = document.getElementById('sockops-console');
+            
+            document.getElementById('sockmap-step').innerHTML = "<strong>SOCKMAP:</strong> Registered Socket context for Pod-A (10.244.1.5) and Pod-B (10.244.1.6)";
+            document.getElementById('bypass-step').innerHTML = "<strong>Bypass:</strong> bpf_msg_redirect_hash bypassed TCP/IP headers packaging";
+
+            consoleBox.innerHTML = isEn ?
+                `[sockops] Connection established locally.\n[sockops] Sockmap binds TCP sockets.\n[sk_msg] Bypassed full TCP protocol stack. Bytes copied directly to receiver buffer queue.` :
+                `[sockops 强短路] 检测到同物理机 Pod A (10.244.1.5) 与 Pod B (10.244.1.6) 建立 TCP 握手。\n[sockops 强短路] 拦截套接字描述符写入 SOCKMAP。\n[sk_msg 重定向] 拦截 Pod A sendmsg，直接绕过环回网卡和 TCP 协议栈，数据直接拷贝进 Pod B 套接字接收缓冲区，大幅消除锁竞争。`;
+        }
+
+        function hashFlow() {
+            const isEn = true;
+            const flowStr = document.getElementById('flow-hash-input').value;
+            const consoleBox = document.getElementById('sockops-console');
+
+            // Generate simple hash from flow string
+            let hash = 0;
+            for (let i = 0; i < flowStr.length; i++) {
+                hash = (hash * 31 + flowStr.charCodeAt(i)) % maglevTableSize;
+            }
+
+            const assignedBackend = maglevTable[hash];
+            drawMaglev(hash);
+
+            consoleBox.innerHTML = isEn ?
+                `[Maglev] Flow ${flowStr} hashed to value ${hash}.\n -> Routed to backend: ${assignedBackend}.` :
+                `[Maglev 路由] 流量特征 ${flowStr} 计算哈希值为 ${hash}。\n -> 查找 Maglev Map 环形表槽位，分配至后端 Pod: ${assignedBackend}。即使缩容其他后端，该哈希索引依然高度保持。`;
+        }
+
+        // Init
+        drawMaglev();
+    </script>
+</body>
+</html>

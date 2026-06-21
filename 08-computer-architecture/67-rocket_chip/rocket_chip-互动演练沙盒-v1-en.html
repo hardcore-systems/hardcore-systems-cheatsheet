@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Rocket Chip Pipeline & TileLink Coherency Sandbox</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        select, .btn {
+            background-color: #151D30;
+            color: white;
+            border: 1px solid #24324F;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn {
+            background-color: #9C6666;
+            font-weight: bold;
+            border: none;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 280px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .step-row {
+            background-color: #1A202C;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px dashed #4B5F7A;
+            font-size: 11px;
+        }
+        .pipe-layout {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .pipe-stage {
+            flex: 1;
+            background-color: #1A202C;
+            border: 1px solid #4B5F7A;
+            border-radius: 4px;
+            padding: 8px 4px;
+            text-align: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .stage-title {
+            color: #9A825A;
+            margin-bottom: 5px;
+            font-size: 9px;
+            border-bottom: 1px solid #24324F;
+        }
+        .stage-inst {
+            color: #E2E8F0;
+            min-height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #151D30;
+            border-radius: 3px;
+        }
+        .tile-node-layout {
+            display: flex;
+            gap: 20px;
+            justify-content: space-around;
+            margin-top: 10px;
+        }
+        .tile-node {
+            flex: 1;
+            background-color: #1A202C;
+            border: 1px solid #755B77;
+            border-radius: 4px;
+            padding: 8px;
+            text-align: center;
+            font-size: 11px;
+        }
+        .tile-title {
+            color: #755B77;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .tile-state {
+            background-color: #151D30;
+            padding: 5px;
+            border-radius: 2px;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rocket Chip Pipeline & TileLink Coherency Sandbox</h1>
+        <div class="grid">
+            <!-- Sandbox 1: Core Pipeline -->
+            <div class="card">
+                <h2>Rocket Core 5-Stage Pipeline Simulation</h2>
+                <div class="control-group">
+                    <button class="btn" onclick="stepPipeline()">Execute Next Instruction Cycle</button>
+                </div>
+                <div class="visualizer" id="pipe-visualizer">
+                    <div class="pipe-layout">
+                        <div class="pipe-stage"><div class="stage-title">IF (Fetch)</div><div class="stage-inst" id="inst-if">addi</div></div>
+                        <div class="pipe-stage"><div class="stage-title">ID (Decode)</div><div class="stage-inst" id="inst-id">lw</div></div>
+                        <div class="pipe-stage"><div class="stage-title">EX (Execute)</div><div class="stage-inst" id="inst-ex">add</div></div>
+                        <div class="pipe-stage"><div class="stage-title">MEM (Memory)</div><div class="stage-inst" id="inst-mem">nop</div></div>
+                        <div class="pipe-stage"><div class="stage-title">WB (Writeback)</div><div class="stage-inst" id="inst-wb">sub</div></div>
+                    </div>
+                    <div class="step-row" id="bypass-box" style="margin-top:15px;">Data Bypassing: Active (EX -> ID enabled)</div>
+                    <div class="step-row" id="hazard-box">Hazard Status: No Hazards</div>
+                </div>
+                <div class="console" id="pipe-console">
+                    [Pipeline] Clock initialized. Click step button to drive instruction sequence.
+                </div>
+            </div>
+
+            <!-- Sandbox 2: TileLink MSI -->
+            <div class="card">
+                <h2>TileLink Cache Coherency (MSI) Simulator</h2>
+                <div class="control-group">
+                    <select id="tile-select">
+                        <option value="tile0">Tile 0 (Core 0)</option>
+                        <option value="tile1">Tile 1 (Core 1)</option>
+                    </select>
+                    <button class="btn" style="background-color:#755B77;" onclick="writeMemory()">Write to Shared Memory address</button>
+                </div>
+                <div class="visualizer">
+                    <div class="tile-node-layout">
+                        <div class="tile-node">
+                            <div class="tile-title">Tile 0 (L1 D$)</div>
+                            <div class="tile-state" id="state-tile0">Cache State: Shared (S)</div>
+                        </div>
+                        <div class="tile-node">
+                            <div class="tile-title">Tile 1 (L1 D$)</div>
+                            <div class="tile-state" id="state-tile1">Cache State: Shared (S)</div>
+                        </div>
+                    </div>
+                    <div class="step-row" id="bus-channels-box" style="margin-top:15px;">TileLink active signals: A-E idle</div>
+                </div>
+                <div class="console" id="bus-console">
+                    [Bus Monitor] Ready. Write to a cache line to witness MSI state broadcast.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sandbox 1: Pipeline
+        let cycle = 0;
+        const pipelineStates = [
+            { if: 'add', id: 'addi', ex: 'lw', mem: 'nop', wb: 'sub', hazard: 'No Hazards', log: 'Normal cycles execution. Forwarding paths feed registers.' },
+            { if: 'mul', id: 'add', ex: 'addi', mem: 'lw', wb: 'nop', hazard: 'No Hazards', log: 'Load instruction moves to MEM. Dest registers resolved.' },
+            { if: 'sub', id: 'mul', ex: 'add', mem: 'addi', wb: 'lw', hazard: 'LSU Stall (Load-Use Hazard)', log: 'Data Dependency detected! Instruction "mul" relies on "lw" destination. Stalling ID/IF stages. Inserting nop.' },
+            { if: 'sub', id: 'mul', ex: 'nop', mem: 'add', wb: 'addi', hazard: 'Hazard Cleared (EX Forward)', log: 'Load data returned from memory. Forwarding applied. "mul" proceeds to EX stage.' }
+        ];
+
+        function stepPipeline() {
+            const state = pipelineStates[cycle % pipelineStates.length];
+            const isEn = true;
+            cycle++;
+
+            document.getElementById('inst-if').innerText = state.if;
+            document.getElementById('inst-id').innerText = state.id;
+            document.getElementById('inst-ex').innerText = state.ex;
+            document.getElementById('inst-mem').innerText = state.mem;
+            document.getElementById('inst-wb').innerText = state.wb;
+
+            document.getElementById('hazard-box').innerHTML = `<strong>Hazard Status:</strong> ${state.hazard}`;
+            
+            const consoleBox = document.getElementById('pipe-console');
+            if (isEn) {
+                consoleBox.innerHTML = `[Clock Cycle ${cycle}]\n -> ${state.log}`;
+            } else {
+                // Translate log
+                let logZh = state.log;
+                if (state.hazard.includes('Stall')) {
+                    logZh = "检测到数据冲突 (Load-Use Hazard)！指令 mul 依赖于 lw 目的寄存器。挂起 IF/ID 阶段，插入空操作 nop。";
+                } else if (state.hazard.includes('Cleared')) {
+                    logZh = "从 D$ 读回数据成功。通过 EX-to-ID 旁路（Forwarding）解锁，mul 指令重新恢复运行进入 EX 阶段。";
+                } else {
+                    logZh = "常规指令时钟周期推进。旁路数据正常合并。";
+                }
+                consoleBox.innerHTML = `[时钟周期 ${cycle}]\n -> ${logZh}`;
+            }
+        }
+
+        // Sandbox 2: TileLink MSI
+        function writeMemory() {
+            const activeTile = document.getElementById('tile-select').value;
+            const isEn = true;
+            const otherTile = activeTile === 'tile0' ? 'tile1' : 'tile0';
+
+            // MSI Change
+            document.getElementById('state-' + activeTile).innerText = "Cache State: Modified (M)";
+            document.getElementById('state-' + otherTile).innerText = "Cache State: Invalid (I)";
+
+            const channelsBox = document.getElementById('bus-channels-box');
+            channelsBox.innerHTML = `<strong>TileLink Signals:</strong><br>` +
+                `1. A Channel (Request): [${activeTile}] -> AcquirePerm (Get Exclusive)<br>` +
+                `2. B Channel (Probe): L2 Controller -> ProbePerm (Invalidate) -> [${otherTile}]<br>` +
+                `3. C Channel (Release): [${otherTile}] -> ProbeAck (Invalidated)<br>` +
+                `4. D Channel (Response): L2 Controller -> Grant (Exclusive Granted) -> [${activeTile}]<br>` +
+                `5. E Channel (GrantAck): [${activeTile}] -> GrantAck`;
+
+            const consoleBox = document.getElementById('bus-console');
+            consoleBox.innerHTML = isEn ?
+                `[TileLink] Coherency transaction resolved.\n -> Core [${activeTile}] acquired exclusive write permission.\n -> Core [${otherTile}] transitioned from Shared (S) to Invalid (I).` :
+                `[TileLink 总线] 缓存一致性事务解析完毕。\n -> 核心 [${activeTile}] 成功获取 Exclusive（独占）修改特权。\n -> 核心 [${otherTile}] 原 Shared 状态被强行 Probe 降级为 Invalid（失效）。`;
+        }
+    </script>
+</body>
+</html>

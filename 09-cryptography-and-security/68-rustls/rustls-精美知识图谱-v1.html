@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Rustls 内存安全密码协议图谱</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+            font-size: 20px;
+        }
+        #canvas-container {
+            width: 1000px;
+            height: 750px;
+            margin: 0 auto;
+            position: relative;
+            background-color: #1A202C;
+            border: 2px solid #24324F;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .node {
+            position: absolute;
+            width: 160px;
+            height: 48px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            padding: 5px;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            filter: brightness(1.2);
+        }
+        #detail-panel {
+            width: 1000px;
+            margin: 20px auto 0 auto;
+            background-color: rgba(26, 32, 44, 0.85);
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+        }
+        #detail-title {
+            font-size: 16px;
+            font-weight: bold;
+            border-bottom: 2px solid #4B5F7A;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        #detail-body {
+            font-size: 13px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Rustls 内存安全密码协议图谱</h1>
+    <div id="canvas-container">
+        <div class="node" style="left: 100px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(1)">内存安全设计架构</div>
+<div class="node" style="left: 240px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(2)">1-RTT 握手与状态机</div>
+<div class="node" style="left: 380px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(3)">Hello 结构与密钥共享协商</div>
+<div class="node" style="left: 520px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(4)">密码学引擎 CryptoProvider 抽象</div>
+<div class="node" style="left: 660px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(5)">HKDF 密钥派生体系</div>
+<div class="node" style="left: 800px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(6)">会话恢复与预共享密钥 PSK</div>
+<div class="node" style="left: 100px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(7)">Session Tickets 无状态恢复</div>
+<div class="node" style="left: 240px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(8)">记录协议与帧格式封装</div>
+<div class="node" style="left: 380px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(9)">AEAD 关联数据对称加密</div>
+<div class="node" style="left: 520px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(10)">Transcript Hash 握手防篡改</div>
+<div class="node" style="left: 660px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(11)">webpki 证书信任路径校验</div>
+<div class="node" style="left: 800px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(12)">客户端证书与 mTLS 双向认证</div>
+<div class="node" style="left: 100px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(13)">签名方案协商 SignatureScheme</div>
+<div class="node" style="left: 240px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(14)">ECDHE/DHE 密钥交换算法执行</div>
+<div class="node" style="left: 380px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(15)">0-RTT 早期加密数据传输</div>
+<div class="node" style="left: 520px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(16)">EncryptedExtensions 握手加密协商</div>
+<div class="node" style="left: 660px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(17)">KeyUpdate 动态对称密钥更新</div>
+<div class="node" style="left: 800px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(18)">警报协议与 fatal 异常控制</div>
+<div class="node" style="left: 100px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(19)">拒绝心跳漏洞设计</div>
+<div class="node" style="left: 240px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(20)">中间盒兼容模式 ChangeCipherSpec</div>
+<div class="node" style="left: 380px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(21)">Finished 校验码 HMAC 终检</div>
+<div class="node" style="left: 520px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(22)">常数时间比对防止时序侧道攻击</div>
+<div class="node" style="left: 660px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(23)">Builder 不可变配置共享模型</div>
+<div class="node" style="left: 800px; top: 540px; background-color: #9A825A;" onclick="showCardDetail(24)">异步 tokio-rustls 封装集成</div>
+<div class="node" style="left: 150px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(25)">自定义 Verifier 证书指纹锁定</div>
+<div class="node" style="left: 320px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(26)">Fuzzing 编译检查与漏洞审计</div>
+<div class="node" style="left: 490px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(27)">Criterion 性能基准测试与零拷贝</div>
+<div class="node" style="left: 660px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(28)">后量子密码 PQC Kyber 密钥协商</div>
+
+    </div>
+    <div id="detail-panel">
+        <div id="detail-title">点击上面的卡片节点，获取硬核技术细节参数</div>
+        <div id="detail-body"></div>
+    </div>
+
+    <script>
+        const cards = [
+            { id: 1, title: 'Memory Safety', zh: '内存安全设计架构', color: '#4B5F7A' },
+        { id: 2, title: 'TLS 1.3 Handshake', zh: '1-RTT 握手与状态机', color: '#4B5F7A' },
+        { id: 3, title: 'ClientHello/ServerHello', zh: 'Hello 结构与密钥共享协商', color: '#4B5F7A' },
+        { id: 4, title: 'CryptoProvider', zh: '密码学引擎 CryptoProvider 抽象', color: '#4B5F7A' },
+        { id: 5, title: 'HKDF Key Derivation', zh: 'HKDF 密钥派生体系', color: '#4B5F7A' },
+        { id: 6, title: 'Session Resumption & PSK', zh: '会话恢复与预共享密钥 PSK', color: '#4B5F7A' },
+        { id: 7, title: 'Session Tickets', zh: 'Session Tickets 无状态恢复', color: '#6B8272' },
+        { id: 8, title: 'Record Layer', zh: '记录协议与帧格式封装', color: '#6B8272' },
+        { id: 9, title: 'AEAD Encryption', zh: 'AEAD 关联数据对称加密', color: '#6B8272' },
+        { id: 10, title: 'Transcript Hash', zh: 'Transcript Hash 握手防篡改', color: '#6B8272' },
+        { id: 11, title: 'Webpki Validation', zh: 'webpki 证书信任路径校验', color: '#6B8272' },
+        { id: 12, title: 'Client Auth (mTLS)', zh: '客户端证书与 mTLS 双向认证', color: '#6B8272' },
+        { id: 13, title: 'Signature Schemes', zh: '签名方案协商 SignatureScheme', color: '#9C6666' },
+        { id: 14, title: 'Key Exchange DHE', zh: 'ECDHE/DHE 密钥交换算法执行', color: '#9C6666' },
+        { id: 15, title: 'Zero-RTT (0-RTT)', zh: '0-RTT 早期加密数据传输', color: '#9C6666' },
+        { id: 16, title: 'Encrypted Extensions', zh: 'EncryptedExtensions 握手加密协商', color: '#9C6666' },
+        { id: 17, title: 'KeyUpdate Rotation', zh: 'KeyUpdate 动态对称密钥更新', color: '#9C6666' },
+        { id: 18, title: 'Alert Protocol', zh: '警报协议与 fatal 异常控制', color: '#9C6666' },
+        { id: 19, title: 'Heartbleed Prevention', zh: '拒绝心跳漏洞设计', color: '#7A7A7A' },
+        { id: 20, title: 'Middlebox Compatibility', zh: '中间盒兼容模式 ChangeCipherSpec', color: '#7A7A7A' },
+        { id: 21, title: 'Finished Msg Check', zh: 'Finished 校验码 HMAC 终检', color: '#7A7A7A' },
+        { id: 22, title: 'Constant-Time Defenses', zh: '常数时间比对防止时序侧道攻击', color: '#7A7A7A' },
+        { id: 23, title: 'Configuration Builder', zh: 'Builder 不可变配置共享模型', color: '#7A7A7A' },
+        { id: 24, title: 'Async Tokio-rustls', zh: '异步 tokio-rustls 封装集成', color: '#9A825A' },
+        { id: 25, title: 'Certificate Pinning', zh: '自定义 Verifier 证书指纹锁定', color: '#9A825A' },
+        { id: 26, title: 'Fuzzing & Audits', zh: 'Fuzzing 编译检查与漏洞审计', color: '#9A825A' },
+        { id: 27, title: 'Performance Tuning', zh: 'Criterion 性能基准测试与零拷贝', color: '#9A825A' },
+        { id: 28, title: 'Post-Quantum Cryptography', zh: '后量子密码 PQC Kyber 密钥协商', color: '#9A825A' }
+        ];
+
+        const detailsZh = {
+            1: "<strong>内存安全架构:</strong> 完全摒弃裸指针和危险的内存算术，底层依托 Rust 的安全所有权（Ownership）机制。抛弃了 SSLv3、TLS 1.0/1.1 以及 3DES 等危险组件，仅实现现代且强安全的 TLS 1.2 / 1.3，使代码攻击面相比 OpenSSL 缩减了两个数量级。",
+            2: "<strong>1-RTT 状态机:</strong> 将复杂的握手机制建模为 Rust 代数数据类型（Enum），使不同的预期报文直接对应强类型状态。状态转换是由所有权（Ownership）流转强力消费的，杜绝了由于握手流程错乱或遗漏步骤所产生的逻辑旁路漏洞。",
+            3: "<strong>ClientHello/ServerHello:</strong> 握手的第一阶段，ClientHello 明示支持的密码套件（CipherSuites）和 KeyShare 密钥共享，服务端通过 ServerHello 响应所选配的方案，直接在首个 RTT 内完成密钥素材协商。",
+            4: "<strong>CryptoProvider API:</strong> 抽象底层数学原语，定义了 CryptoProvider 适配接口。通过该接口，上层 TLS 协议核心能够以可插拔形式加载 ring 库、AWS-LC 后端或硬件加速引擎，在保证类型安全的同时实现底层计算加速。",
+            5: "<strong>HKDF 密钥派生:</strong> 基于 HMAC-SHA256/384 的 Extract-and-Expand（解构-扩展）算法。由共享密钥计算出 Handshake Secret、Application Secret 并利用 Transcript Hash 和 Label 计算 Finished 验证消息及会话会话票据加密钥。",
+            6: "<strong>会话恢复与 PSK:</strong> 在先前连接关闭前，服务端分发一个 PSK（预共享密钥）。下次连接时，客户端在 ClientHello 中注入该 PSK。如果匹配成功，双方可以直接复用对称密钥，而无需重新验证证书和执行复杂的非对称协商。",
+            7: "<strong>Session Tickets:</strong> 服务端对会话状态进行对称加密（使用服务端自持密钥），将密文作为 Session Ticket（会话票据）下发给客户端存储。服务端自身实现完全无状态化，极大缓解了大型分布式集群的负载同步压力。",
+            8: "<strong>记录协议帧包装:</strong> 所有应用数据被包装为 TLS Record 分帧。头部 5 字节（1字节类型、2字节TLS版本、2字节长度），后跟加密载荷。末尾填充零字节来规避流量特征分析（Traffic Analysis）。",
+            9: "<strong>AEAD 对称加密:</strong> 强制使用关联数据认证加密（AEAD），彻底弃用 OpenSSL 常见的 Mac-Then-Encrypt 脆弱机制。Rustls 只使用 AES-GCM 或 ChaCha20-Poly1305，利用硬件指令集单时钟完成防篡改对称加解密。",
+            10: "<strong>Transcript Hash 防篡改:</strong> 握手开启后，客户端和服务端将所有发送及接收的字节流输入一个单向 Hash 管道。最终派生 Finished 校验消息。中间人若有任何细微降级篡改，最终的哈希验证都会不匹配导致握手致命中断。",
+            11: "<strong>webpki 证书链校验:</strong> 将 X.509 证书的 DER 解析与信任树构建完全委托给独立的 `rustls-webpki` 库。基于纯 Safe Rust 编写，彻底规避了 OpenSSL 在证书解析上的大量缓冲区溢出及内存溢出历史漏洞。",
+            12: "<strong>Client Auth & mTLS:</strong> 双向身份校验机制。服务端发出 CertificateRequest，客户端相应回复自己的 Certificate 并对当前握手哈希签署 CertificateVerify 数字签名，最后发送 Finished 完成双向闭环强认证。",
+            13: "<strong>签名方案协商:</strong> 精准规范 SignatureScheme 列表（如 RSA-PSS、ECDSA-P256-SHA256、Ed25519）。不允许低强度签名（如 MD5 / SHA-1）参与，防止遭遇散列碰撞攻击或数字签名伪造漏洞。",
+            14: "<strong>ECDHE/DHE 执行:</strong> 基于椭圆曲线 X25519 或 NIST P-256 的临时 Diffie-Hellman（ECDHE）密钥交换。由于每次连接使用独占的临时密钥对，即便未来服务端的长期证书私钥泄露，历史流量也无法被解密（前向安全性）。",
+            15: "<strong>0-RTT 早期数据:</strong> 允许客户端在 ClientHello 中直接携带第一批加密数据发往服务端，延迟降为零。但由于没有即时非对称防伪校验，易遭受重放攻击，必须部署 anti-replay filter 防重放过滤器，并局限于幂等操作。",
+            16: "<strong>加密扩展传输:</strong> ServerHello 响应完成后，服务端立即派生 Handshake Secret，随后的 EncryptedExtensions 被加密传输。这包含 ALPN 协议、SNI 响应等不包含密钥协商的字段，规避明文特征泄露。",
+            17: "<strong>KeyUpdate 密钥更新:</strong> 在长期存活的单个 TCP 连接中，如果发送字节数达到设定阈值，任何一方均可发送 KeyUpdate 消息启动单向 HKDF 滚动，自动更换当前的对称加密密钥流，防止海量密文被离线暴力破解。",
+            18: "<strong>警报协议 Alert:</strong> 遇到任何帧解密失败、证书失效、协议降级等异常时，TLS 发出 Alert 帧。致命 Fatal 警报会彻底清理当前 TLS 连接内存，安全规避挂起链接被探针窃听的风险。",
+            19: "<strong>规避 Heartbleed 缺陷:</strong> 彻底不实现 TLS Heartbeat 扩展（RFC 6520），从源头上消除危险的动态载荷回显机制。结合 Rust 的动态切片边界溢出保护，确保无任何越界物理内存被反射回去。",
+            20: "<strong>中间盒兼容性:</strong> 针对不支持 TLS 1.3 协议的防火墙中间设备（Middlebox），ClientHello 伪装包含遗留的 Legacy Session ID，并在 ServerHello 后发送 ChangeCipherSpec 明文占位符，假冒 TLS 1.2 穿透网络封锁。",
+            21: "<strong>Finished 结束报文:</strong> 客户端与服务端通过 Finished 报文向对端证明自己持有协商出的共享密钥，并验证整段握手会话哈希的完整性。Finished 的正确比对是应用数据正式加密传输的前置条件。",
+            22: "<strong>常数时间比对 subtle:</strong> 为防止针对 MAC 比对和签名验证的侧信道时序攻击（Timing Attack），Rustls 彻底停用常规的 short-circuit（短路逻辑）比较，底层全部采用 subtle 库的位运算，确保耗时完全独立于输入内容。",
+            23: "<strong>API 配置 Immutable:</strong> 配置结构采用 Builder 设计模式构建。构建完成通过 Arc 发行不可变共享句柄。在多线程异步并发环境下，不可变性锁定了配置上下文，根本上防止了运行时配置被篡改的安全漏洞。",
+            24: "<strong>异步 tokio-rustls:</strong> 整合 Rust 异步运行时生态，提供 tokio-rustls 封装。在非阻塞 epoll/kqueue 事件驱动下，将 TLS 状态机封装为标准的 Future 接口，实现微秒级异步握手分发与流式数据加解密。",
+            25: "<strong>证书锁 pinning:</strong> 摆脱对系统内置巨大 CA 列表的无条件信任。支持注册自定义 `ServerCertVerifier`，硬编码目标服务器公钥的 SHA256 指纹，即便黑客串通了根证书颁发机构签发假证书，也会被指纹拦截。",
+            26: "<strong>Fuzzing 与审计:</strong> 核心编解码模块如 `rustls::record_layer::Record` 定期接受 cargo-fuzz 的数十亿次模糊注入测试，保证即使面对畸形脏包，系统依然零崩溃、零内存泄漏。",
+            27: "<strong>Criterion 性能调优:</strong> 定期执行 Criterion 级微基准性能评测。核心代码精打细算，利用 `Vec::with_capacity` 抑制握手中的动态堆内存重分配，并通过零拷贝（Zero-Copy）技术直接将 TCP 缓冲切片传递至底层。",
+            28: "<strong>后量子密码学 PQC:</strong> 预研抗量子攻击算法，集成了 x25519+ML-KEM-768（原 Kyber-768）等混合密钥交换协议。客户端可以并发发送传统和后量子密钥共享，提供面向未来的量子级前向安全。"
+        };
+
+        const detailsEn = {
+            1: "<strong>Memory Safety:</strong> Completely avoids raw pointer math and memory bugs via Rust's compile-time borrow checker and ownership. Supported only modern TLS 1.2/1.3 and cut legacy elements like SSLv3 and 3DES, shrinking attack vectors significantly compared to OpenSSL.",
+            2: "<strong>1-RTT Handshake:</strong> Employs algebraic data types (Enum) to model the protocol handshake state. Transitions consume the prior state via ownership, mathematically preventing out-of-order execution and logical bypasses.",
+            3: "<strong>ClientHello/ServerHello:</strong> Resolves basic configuration details like cipher suites and KeyShares. Both client and server exchange public parameters to establish shared secret keys within the first RTT flight.",
+            4: "<strong>CryptoProvider API:</strong> Defines a clean adapter layer `CryptoProvider` separating TLS protocol logic from raw mathematics. Allows developers to plug ring, AWS-LC, or custom hardware accelerators dynamically.",
+            5: "<strong>HKDF Key Derivation:</strong> Leverages HMAC-SHA256/384 based HKDF-Extract and HKDF-Expand algorithms, transforming shared secrets into handshake and application traffic keys using Transcript Hashes and custom labels.",
+            6: "<strong>Resumption & PSK:</strong> Grants clients a Pre-Shared Key (PSK) upon successful handshake. Subsequent ClientHellos present the PSK ID to skip public key cryptography and certificate validations, dropping latency.",
+            7: "<strong>Session Tickets:</strong> Encrypts session states using a server-owned key and wraps them in stateless tickets. Offloads storage overhead from server memory, simplifying load balancer synchronizations.",
+            8: "<strong>Record Layer Protocol:</strong> Wraps protocol payloads into TLS Record frames containing 5-byte headers (Type, Version, Length) and AEAD ciphertexts. Employs zero padding to obscure exact payload sizes against side-channel leaks.",
+            9: "<strong>AEAD Encryption:</strong> Mandates AEAD cipher suites (AES-GCM / ChaCha20-Poly1305), throwing away weak Encrypt-Then-Mac designs. Encrypts and authenticates in a single pass using hardware crypto instructions.",
+            10: "<strong>Transcript Hash:</strong> Passes all sent and received handshake bytes through a running cryptographic hash. Verifies the entire sequence in the Finished message to prevent downgrade attacks by active interceptors.",
+            11: "<strong>webpki Validation:</strong> Offloads X.509 DER certificate parsing and validation to the `rustls-webpki` crate. Written in Safe Rust to eradicate memory corruption vulnerabilities historically prevalent in C-based parsers.",
+            12: "<strong>mTLS Double Auth:</strong> Mutual TLS flow. Server requests validation; Client responds with its Certificate and a digital signature in CertificateVerify calculated over the running handshake Transcript Hash.",
+            13: "<strong>Signature Schemes:</strong> Advertises explicit modern options (RSA-PSS, ECDSA-P256-SHA256, Ed25519). Drop insecure legacy hash routines (MD5, SHA-1) to block digital forgery risks.",
+            14: "<strong>ECDHE/DHE Exchange:</strong> Executes ephemeral Diffie-Hellman exchanges (X25519, P-256) per connection. Even if the server long-term certificate private key is compromised, historical sessions cannot be decrypted.",
+            15: "<strong>0-RTT Early Data:</strong> Allows clients to include application payload inside ClientHello, saving a round trip. Prone to replay attacks; requires server-side anti-replay filters and restriction to idempotent GET requests.",
+            16: "<strong>Encrypted Extensions:</strong> Transmits server extensions (ALPN, SNI response) in encrypted packets immediately after ServerHello. Hides non-cryptographic metadata from middlebox sniffing.",
+            17: "<strong>KeyUpdate Rotation:</strong> Triggers HKDF Expand on the fly in long-running connections after a packet threshold is met. Re-keys active encryptions to block cryptanalysis over large data volumes.",
+            18: "<strong>Alert Protocol:</strong> Standardized error notification. Fatal alerts shut down state machines instantly and clean session cache memory to prevent unauthorized inspection.",
+            19: "<strong>Heartbleed Defense:</strong> Excludes the TLS Heartbeat extension (RFC 6520) entirely, preventing data echoing. Rust's native array bounds checking halts memory leak flaws in all data decoders.",
+            20: "<strong>Middlebox Compatibility:</strong> Injects legacy session IDs and sends dummy ChangeCipherSpec (CCS) messages post ServerHello. Tricks outdated network firewalls into passing TLS 1.3 packets.",
+            21: "<strong>Finished Message Check:</strong> Final handshake check where both sides verify ownership of derived traffic keys and validate the transcript hashes to ensure no handshake packets were modified.",
+            22: "<strong>subtle Constant-Time:</strong> Replaces normal short-circuit comparisons in MAC checks with subtle crate bitwise loops. Guarantees execution duration is constant, preventing timing timing leaks.",
+            23: "<strong>Config Builder:</strong> Config structures are built using builders and shared via Immutable Arc handles. Prevents data races and configuration tampering in highly concurrent async runtimes.",
+            24: "<strong>Async tokio-rustls:</strong> Bridges Rustls into async execution loops, wrapping sync connections in AsyncRead/AsyncWrite streams. Manages microsecond handshakes inside epoll systems.",
+            25: "<strong>Certificate Pinning:</strong> Implements custom `ServerCertVerifier` to check target certificates against explicit SHA256 hashes, blocking forged credentials even from compromised root CAs.",
+            26: "<strong>Fuzzing & Audits:</strong> Runs cargo-fuzz tests over record layers and ClientHello decoders, verifying parsing stability under billions of mutated packets.",
+            27: "<strong>Criterion Tuning:</strong> Uses Criterion benchmarks to locate bottlenecks. Replaces dynamic heap allocation with capacity pre-allocation and uses zero-copy slicing for optimal speed.",
+            28: "<strong>PQC Key Exchange:</strong> Combines classical X25519 and quantum-resistant ML-KEM-768 algorithms in KeyShare extensions. Defends data transit against quantum decryption advancements."
+        };
+
+        function showCardDetail(id) {
+            const card = cards.find(c => c.id === id);
+            const isEn = false;
+            document.getElementById('detail-title').innerText = isEn ? `Card ${id}: ${card.title}` : `卡片 ${id}: ${card.zh}`;
+            document.getElementById('detail-body').innerHTML = isEn ? detailsEn[id] : detailsZh[id];
+        }
+    </script>
+</body>
+</html>

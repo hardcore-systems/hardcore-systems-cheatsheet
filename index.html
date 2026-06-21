@@ -1,0 +1,3107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>硬核技术系统工程 | Hardcore Systems Engineering Workspace</title>
+    <meta name="description" content="57个全球顶级硬核系统工程精解与折中矩阵设计大图。包含etcd, Kafka, RocksDB, eBPF, Tokio, v8, WebAssembly, CUDA等底层原理高密海报、离散仿真沙盒及互动知识图谱。">
+    <meta name="keywords" content="系统设计, 架构师, 高并发, eBPF, Raft, LSM-Tree, J-Ladder, 编译原理, 性能调优, 混沌工程">
+    
+    <!-- OpenGraph -->
+    <meta property="og:title" content="硬核技术系统工程 | Hardcore Systems Engineering">
+    <meta property="og:description" content="57个硬核系统工程高密卡片，双语排版，附带离散交互沙盒，全面解构底层技术。">
+    <meta property="og:type" content="website">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- SEO JSON-LD -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "numberOfItems": 57,
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "item": {
+        "@type": "TechArticle",
+        "name": "CockroachDB - Spanner 架构强一致分布式 SQL 数据库",
+        "alternativeHeadline": "CockroachDB - Spanner-inspired Distributed SQL Database",
+        "description": "分布式 SQL 数据库的本质是利用 Multi-Raft 进行水平 Range 分片共识复制，基于混合逻辑时钟（HLC）和 MVCC 实现分布式事务一致性与快照隔离，使得无共享架构集群呈现单机关系型 SQL 数据库的体验。",
+        "headline": "Spanner 架构强一致分布式 SQL 数据库",
+        "keywords": "cockroachdb, system engineering, architecture, cheatsheet, interactive sandbox, 分布式系统与共识算法",
+        "url": "https://hardcore-systems.com/cockroachdb/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "TechArticle",
+        "name": "etcd - 分布式协调与强一致性存储",
+        "alternativeHeadline": "etcd - Distributed Coordination & Consistent Key-Value Store",
+        "description": "通过 Raft 协议在分布式节点间维护强一致性的复制状态机，配合底层的 MVCC 多版本存储与 BoltDB，为云原生架构提供高可用、强一致的元数据协调底座。",
+        "headline": "分布式协调与强一致性存储",
+        "keywords": "etcd, system engineering, architecture, cheatsheet, interactive sandbox, 分布式系统与共识算法",
+        "url": "https://hardcore-systems.com/etcd/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Kafka - 高性能分布式事件流平台",
+        "alternativeHeadline": "Kafka - High-Performance Distributed Event Streaming Platform",
+        "description": "基于操作系统页缓存的顺序追加文件存储，配合零拷贝网络发送与分区副本高水位同步机制，构建高吞吐、低延迟的分布式事件流平台。",
+        "headline": "高性能分布式事件流平台",
+        "keywords": "kafka, system engineering, architecture, cheatsheet, interactive sandbox, 分布式系统与共识算法",
+        "url": "https://hardcore-systems.com/kafka/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Maelstrom - 分布式系统一致性与容错测试床",
+        "alternativeHeadline": "Maelstrom - Distributed System Consensus & Fault-Tolerance Testbed",
+        "description": "通过模拟真实的分布式网络拓扑与节点失效，基于进程间标准输入输出 (Stdin/Stdout) 传输 JSON 消息，为分布式系统核心算法的模拟验证提供极简的容错测试环境。",
+        "headline": "分布式系统一致性与容错测试床",
+        "keywords": "maelstrom, system engineering, architecture, cheatsheet, interactive sandbox, 分布式系统与共识算法",
+        "url": "https://hardcore-systems.com/maelstrom/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "item": {
+        "@type": "TechArticle",
+        "name": "MIT 6.824 - 分布式系统工程学课程",
+        "alternativeHeadline": "MIT 6.824 - Distributed Systems Engineering Labs",
+        "description": "分布式系统工程的本质是利用共识协议与状态机复制技术，在充满网络延迟、分区及节点崩溃的物理现实中，构建具备线性一致性与高容灾能力的统一状态服务。",
+        "headline": "分布式系统工程学课程",
+        "keywords": "mit_6.824, system engineering, architecture, cheatsheet, interactive sandbox, 分布式系统与共识算法",
+        "url": "https://hardcore-systems.com/mit_6.824/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "item": {
+        "@type": "TechArticle",
+        "name": "TiKV - 分布式事务 Key-Value 数据库",
+        "alternativeHeadline": "TiKV - Distributed Transactional Key-Value Database",
+        "description": "通过 Multi-Raft 机制实现数据的自动分片与一致性复制，引入 Percolator 算法保障分布式强事务，配合 RocksDB 列族存储，为大规模云原生数据计算提供高容错、高吞吐的存储底座。",
+        "headline": "分布式事务 Key-Value 数据库",
+        "keywords": "tikv, system engineering, architecture, cheatsheet, interactive sandbox, 分布式系统与共识算法",
+        "url": "https://hardcore-systems.com/tikv/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "item": {
+        "@type": "TechArticle",
+        "name": "ClickHouse - 高性能分析型列式数据库",
+        "alternativeHeadline": "ClickHouse - High-Performance Columnar Analytical DBMS",
+        "description": "针对大规模 OLAP 分析场景，将相同列的数据连续存储于物理磁盘，通过块级数据稀疏索引与 Lz4/Zstd 极速压缩，配合 CPU 向量化寄存器指令集，实现千亿级数据秒级聚合的分析系统。",
+        "headline": "高性能分析型列式数据库",
+        "keywords": "clickhouse, system engineering, architecture, cheatsheet, interactive sandbox, 数据库内幕与存储引擎",
+        "url": "https://hardcore-systems.com/clickhouse/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 8,
+      "item": {
+        "@type": "TechArticle",
+        "name": "DuckDB - 嵌入式进程内分析型 SQL 引擎",
+        "alternativeHeadline": "DuckDB - Embedded In-Process Analytical SQL Engine",
+        "description": "利用向量化执行引擎（以 1024 行 Vector 为数据处理单元）和多核并行调度（Pipeline Parallelism），提供高性能、零网络开销、即插即用的嵌入式进程内分析数据库。",
+        "headline": "嵌入式进程内分析型 SQL 引擎",
+        "keywords": "duckdb, system engineering, architecture, cheatsheet, interactive sandbox, 数据库内幕与存储引擎",
+        "url": "https://hardcore-systems.com/duckdb/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 9,
+      "item": {
+        "@type": "TechArticle",
+        "name": "PostgreSQL - 企业级关系型数据库内核",
+        "alternativeHeadline": "PostgreSQL - Enterprise Relational Database Kernel",
+        "description": "基于多进程安全并发模型，采用独特的页内元组物理多版本控制 (MVCC)，辅以共享内存 Buffer Pool 和双写缓冲区，构建高扩展、强健的关系型通用数据库管理系统。",
+        "headline": "企业级关系型数据库内核",
+        "keywords": "postgres, system engineering, architecture, cheatsheet, interactive sandbox, 数据库内幕与存储引擎",
+        "url": "https://hardcore-systems.com/postgres/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 10,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Database Red Book - 数据库系统架构设计蓝图",
+        "alternativeHeadline": "Database Red Book - Architecture of a Database System (Red Book)",
+        "description": "在非易失性存储与易失性内存的物理限界下，通过并发控制与预写日志保证 ACID 强一致约束，并借由查询优化器与存储引擎最大化 I/O 与 CPU 吞吐的关系型计算系统。",
+        "headline": "数据库系统架构设计蓝图",
+        "keywords": "red_book, system engineering, architecture, cheatsheet, interactive sandbox, 数据库内幕与存储引擎",
+        "url": "https://hardcore-systems.com/red_book/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 11,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Redis - 极速单线程内存数据结构服务",
+        "alternativeHeadline": "Redis - In-Memory Data Structure Store & Net IO Model",
+        "description": "将丰富的通用数据结构存储于高速易失性内存中，采用单线程 Reactor 非阻塞多路复用驱动网络，辅以 AOF 追加与 RDB 快照持久化，实现极致吞吐的多数据类型缓存与调度系统。",
+        "headline": "极速单线程内存数据结构服务",
+        "keywords": "redis, system engineering, architecture, cheatsheet, interactive sandbox, 数据库内幕与存储引擎",
+        "url": "https://hardcore-systems.com/redis/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 12,
+      "item": {
+        "@type": "TechArticle",
+        "name": "RocksDB - 嵌入式 LSM-Tree 存储引擎",
+        "alternativeHeadline": "RocksDB - High-Performance Embedded LSM-Tree Key-Value Store",
+        "description": "为了在非易失性随机读写受限的存储介质上实现极速写入吞吐，通过内存缓冲顺序追加写（MemTable/WAL）与后台分层归并合并（Compaction），提供基于快照隔离（Snapshot）的高性能并发读写状态机。",
+        "headline": "嵌入式 LSM-Tree 存储引擎",
+        "keywords": "rocksdb, system engineering, architecture, cheatsheet, interactive sandbox, 数据库内幕与存储引擎",
+        "url": "https://hardcore-systems.com/rocksdb/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 13,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Sled - 现代锁无关嵌入式存储引擎",
+        "alternativeHeadline": "Sled - Modern Lock-Free Embedded Storage Engine in Rust",
+        "description": "基于 Rust 语言与 EBR 垃圾回收机制，利用 Bw-Tree 的比较并交换（CAS）映射表实现多线程锁无关访问，配合页状态日志式链式追加，构建极致并发性能的现代嵌入式 KV 引擎。",
+        "headline": "现代锁无关嵌入式存储引擎",
+        "keywords": "sled, system engineering, architecture, cheatsheet, interactive sandbox, 数据库内幕与存储引擎",
+        "url": "https://hardcore-systems.com/sled/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 14,
+      "item": {
+        "@type": "TechArticle",
+        "name": "SQLite - 嵌入式关系数据库内幕",
+        "alternativeHeadline": "SQLite - Embedded Relational Database Internals",
+        "description": "在单文件物理隔离的限界下，通过声明式 SQL 编译为 VDBE 寄存器字节码流，借由 B-Tree 页与 Pager 缓存抽象 I/O，并利用 Journal 或 WAL 模式下的 VFS OS 锁定机制提供跨进程 ACID 强一致性的轻量级嵌入式关系数据库。",
+        "headline": "嵌入式关系数据库内幕",
+        "keywords": "sqlite, system engineering, architecture, cheatsheet, interactive sandbox, 数据库内幕与存储引擎",
+        "url": "https://hardcore-systems.com/sqlite/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 15,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Cilium - 基于 eBPF 的高性能云网络与安全",
+        "alternativeHeadline": "Cilium - eBPF-powered Cloud-Native Networking & Security",
+        "description": "利用 eBPF 技术在 Linux 内核网卡驱动层 (TC/XDP) 直接挂载处理钩子，打破传统 iptables 规则链的性能黑洞，实现云原生架构下极速、高性能的容器网络互联与网络安全策略准入。",
+        "headline": "基于 eBPF 的高性能云网络与安全",
+        "keywords": "cilium, system engineering, architecture, cheatsheet, interactive sandbox, 操作系统与 Linux 内核",
+        "url": "https://hardcore-systems.com/cilium/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 16,
+      "item": {
+        "@type": "TechArticle",
+        "name": "dae - 基于 eBPF 的高性能透明网络代理",
+        "alternativeHeadline": "dae - eBPF-based High-Performance Network Proxy",
+        "description": "利用 Linux 内核 TC 与 XDP 阶段的 eBPF 程序拦截入站与出站数据包，避免用户态与内核态的频繁上下文切换，直接在内核态完成路由决策与协议栈重定向，提供极致低延迟的透明代理体验。",
+        "headline": "基于 eBPF 的高性能透明网络代理",
+        "keywords": "dae, system engineering, architecture, cheatsheet, interactive sandbox, 操作系统与 Linux 内核",
+        "url": "https://hardcore-systems.com/dae/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 17,
+      "item": {
+        "@type": "TechArticle",
+        "name": "eBPF & BCC - Linux eBPF 动态追踪与内核观测",
+        "alternativeHeadline": "eBPF & BCC - Linux eBPF Dynamic Tracing & Kernel Observability",
+        "description": "通过在内核受控的沙盒虚拟机中安全运行经过校验的 JIT 字节码，拦截关键系统调用与事件，实现对 Linux 内核与应用层的非侵入式、低开销、极致可观测性监控。",
+        "headline": "Linux eBPF 动态追踪与内核观测",
+        "keywords": "eBPF_bcc, system engineering, architecture, cheatsheet, interactive sandbox, 操作系统与 Linux 内核",
+        "url": "https://hardcore-systems.com/eBPF_bcc/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 18,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Linux Insides - Linux 内核引导与段页式内存管理",
+        "alternativeHeadline": "Linux Insides - Linux Kernel Booting & Memory Management Internals",
+        "description": "展示 Linux 内核如何从主板固件的物理实模式起步，逐步配置 CPU 全局描述符表（GDT）与多级页表，完成内存段页式转换，建立进程地址空间及中断响应系统的自举过程。",
+        "headline": "Linux 内核引导与段页式内存管理",
+        "keywords": "linux_insides, system engineering, architecture, cheatsheet, interactive sandbox, 操作系统与 Linux 内核",
+        "url": "https://hardcore-systems.com/linux_insides/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 19,
+      "item": {
+        "@type": "TechArticle",
+        "name": "OSTEP OS Principles - 操作系统三驾马车原理",
+        "alternativeHeadline": "OSTEP OS Principles - Operating Systems: Three Easy Pieces",
+        "description": "操作系统通过进程与虚拟内存对物理 CPU 与内存资源进行受控的虚拟化隔离，利用锁和信号量协调高并发线程，并借由日志式文件系统保障断电物理存储的持久一致性。",
+        "headline": "操作系统三驾马车原理",
+        "keywords": "ostep, system engineering, architecture, cheatsheet, interactive sandbox, 操作系统与 Linux 内核",
+        "url": "https://hardcore-systems.com/ostep/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 20,
+      "item": {
+        "@type": "TechArticle",
+        "name": "xv6-riscv - 教案级 Unix-Like 操作系统内核",
+        "alternativeHeadline": "xv6-riscv - Unix-Like Educational OS Kernel for RISC-V",
+        "description": "在 RISC-V 硬件特权级限制下，通过 Trampoline 蹦床页保护上下文切换，利用多路复用时钟中断驱动多进程时间片轮转，在极小代码规模内阐明现代 Unix 操作系统微型内核的基本解构模型。",
+        "headline": "教案级 Unix-Like 操作系统内核",
+        "keywords": "xv6_riscv, system engineering, architecture, cheatsheet, interactive sandbox, 操作系统与 Linux 内核",
+        "url": "https://hardcore-systems.com/xv6_riscv/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 21,
+      "item": {
+        "@type": "TechArticle",
+        "name": "DPDK - 用户态数据包极速处理框架",
+        "alternativeHeadline": "DPDK - Data Plane Development Kit",
+        "description": "为了打破 Linux 内核网络协议栈的性能中断与拷贝黑洞，采用用户态网卡驱动与 PMD 循环轮询机制，利用大页内存和无锁并发缓冲，最大化网络数据平面吞吐与包处理速率。",
+        "headline": "用户态数据包极速处理框架",
+        "keywords": "dpdk, system engineering, architecture, cheatsheet, interactive sandbox, 计算机网络与高性能 IO",
+        "url": "https://hardcore-systems.com/dpdk/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 22,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Envoy - 云原生高性能网关与服务代理",
+        "alternativeHeadline": "Envoy - Cloud-Native High-Performance Proxy",
+        "description": "基于 C++ 异步非阻塞网络模型，采用单进程多 Worker 线程池结合 libevent 事件驱动，设计基于过滤器模式的可扩展管道，配合 xDS 动态发现机制，提供低时延的容器级服务网格网关底座。",
+        "headline": "云原生高性能网关与服务代理",
+        "keywords": "envoy, system engineering, architecture, cheatsheet, interactive sandbox, 计算机网络与高性能 IO",
+        "url": "https://hardcore-systems.com/envoy/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 23,
+      "item": {
+        "@type": "TechArticle",
+        "name": "QUIC & HTTP/3 - 下一代安全传输层协议解析",
+        "alternativeHeadline": "QUIC & HTTP/3 - Next-Generation Transport Protocol Analysis",
+        "description": "通过在 UDP 协议之上重新实现可靠传输、并发流隔离与拥塞控制，将加密握手与传输层结合，彻底解决 TCP 协议在复杂无线网络下的队头阻塞与迁移断连痛点。",
+        "headline": "下一代安全传输层协议解析",
+        "keywords": "quic_http3, system engineering, architecture, cheatsheet, interactive sandbox, 计算机网络与高性能 IO",
+        "url": "https://hardcore-systems.com/quic_http3/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 24,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Seastar - 锁无关 Shared-Nothing 高并发网络框架",
+        "alternativeHeadline": "Seastar - Lock-Free Shared-Nothing Network Framework in C++",
+        "description": "采用 Shared-Nothing (无共享) 的 Thread-per-core (单核单线程) 物理隔离设计，废弃互斥锁与条件变量，全量网络与磁盘 I/O 绕过系统调度，最大化发挥现代多核高并发硬件架构的物理吞吐潜力。",
+        "headline": "锁无关 Shared-Nothing 高并发网络框架",
+        "keywords": "seastar, system engineering, architecture, cheatsheet, interactive sandbox, 计算机网络与高性能 IO",
+        "url": "https://hardcore-systems.com/seastar/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 25,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Tokio - Rust 异步事件驱动 I/O 运行时",
+        "alternativeHeadline": "Tokio - Rust Asynchronous Event-Driven I/O Runtime",
+        "description": "在 Rust 的 Future 反应器模式之上，基于工作窃取（Work-Stealing）的多线程调度队列，配合非阻塞多路复用（Mio/epoll），构建高吞吐、零开销抽象的现代异步并发网络运行时。",
+        "headline": "Rust 异步事件驱动 I/O 运行时",
+        "keywords": "tokio, system engineering, architecture, cheatsheet, interactive sandbox, 计算机网络与高性能 IO",
+        "url": "https://hardcore-systems.com/tokio/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 26,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Computer Networking: A Top-Down Approach - 自顶向下计算机网络体系结构",
+        "alternativeHeadline": "Top-Down Networking - Computer Networking: A Top-Down Approach",
+        "description": "从用户视角的应用层协议逐步解构到物理比特传输，着重阐明 TCP 状态机如何克服底层物理信道不可靠性实现端到端字节流可靠传递，以及路由器分布式路由算路的因特网体系结构。",
+        "headline": "自顶向下计算机网络体系结构",
+        "keywords": "top_down_networking, system engineering, architecture, cheatsheet, interactive sandbox, 计算机网络与高性能 IO",
+        "url": "https://hardcore-systems.com/top_down_networking/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 27,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Awesome Scalability - 高扩展性架构演进设计",
+        "alternativeHeadline": "Awesome Scalability - High-Scalability Architecture Patterns",
+        "description": "系统性收集与归纳大规模互联网巨头（如 Google, Netflix）在高扩展性、高可用性、可维护性等维度上的核心软件设计模式与实际架构落地准则。",
+        "headline": "高扩展性架构演进设计",
+        "keywords": "awesome_scalability, system engineering, architecture, cheatsheet, interactive sandbox, 系统设计与高扩展架构",
+        "url": "https://hardcore-systems.com/awesome_scalability/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 28,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Dapr - 分布式应用运行时 Sidecar 架构",
+        "alternativeHeadline": "Dapr - Distributed Application Runtime Sidecar Architecture",
+        "description": "采用 Sidecar (边车) 进程独立运行模型，将底层复杂的分布式服务治理 (重试、路由、状态一致性) 封装为统一的 gRPC/HTTP API 接口，实现分布式应用开发的多语言与多云平台解耦。",
+        "headline": "分布式应用运行时 Sidecar 架构",
+        "keywords": "dapr, system engineering, architecture, cheatsheet, interactive sandbox, 系统设计与高扩展架构",
+        "url": "https://hardcore-systems.com/dapr/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 29,
+      "item": {
+        "@type": "TechArticle",
+        "name": "DevOps Firefighting - SRE 生产应急救火手册",
+        "alternativeHeadline": "DevOps Firefighting - SRE Production Firefighting & Incident Mitigation Manual",
+        "description": "以实战应急为导向，提炼生产环境中最致命的 K8s 漂移、Nginx 超时、DNS 解析瘫痪等云原生底层排障步法，助力 SRE 工程师在黄金 5 分钟内快速止血降级。",
+        "headline": "SRE 生产应急救火手册",
+        "keywords": "devops_firefighting, system engineering, architecture, cheatsheet, interactive sandbox, 系统设计与高扩展架构",
+        "url": "https://hardcore-systems.com/devops_firefighting/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 30,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Google SRE Book - Google 站点可靠性工程实践",
+        "alternativeHeadline": "Google SRE Book - Google Site Reliability Engineering Practices",
+        "description": "将软件工程的设计方法引入基础设施运维工作中，以精确可量化的“错误预算”协调产品迭代速度与系统稳定性，实现高可用生产环境的智能自愈治理。",
+        "headline": "Google 站点可靠性工程实践",
+        "keywords": "sre_book, system engineering, architecture, cheatsheet, interactive sandbox, 系统设计与高扩展架构",
+        "url": "https://hardcore-systems.com/sre_book/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 31,
+      "item": {
+        "@type": "TechArticle",
+        "name": "System Design Primer - 系统设计入门与架构基石",
+        "alternativeHeadline": "System Design Primer - System Design Primer & Architectural Foundations",
+        "description": "指导如何将单机服务演化为横跨全球的高可用、高容错、一致性分布式系统，在可用性、一致性与延迟物理边界之间进行非黑即白的工程折中决策。",
+        "headline": "系统设计入门与架构基石",
+        "keywords": "system_design_primer, system engineering, architecture, cheatsheet, interactive sandbox, 系统设计与高扩展架构",
+        "url": "https://hardcore-systems.com/system_design_primer/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 32,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Opinionated Tech Selection - 高频架构设计折中选型矩阵",
+        "alternativeHeadline": "Opinionated Tech Selection - Opinionated Architecture & Tech Selection Matrix",
+        "description": "深入技术选型的物理限界与架构博弈，为分布式缓存、计算网络、消息总线等关键组件提供不流于形式的、带有工程实践经验倾向的强偏见折中评估框架。",
+        "headline": "高频架构设计折中选型矩阵",
+        "keywords": "tech_selection, system engineering, architecture, cheatsheet, interactive sandbox, 系统设计与高扩展架构",
+        "url": "https://hardcore-systems.com/tech_selection/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 33,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Crafting Interpreters - 编译器设计与解释器实现",
+        "alternativeHeadline": "Crafting Interpreters - Crafting Interpreters & VM Design",
+        "description": "通过从零实现 Lox 编程语言的两个运行环境，对比解构基于 AST 的慢速树遍历解释器与基于字节码的高性能栈虚拟机在语义解析与运行时计算上的性能差距。",
+        "headline": "编译器设计与解释器实现",
+        "keywords": "craftinginterpreters, system engineering, architecture, cheatsheet, interactive sandbox, 编译器、虚拟机与语言运行时",
+        "url": "https://hardcore-systems.com/craftinginterpreters/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 34,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Go Runtime - Go 语言并发调度与运行时内核",
+        "alternativeHeadline": "Go Runtime - Go Concurrency Scheduler & Runtime Internals",
+        "description": "利用 GMP 三元组模型在用户态实现极轻量级的协程（Goroutine）多路复用，配合底层的非抢占/抢占式调度器、高速内存分配器和后台并发垃圾回收，降低应用高并发开发的门槛。",
+        "headline": "Go 语言并发调度与运行时内核",
+        "keywords": "golang, system engineering, architecture, cheatsheet, interactive sandbox, 编译器、虚拟机与语言运行时",
+        "url": "https://hardcore-systems.com/golang/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 35,
+      "item": {
+        "@type": "TechArticle",
+        "name": "LLVM Compiler Infrastructure - LLVM 编译器架构与中间表示",
+        "alternativeHeadline": "LLVM Compiler Infrastructure - LLVM Compiler Architecture & Intermediate Representation",
+        "description": "通过定义与平台无关的高水准中间表示 (LLVM IR)，采用模块化的前端-中端(优化)-后端三段式设计，使得多种高级语言可以共享相同的编译优化和多硬件平台代码生成服务。",
+        "headline": "LLVM 编译器架构与中间表示",
+        "keywords": "llvm, system engineering, architecture, cheatsheet, interactive sandbox, 编译器、虚拟机与语言运行时",
+        "url": "https://hardcore-systems.com/llvm/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 36,
+      "item": {
+        "@type": "TechArticle",
+        "name": "OpenJDK HotSpot VM - Java HotSpot 虚拟机原理",
+        "alternativeHeadline": "OpenJDK HotSpot VM - OpenJDK HotSpot VM Internals",
+        "description": "结合分层 JIT 编译技术与逃逸分析等动态自适应优化，在屏蔽物理底层的跨平台 Java 字节码虚拟机之上，提供高性能虚拟线程与无停顿垃圾回收的复杂计算系统。",
+        "headline": "Java HotSpot 虚拟机原理",
+        "keywords": "openjdk, system engineering, architecture, cheatsheet, interactive sandbox, 编译器、虚拟机与语言运行时",
+        "url": "https://hardcore-systems.com/openjdk/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 37,
+      "item": {
+        "@type": "TechArticle",
+        "name": "rustc - Rust 编译器编译流与生命周期",
+        "alternativeHeadline": "rustc - rustc Compiler Architecture & Lifecycle",
+        "description": "利用强类型推导与高度严谨的借用检查器 (Borrow Checker)，在编译期静态排除悬垂指针、数据竞争等内存缺陷，在无需 GC 的前提下，产出兼具安全性与物理效率的原生二进制。",
+        "headline": "Rust 编译器编译流与生命周期",
+        "keywords": "rustc, system engineering, architecture, cheatsheet, interactive sandbox, 编译器、虚拟机与语言运行时",
+        "url": "https://hardcore-systems.com/rustc/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 38,
+      "item": {
+        "@type": "TechArticle",
+        "name": "V8 JavaScript Engine - 高性能 JavaScript 虚拟机内幕",
+        "alternativeHeadline": "V8 JavaScript Engine - V8 High-Performance JavaScript Engine Internals",
+        "description": "将高度动态、弱类型的 JavaScript 源码，通过 JIT 编译器在内存中动态翻译为高效的 x86/ARM 机器码，基于隐藏类消除动态寻址，构建极致性能的现代语言运行沙箱。",
+        "headline": "高性能 JavaScript 虚拟机内幕",
+        "keywords": "v8, system engineering, architecture, cheatsheet, interactive sandbox, 编译器、虚拟机与语言运行时",
+        "url": "https://hardcore-systems.com/v8/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 39,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Wasmtime - 高性能 WebAssembly 运行时引擎",
+        "alternativeHeadline": "Wasmtime - High-Performance WebAssembly Runtime Engine in Rust",
+        "description": "采用高效的 Cranelift 后端将 WebAssembly 字节码编译为原生机器指令，并依托底层的虚拟地址缺页保护与严格边界校验，在极小开销下提供强隔离、高安全性的沙箱代码沙盒环境。",
+        "headline": "高性能 WebAssembly 运行时引擎",
+        "keywords": "wasmtime, system engineering, architecture, cheatsheet, interactive sandbox, 编译器、虚拟机与语言运行时",
+        "url": "https://hardcore-systems.com/wasmtime/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 40,
+      "item": {
+        "@type": "TechArticle",
+        "name": "bpftrace - 极简内核与应用级动态探针追踪",
+        "alternativeHeadline": "bpftrace - Safe & Dynamic Kernel Tracing Language",
+        "description": "通过声明式的极简追踪脚本语言，利用 LLVM 后端在用户态即时编译为 eBPF 字节码，挂载到运行期内核或应用的探针之上，提供实时、低成本的安全生产排障监控分析。",
+        "headline": "极简内核与应用级动态探针追踪",
+        "keywords": "bpftrace, system engineering, architecture, cheatsheet, interactive sandbox, 性能调优与系统诊断",
+        "url": "https://hardcore-systems.com/bpftrace/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 41,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Everyday Development Diagnostics - 日常开发性能榨汁机与线上故障定位",
+        "alternativeHeadline": "Everyday Development Diagnostics - Daily Diagnostics & Performance Squeezer",
+        "description": "直面中高级工程师在日常开发和值班救火中的高频痛点，解构内存溢出、慢 SQL、Redis 缓存穿透等核心故障，总结出具备强防守意义的线上诊断排障模型。",
+        "headline": "日常开发性能榨汁机与线上故障定位",
+        "keywords": "daily_diagnostics, system engineering, architecture, cheatsheet, interactive sandbox, 性能调优与系统诊断",
+        "url": "https://hardcore-systems.com/daily_diagnostics/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 42,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Compiler Sanitizers - 内存与并发缺陷动态编译器诊断",
+        "alternativeHeadline": "Compiler Sanitizers - Compiler-Assisted Runtime Sanitizers",
+        "description": "通过在编译期间向目标代码中插装（Instrumentation）边界检查和状态记录指令，并在运行期间配合专门的影子内存状态映射，高效率检测悬垂指针、缓冲区溢出与并发数据竞争缺陷。",
+        "headline": "内存与并发缺陷动态编译器诊断",
+        "keywords": "sanitizers, system engineering, architecture, cheatsheet, interactive sandbox, 性能调优与系统诊断",
+        "url": "https://hardcore-systems.com/sanitizers/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 43,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Systems Performance - 现代系统性能剖析与诊断",
+        "alternativeHeadline": "Systems Performance - Modern Systems Performance & Telemetry",
+        "description": "从硬件边界与操作系统内核的交叉视角出发，利用动态跟踪探针、统计探针与性能计数器，系统化诊断和量化分析应用层程序在物理服务器上的运行能效。",
+        "headline": "现代系统性能剖析与诊断",
+        "keywords": "system_performance, system engineering, architecture, cheatsheet, interactive sandbox, 性能调优与系统诊断",
+        "url": "https://hardcore-systems.com/system_performance/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 44,
+      "item": {
+        "@type": "TechArticle",
+        "name": "CUDA Programming - GPGPU 异构计算与 GPU 算子编写",
+        "alternativeHeadline": "CUDA Programming - Heterogeneous Parallel Computing with CUDA",
+        "description": "在 GPGPU 大规模 SIMT 并行物理架构下，通过将多核线程并行计算与高速片上 SRAM 共享缓存（Shared Memory）相结合，并利用全局内存的合并对齐读写，最大化浮点运算吞吐与带宽瓶颈效能。",
+        "headline": "GPGPU 异构计算与 GPU 算子编写",
+        "keywords": "cuda_programming, system engineering, architecture, cheatsheet, interactive sandbox, 计算机体系结构与芯片设计",
+        "url": "https://hardcore-systems.com/cuda_programming/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 45,
+      "item": {
+        "@type": "TechArticle",
+        "name": "RISC-V ISA Spec - RISC-V 开放式指令集架构与规范",
+        "alternativeHeadline": "RISC-V ISA Spec - RISC-V Instruction Set Architecture Spec",
+        "description": "作为定义软硬件接口的开放式标准，以极简的 40 余条基础整数指令编码为核心，支持高度模块化的应用特定扩展，为现代 CPU 体系结构提供精简、高能效的逻辑规范规约。",
+        "headline": "RISC-V 开放式指令集架构与规范",
+        "keywords": "riscv_isa, system engineering, architecture, cheatsheet, interactive sandbox, 计算机体系结构与芯片设计",
+        "url": "https://hardcore-systems.com/riscv_isa/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 46,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Rocket Chip - Rocket Chip RISC-V SoC 芯片设计与 TileLink 一致性",
+        "alternativeHeadline": "Rocket Chip - Rocket Chip RISC-V SoC Generator & TileLink",
+        "description": "采用高级硬件描述语言 Chisel，以高度可配置的参数化生成器为核心，实现符合 RISC-V 规范的五级标量流水线处理器核，并通过 TileLink 总线协议保障多核缓存强一致的片上系统 SoC 设计。",
+        "headline": "Rocket Chip RISC-V SoC 芯片设计与 TileLink 一致性",
+        "keywords": "rocket_chip, system engineering, architecture, cheatsheet, interactive sandbox, 计算机体系结构与芯片设计",
+        "url": "https://hardcore-systems.com/rocket_chip/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 47,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Intel SGX - 硬件级机密计算与安全隔离飞地",
+        "alternativeHeadline": "Intel SGX - Intel SGX Hardware Enclaves & Shielded Execution",
+        "description": "通过在 CPU 硬件层引入不可信 OS 物理隔离的机密计算飞地 (Enclave)，在内存中对飞地页进行物理加密 (MEE)，即使操作系统内核遭破，也能为核心代码和数据提供硬件级的隔离保护与证明。",
+        "headline": "硬件级机密计算与安全隔离飞地",
+        "keywords": "intel_sgx, system engineering, architecture, cheatsheet, interactive sandbox, 现代密码学与硬件安全隔离",
+        "url": "https://hardcore-systems.com/intel_sgx/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 48,
+      "item": {
+        "@type": "TechArticle",
+        "name": "OpenSSL - 密码学套件与安全通信协议实现",
+        "alternativeHeadline": "OpenSSL - Cryptographic Toolkit & SSL/TLS Protocol Library",
+        "description": "作为因特网安全的底层基石，以极度优化的汇编和 C 语言实现各项主流加密和哈希算法，并在其上提供完整的 TLS 安全通信套件，保障网络数据的保密性、完整性与真实性验证。",
+        "headline": "密码学套件与安全通信协议实现",
+        "keywords": "openssl, system engineering, architecture, cheatsheet, interactive sandbox, 现代密码学与硬件安全隔离",
+        "url": "https://hardcore-systems.com/openssl/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 49,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Rustls - 基于 Rust 的高性能安全 TLS 1.3 协议栈",
+        "alternativeHeadline": "Rustls - Modern & Memory-Safe TLS Implementation in Rust",
+        "description": "通过在编译期消除内存缓冲区溢出等常规网络编程漏洞，抛弃 SSL 历史包袱，仅支持现代安全的 TLS 1.2/1.3 协议套件，以最精简、高能效的代码构建高度抗攻击的现代安全传输层实现。",
+        "headline": "基于 Rust 的高性能安全 TLS 1.3 协议栈",
+        "keywords": "rustls, system engineering, architecture, cheatsheet, interactive sandbox, 现代密码学与硬件安全隔离",
+        "url": "https://hardcore-systems.com/rustls/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 50,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Awesome Robotics - 机器人运动规划与 SLAM 状态估计",
+        "alternativeHeadline": "Awesome Robotics - Robotics Motion Planning & SLAM State Estimation",
+        "description": "展示如何利用数学模型与传感器观测输入，通过卡尔曼滤波或非线性优化解决机器人在未知环境下的自我定位问题，并规划无碰撞的极小轨迹时间曲线。",
+        "headline": "机器人运动规划与 SLAM 状态估计",
+        "keywords": "awesome_robotics, system engineering, architecture, cheatsheet, interactive sandbox, 复杂物理系统、控制理论与电网",
+        "url": "https://hardcore-systems.com/awesome_robotics/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 51,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Power Systems - 电力系统分析与潮流计算",
+        "alternativeHeadline": "Power Systems - Modern Power Grid Analysis & Load Flow Calculation",
+        "description": "建立复杂的交流电网物理系统方程，利用数值分析与导数雅可比矩阵进行快速非线性寻优，计算各节点电功率、相角分布以及在扰动下的电网自愈稳定裕度。",
+        "headline": "电力系统分析与潮流计算",
+        "keywords": "power_systems, system engineering, architecture, cheatsheet, interactive sandbox, 复杂物理系统、控制理论与电网",
+        "url": "https://hardcore-systems.com/power_systems/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 52,
+      "item": {
+        "@type": "TechArticle",
+        "name": "ROS 2 - 机器人分布式中间件与共享内存零拷贝",
+        "alternativeHeadline": "ROS 2 - ROS 2 Robotics Middleware & Shared Memory Zero-Copy",
+        "description": "通过定义一致的订阅/发布发布语义，在操作系统上层构建基于 DDS 规范的强一致实时消息交互总线，配合冰羚 (iceoryx) 共享内存，消除大吞吐图像/雷达点云通信的物理拷贝时延延迟。",
+        "headline": "机器人分布式中间件与共享内存零拷贝",
+        "keywords": "ros2, system engineering, architecture, cheatsheet, interactive sandbox, 复杂物理系统、控制理论与电网",
+        "url": "https://hardcore-systems.com/ros2/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 53,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Coding Interview University - 计算机底层工程基石知识点",
+        "alternativeHeadline": "Coding Interview University - Computer Science Engineering Foundations",
+        "description": "系统性提炼和解构软件工程基石学科知识，深入理解数据结构在内存物理分布与寻址上的效率差异，为编写高性能系统程序打下坚实的物理心智基石。",
+        "headline": "计算机底层工程基石知识点",
+        "keywords": "coding_interview_university, system engineering, architecture, cheatsheet, interactive sandbox, 现代软件开发方法论与高级模式",
+        "url": "https://hardcore-systems.com/coding_interview_university/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 54,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Developer Roadmap - 资深全栈系统工程师技能路径",
+        "alternativeHeadline": "Developer Roadmap - Senior Systems Developer Skill Roadmap",
+        "description": "为系统工程师规划一套系统科学的成长阶梯，帮助其从基础编码起步，穿过网络协议栈与操作系统内核的黑盒，成长为具备解决大型高吞吐系统故障的综合技术带头人。",
+        "headline": "资深全栈系统工程师技能路径",
+        "keywords": "developer_roadmap, system engineering, architecture, cheatsheet, interactive sandbox, 现代软件开发方法论与高级模式",
+        "url": "https://hardcore-systems.com/developer_roadmap/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 55,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Java Design Patterns - Java 经典设计模式与并发架构",
+        "alternativeHeadline": "Java Design Patterns - Java High-Concurrency & Enterprise Design Patterns",
+        "description": "将经典的面向对象软件设计模式与 Java 高并发运行时机制结合，提供在内存安全与垃圾回收机制限界下的强内聚、低耦合的可复用架构落地蓝图。",
+        "headline": "Java 经典设计模式与并发架构",
+        "keywords": "java_design_patterns, system engineering, architecture, cheatsheet, interactive sandbox, 现代软件开发方法论与高级模式",
+        "url": "https://hardcore-systems.com/java_design_patterns/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 56,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Production Survival & Refactoring - 业务工程学与微服务防雪崩重构",
+        "alternativeHeadline": "Production Survival & Refactoring - Production Survival & Microservice Refactoring Guide",
+        "description": "以日常生产防爆死、重构不挂为导向，提炼业务重构升级步法与级联故障熔断降级闭环，帮助业务工程师构建在大并发流量侵袭下“优雅降级”的韧性架构体系。",
+        "headline": "业务工程学与微服务防雪崩重构",
+        "keywords": "production_survival, system engineering, architecture, cheatsheet, interactive sandbox, 现代软件开发方法论与高级模式",
+        "url": "https://hardcore-systems.com/production_survival/"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 57,
+      "item": {
+        "@type": "TechArticle",
+        "name": "Rust Advanced Borrow Patterns - Rust 高级借用模式与类型状态设计",
+        "alternativeHeadline": "Rust Advanced Borrow Patterns - Rust Advanced Borrow Patterns & Typestate Safety",
+        "description": "利用 Rust 独特的零开销所有权与生命周期静态约束，在编译阶段锁死非法内存移动与状态逻辑错误，构建极高安全性且无运行时损耗的并发软件架构模式。",
+        "headline": "Rust 高级借用模式与类型状态设计",
+        "keywords": "rust_patterns, system engineering, architecture, cheatsheet, interactive sandbox, 现代软件开发方法论与高级模式",
+        "url": "https://hardcore-systems.com/rust_patterns/"
+      }
+    }
+  ]
+}
+    </script>
+    
+    <style>
+        :root {
+            --bg-main: #0E1012;
+            --bg-surface: #14171A;
+            --bg-card: rgba(26, 29, 32, 0.7);
+            --bg-card-hover: rgba(34, 38, 42, 0.9);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --border-hover: rgba(255, 255, 255, 0.12);
+            
+            --text-primary: #F0F2F5;
+            --text-secondary: #9EA2A7;
+            --text-muted: #5E6266;
+            
+            --primary: #7A8B99;
+            --primary-rgb: 122, 139, 153;
+            --secondary: #7D8F7B;
+            --accent-rose: #9E828A;
+            --accent-clay: #B58A7D;
+            --accent-indigo: #5F7582;
+            --accent-gold: #BFA88F;
+            
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
+            --shadow-lg: 0 16px 48px rgba(0,0,0,0.7);
+            
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-display: 'Outfit', var(--font-sans);
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Layout Grid */
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 0 32px;
+        }
+        
+        /* Header & Navbar */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(14, 16, 18, 0.85);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 16px 0;
+        }
+        
+        .nav-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .brand-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-indigo));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-family: var(--font-display);
+            font-size: 16px;
+            color: #fff;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .brand-text h1 {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+        }
+        
+        .brand-text p {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        
+        .lang-toggle {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 4px;
+            display: flex;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+            width: 96px;
+            height: 32px;
+        }
+        
+        .lang-toggle span {
+            flex: 1;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            z-index: 2;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s ease;
+        }
+        
+        .lang-toggle span.active {
+            color: var(--bg-main);
+        }
+        
+        .lang-toggle .toggle-btn {
+            position: absolute;
+            left: 4px;
+            top: 4px;
+            width: 44px;
+            height: 22px;
+            background: var(--text-primary);
+            border-radius: 12px;
+            z-index: 1;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        body.lang-en .lang-toggle .toggle-btn {
+            transform: translateX(44px);
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding: 80px 0 60px 0;
+            background: radial-gradient(circle at 80% 20%, rgba(122, 139, 153, 0.08), transparent 45%);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .hero-content {
+            max-width: 800px;
+        }
+        
+        .hero h2 {
+            font-family: var(--font-display);
+            font-size: 48px;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -1px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--text-primary) 30%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .hero p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            font-weight: 300;
+        }
+        
+        .hero-stats {
+            display: flex;
+            gap: 48px;
+        }
+        
+        .stat-item h3 {
+            font-family: var(--font-display);
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .stat-item p {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0;
+            margin-top: 4px;
+        }
+        
+        /* Explainer/Features Guide Section */
+        .features-guide {
+            padding: 60px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .guide-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+        
+        .guide-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 28px;
+            transition: var(--transition-smooth);
+        }
+        
+        .guide-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+        
+        .guide-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            background: rgba(122, 139, 153, 0.08);
+            color: var(--primary);
+        }
+        
+        .guide-card h4 {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .guide-card p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        /* Main Catalog Workspace */
+        .workspace {
+            padding: 60px 0;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 40px;
+        }
+        
+        /* Sidebar Filtering */
+        .sidebar {
+            position: sticky;
+            top: 96px;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+            padding-right: 16px;
+        }
+        
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+        }
+        
+        .filter-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
+            padding-left: 8px;
+        }
+        
+        .category-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .category-item button {
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: var(--transition-smooth);
+        }
+        
+        .category-item button:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+        }
+        
+        .category-item.active button {
+            background: rgba(122, 139, 153, 0.08);
+            border-color: rgba(122, 139, 153, 0.15);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .category-count {
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-muted);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-family: var(--font-display);
+        }
+        
+        .category-item.active .category-count {
+            background: var(--primary);
+            color: var(--bg-main);
+            font-weight: 700;
+        }
+        
+        /* Catalog Content Area */
+        .catalog {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+        
+        /* Search & Top Filters */
+        .catalog-controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 14px 20px 14px 44px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: var(--font-sans);
+            transition: var(--transition-smooth);
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(122, 139, 153, 0.15);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+        
+        .status-filter {
+            display: flex;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            padding: 4px;
+            border-radius: 10px;
+        }
+        
+        .status-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+        
+        .status-btn.active {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-primary);
+        }
+        
+        /* Portfolio Grid */
+        .portfolio-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        
+        /* Project Cards */
+        .project-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition-smooth);
+        }
+        
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--card-accent, var(--primary));
+            opacity: 0.7;
+        }
+        
+        .project-card:hover {
+            border-color: var(--border-hover);
+            background: var(--bg-card-hover);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .cls-badge {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--card-accent, var(--primary));
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid currentColor;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--text-muted);
+        }
+        
+        .status-published .dot {
+            background-color: var(--secondary);
+            box-shadow: 0 0 8px var(--secondary);
+        }
+        
+        .project-card h5 {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+        
+        .project-card .subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            font-weight: 500;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .project-card .description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            flex-grow: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.6;
+        }
+        
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            padding-top: 16px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        
+        .card-action-hint {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary);
+            font-weight: 600;
+            opacity: 0;
+            transform: translateX(-4px);
+            transition: var(--transition-smooth);
+        }
+        
+        .project-card:hover .card-action-hint {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 80px 0;
+            color: var(--text-secondary);
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+            background: var(--bg-card);
+        }
+        
+        .no-results h6 {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        
+        /* Modal Drawer */
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        
+        .drawer-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .drawer {
+            position: fixed;
+            top: 0;
+            right: -600px;
+            width: 600px;
+            height: 100%;
+            background: var(--bg-surface);
+            border-left: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        .drawer-overlay.active .drawer {
+            transform: translateX(-600px);
+        }
+        
+        .drawer-header {
+            padding: 32px;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 32px;
+            right: 32px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border-color);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+        
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        
+        .drawer-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+        }
+        
+        .drawer-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        .drawer-body::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        
+        .drawer h3 {
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+        
+        .drawer .subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+        
+        .drawer-section {
+            margin-bottom: 32px;
+        }
+        
+        .drawer-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+        }
+        
+        .drawer-p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+        
+        .drawer-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+        
+        .action-button {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: var(--transition-smooth);
+        }
+        
+        .action-button:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-hover);
+        }
+        
+        .action-button.primary-action {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: var(--bg-main);
+        }
+        
+        .action-button.primary-action:hover {
+            background: #a1b0bd;
+            border-color: #a1b0bd;
+        }
+        
+        .planned-banner {
+            background: rgba(122, 139, 153, 0.04);
+            border: 1px dashed rgba(122, 139, 153, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        
+        /* Interactive Sandbox Preview Panel (inside drawer if possible) */
+        .sandbox-preview-container {
+            margin-top: 24px;
+            width: 100%;
+            height: 280px;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .sandbox-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+        }
+        
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: 48px 0;
+            background: #090B0D;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        
+        .footer-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-family: var(--font-display);
+        }
+        
+        /* Responsive design */
+        @media (max-width: 1024px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: static;
+                height: auto;
+                overflow-y: visible;
+                padding-right: 0;
+                margin-bottom: 24px;
+            }
+            .category-list {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .category-item button {
+                width: auto;
+                padding: 8px 14px;
+            }
+            .portfolio-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-wrapper {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+            }
+            .lang-toggle {
+                align-self: flex-end;
+            }
+            .hero {
+                padding: 48px 0 36px 0;
+            }
+            .hero h2 {
+                font-size: 32px;
+            }
+            .hero p {
+                font-size: 15px;
+            }
+            .hero-stats {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .guide-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            .catalog-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .portfolio-grid {
+                grid-template-columns: 1fr;
+            }
+            .drawer {
+                width: 100%;
+                right: -100%;
+            }
+            .drawer-overlay.active .drawer {
+                transform: translateX(-100%);
+            }
+            .drawer-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="lang-zh">
+
+    <header>
+        <div class="container nav-wrapper">
+            <div class="brand">
+                <div class="brand-logo">H</div>
+                <div class="brand-text">
+                    <h1 data-zh="硬核技术系统工程" data-en="Hardcore Systems Engineering">硬核技术系统工程</h1>
+                    <p data-zh="顶尖开源项目与底层机制拆解" data-en="Frontier Open Source Internals Demystified">顶尖开源项目与底层机制拆解</p>
+                </div>
+            </div>
+            
+            <div class="lang-toggle" onclick="toggleLanguage()">
+                <div class="toggle-btn"></div>
+                <span class="active" id="btn-zh">中</span>
+                <span id="btn-en">EN</span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container hero-content">
+                <h2 data-zh="57个顶级系统工程演练与折中矩阵" data-en="57 Hardcore Systems Engineering Projects">57个顶级系统工程演练与折中矩阵</h2>
+                <p data-zh="这不仅在市面上没有任何同类产品能够比拟，而且其技术与设计屏障短期内无法被任何大模型一键生成复制。包含 etcd, RocksDB, Linux 内核, eBPF, Tokio, v8, WebAssembly, CUDA 等底层架构的高密度海报、离散仿真沙盒及互动图谱。"
+                   data-en="An unparalleled library of deep-dive systems cheatsheets, opinionated trade-off matrices, and interactive simulation sandboxes. Covering etcd, RocksDB, eBPF, Tokio, v8, WebAssembly, CUDA, and more. Highly defensible against one-shot AI compilation.">
+                    这不仅在市面上没有任何同类产品能够比拟，而且其技术与设计屏障短期内无法被任何大模型一键生成复制。包含 etcd, RocksDB, Linux 内核, eBPF, Tokio, v8, WebAssembly, CUDA 等底层架构的高密度海报、离散仿真沙盒及互动图谱。
+                </p>
+                
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <h3>57</h3>
+                        <p data-zh="系统工程项目" data-en="Systems Projects">系统工程项目</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>57</h3>
+                        <p data-zh="离线交互沙盒" data-en="Offline Sandboxes">离线交互沙盒</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>11</h3>
+                        <p data-zh="分类维度" data-en="Classifications">分类维度</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Three Column Explainer Guide -->
+        <section class="features-guide">
+            <div class="container guide-grid">
+                <div class="guide-card">
+                    <div class="guide-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line></svg>
+                    </div>
+                    <h4 data-zh="A4高密双语速查卡 (Cheatsheet)" data-en="A4 Dense Bilingual Cheatsheet">A4高密双语速查卡 (Cheatsheet)</h4>
+                    <p data-zh="精准划定核心板块与物理页面预算。基于 L0 ~ L2 压缩阶梯、第一性原理公理与硬核排障指南，提供彩色 A4 页面极度紧凑的系统大图与排版完美的 LaTeX PDF 文件。" 
+                       data-en="Engineered within strict physical page budgets. Leverages L0-L2 compression steps, first-principles axioms, and operational troubleshooting dictionaries, compiled into beautiful A4 landscape LaTeX PDFs.">
+                        精准划定核心板块与物理页面预算。基于 L0 ~ L2 压缩阶梯、第一性原理公理与硬核排障指南，提供彩色 A4 页面极度紧凑的系统大图与排版完美的 LaTeX PDF 文件。
+                    </p>
+                </div>
+                
+                <div class="guide-card">
+                    <div class="guide-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                    </div>
+                    <h4 data-zh="依存关系知识图谱 (Map)" data-en="Dependency Knowledge Map">依存关系知识图谱 (Map)</h4>
+                    <p data-zh="离线单文件 HTML 图谱，清晰表达模块、卡片与技术要点之间的拓扑连线。提供多维连线依赖追溯，协助架构师在大脑中构建完整的底盘脉络。" 
+                       data-en="Self-contained offline HTML graphs illustrating topological mappings between modules, cards, and technical nodes. Multi-dimensional tracing empowers architects to visualize complex component paths.">
+                        离线单文件 HTML 图谱，清晰表达模块、卡片与技术要点之间的拓扑连线。提供多维连线依赖追溯，协助架构师在大脑中构建完整的底盘脉络。
+                    </p>
+                </div>
+                
+                <div class="guide-card">
+                    <div class="guide-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    </div>
+                    <h4 data-zh="离散演练双沙盒 (Sandbox)" data-en="Discrete Dual-Sandbox Simulator">离散演练双沙盒 (Sandbox)</h4>
+                    <p data-zh="双击即启的轻量模拟器，聚焦高频架构设计的两两对比（如 Raft脑裂 vs 正常选举、B+树分裂 vs LSM合并、Kafka Pull vs RabbitMQ Push）。用户可通过拖拽参数进行实时多维对比仿真。" 
+                       data-en="Zero-setup interactive offline HTML runners mapping core comparative systems (e.g. Raft split-brain, B+ tree vs LSM-tree, Kafka Pull vs RabbitMQ Push). Adjust slider variables to visualize latency, throughput, and error states.">
+                        双击即启的轻量模拟器，聚焦高频架构设计的两两对比（如 Raft脑裂 vs 正常选举、B+树分裂 vs LSM合并、Kafka Pull vs RabbitMQ Push）。用户可通过拖拽参数进行实时多维对比仿真。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Workspace Catalog -->
+        <section class="container workspace">
+            <!-- Sidebar Filters -->
+            <aside class="sidebar">
+                <h4 class="filter-section-title" data-zh="技术分类" data-en="Classifications">技术分类</h4>
+                <ul class="category-list" id="category-list">
+                    <!-- JavaScript will populate categories here -->
+                </ul>
+            </aside>
+            
+            <!-- Catalog List & Search -->
+            <div class="catalog">
+                <div class="catalog-controls">
+                    <div class="search-box">
+                        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" class="search-input" id="search-input" placeholder="搜索系统、关键字、核心符号..." data-zh-placeholder="搜索系统、关键字、核心符号..." data-en-placeholder="Search systems, keywords, symbols...">
+                    </div>
+                    
+                    <div class="status-filter">
+                        <button class="status-btn active" onclick="setStatusFilter('all')" data-zh="全部专题 (57)" data-en="All (57)">全部专题 (57)</button>
+                        <button class="status-btn" onclick="setStatusFilter('published')" data-zh="离线沙盒已上线 (57)" data-en="Live Sandboxes (57)">离线沙盒已上线 (57)</button>
+                        <button class="status-btn" onclick="setStatusFilter('planned')" data-zh="实体书规划 (0)" data-en="Planned in Book (0)">实体书规划 (0)</button>
+                    </div>
+                </div>
+                
+                <!-- Cards Grid -->
+                <div class="portfolio-grid" id="portfolio-grid">
+                    <!-- JavaScript will populate cards here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Slide-in Drawer Modal -->
+    <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()">
+        <div class="drawer" id="drawer" onclick="event.stopPropagation()">
+            <div class="drawer-header">
+                <button class="close-btn" onclick="closeDrawer()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <div class="cls-badge" id="drawer-cls-badge">01</div>
+                <h3 id="drawer-title">etcd</h3>
+                <div class="subtitle" id="drawer-subtitle">分布式强一致性存储</div>
+            </div>
+            <div class="drawer-body">
+                <div class="drawer-section">
+                    <h5 class="drawer-section-title" data-zh="L0 一句话本质" data-en="L0 Core Essence">L0 一句话本质</h5>
+                    <p class="drawer-p" id="drawer-l0"></p>
+                </div>
+                
+                <div class="drawer-section">
+                    <h5 class="drawer-section-title" data-zh="攻坚重点剖析 (Focus)" data-en="Deep-Dive Focus Area">攻坚重点剖析 (Focus)</h5>
+                    <p class="drawer-p" id="drawer-focus"></p>
+                </div>
+                
+                <div class="drawer-section" id="drawer-sandbox-section" style="display: none;">
+                    <h5 class="drawer-section-title" data-zh="离线沙盒实时演练预览" data-en="Live Interactive Sandbox Preview">离线沙盒实时演练预览</h5>
+                    <div class="sandbox-preview-container">
+                        <iframe id="sandbox-iframe" class="sandbox-iframe" src=""></iframe>
+                    </div>
+                </div>
+                
+                <div class="drawer-section">
+                    <h5 class="drawer-section-title" data-zh="系统资源组件" data-en="Systems Resources Components">系统资源组件</h5>
+                    <div class="drawer-actions" id="drawer-actions">
+                        <!-- Action buttons will be injected dynamically -->
+                    </div>
+                    <div class="planned-banner" id="drawer-planned-banner" style="display: none;"
+                         data-zh="🔒 本专题为《硬核技术系统工程》纸质版专属大纲与完整卡片，离线电子版沙盒与PDF已集成在实体书籍配套大礼包中。"
+                         data-en="🔒 This project is fully published in the physical edition of the book. Digital bundle resources are provided in the book companion bundle.">
+                        🔒 本专题为《硬核技术系统工程》纸质版专属大纲与完整卡片，离线电子版沙盒与PDF已集成在实体书籍配套大礼包中。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container footer-wrapper">
+            <div class="footer-logo">
+                <div class="brand-logo" style="width: 24px; height: 24px; font-size: 12px; border-radius: 6px;">H</div>
+                <span>Hardcore Systems Engineering</span>
+            </div>
+            <p>© 2026 Hardcore Systems Engineering. All rights reserved. Workspace Single-file Edition.</p>
+        </div>
+    </footer>
+
+    <!-- JS Core Logic -->
+    <script>
+        const projects = [
+  {
+    "name": "cockroachdb",
+    "classification_id": "01",
+    "classification_cn": "分布式系统与共识算法",
+    "classification_en": "Distributed Systems & Consensus",
+    "path": "01-distributed-systems/38-cockroachdb",
+    "is_published": true,
+    "title_cn": "CockroachDB",
+    "title_en": "CockroachDB",
+    "subtitle_cn": "Spanner 架构强一致分布式 SQL 数据库",
+    "subtitle_en": "Spanner-inspired Distributed SQL Database",
+    "github_url": "https://github.com/cockroachdb/cockroach",
+    "focus_cn": "专注于 Multi-Raft 水平分片复制、基于混合逻辑时钟 (HLC) 的无锁分布式事务、MVCC 快照隔离、Raft 租约读优化以及分布式 SQL 引擎执行计划",
+    "focus_en": "Focuses on Multi-Raft range partitioning, Hybrid Logical Clocks (HLC) for lockless transaction ordering, MVCC snapshot isolation, and distributed SQL query planning.",
+    "l0_essence_cn": "分布式 SQL 数据库的本质是利用 Multi-Raft 进行水平 Range 分片共识复制，基于混合逻辑时钟（HLC）和 MVCC 实现分布式事务一致性与快照隔离，使得无共享架构集群呈现单机关系型 SQL 数据库的体验。",
+    "l0_essence_en": "A distributed relational database leveraging Multi-Raft replication, Hybrid Logical Clocks, and MVCC to achieve horizontally scalable ACID transactions."
+  },
+  {
+    "name": "etcd",
+    "classification_id": "01",
+    "classification_cn": "分布式系统与共识算法",
+    "classification_en": "Distributed Systems & Consensus",
+    "path": "01-distributed-systems/20-etcd",
+    "is_published": true,
+    "title_cn": "etcd",
+    "title_en": "etcd",
+    "subtitle_cn": "分布式协调与强一致性存储",
+    "subtitle_en": "Distributed Coordination & Consistent Key-Value Store",
+    "github_url": "https://github.com/etcd-io/etcd",
+    "focus_cn": "专注于 Raft 状态机日志流、WAL 持久化保障、BoltDB 磁盘存储、MVCC 版本索引、Lease 租约生命周期以及 Watch 异步时间驱动机制",
+    "focus_en": "Focuses on Raft consensus, WAL durability, BoltDB file structures, MVCC revision indexes, Lease life cycles, and Watch async streaming.",
+    "l0_essence_cn": "通过 Raft 协议在分布式节点间维护强一致性的复制状态机，配合底层的 MVCC 多版本存储与 BoltDB，为云原生架构提供高可用、强一致的元数据协调底座。",
+    "l0_essence_en": "Maintains a highly consistent replicated state machine across distributed nodes using Raft, coupled with MVCC and BoltDB to provide service discovery."
+  },
+  {
+    "name": "kafka",
+    "classification_id": "01",
+    "classification_cn": "分布式系统与共识算法",
+    "classification_en": "Distributed Systems & Consensus",
+    "path": "01-distributed-systems/21-kafka",
+    "is_published": true,
+    "title_cn": "Kafka",
+    "title_en": "Kafka",
+    "subtitle_cn": "高性能分布式事件流平台",
+    "subtitle_en": "High-Performance Distributed Event Streaming Platform",
+    "github_url": "https://github.com/apache/kafka",
+    "focus_cn": "专注于日志分段稀疏索引、操作系统页缓存调优、网络 Sendfile 零拷贝、ISR 复制与 Leader Epoch 灾后恢复、KRaft 共识协议以及消费者组再平衡机制",
+    "focus_en": "Focuses on log segment index structures, OS Page Cache tuning, Sendfile zero-copy IO, ISR replication, KRaft consensus, and consumer group rebalance.",
+    "l0_essence_cn": "基于操作系统页缓存的顺序追加文件存储，配合零拷贝网络发送与分区副本高水位同步机制，构建高吞吐、低延迟的分布式事件流平台。",
+    "l0_essence_en": "A highly-scalable event-streaming platform leveraging sequential append storage, OS PageCache, Zero-Copy networking, and partition replica high-watermark replication."
+  },
+  {
+    "name": "maelstrom",
+    "classification_id": "01",
+    "classification_cn": "分布式系统与共识算法",
+    "classification_en": "Distributed Systems & Consensus",
+    "path": "01-distributed-systems/59-maelstrom",
+    "is_published": true,
+    "title_cn": "Maelstrom",
+    "title_en": "Maelstrom",
+    "subtitle_cn": "分布式系统一致性与容错测试床",
+    "subtitle_en": "Distributed System Consensus & Fault-Tolerance Testbed",
+    "github_url": "https://github.com/jepsen-io/maelstrom",
+    "focus_cn": "专注于 Jepsen 混沌工程测试床、Maelstrom RPC 消息收发机制、分布式系统仿真测试、网络延迟与分区注入、以及常见分布式协议的快速实现与正确性检验",
+    "focus_en": "Focuses on Jepsen testing framework, Maelstrom RPC node protocols, network partition injection, and validation of consensus algorithms under chaotic network environments.",
+    "l0_essence_cn": "通过模拟真实的分布式网络拓扑与节点失效，基于进程间标准输入输出 (Stdin/Stdout) 传输 JSON 消息，为分布式系统核心算法的模拟验证提供极简的容错测试环境。",
+    "l0_essence_en": "An educational workbench for writing distributed toy systems in any language, testing them under severe simulated network partitions and crashes."
+  },
+  {
+    "name": "mit_6.824",
+    "classification_id": "01",
+    "classification_cn": "分布式系统与共识算法",
+    "classification_en": "Distributed Systems & Consensus",
+    "path": "01-distributed-systems/37-mit_6.824",
+    "is_published": true,
+    "title_cn": "MIT 6.824",
+    "title_en": "MIT 6.824",
+    "subtitle_cn": "分布式系统工程学课程",
+    "subtitle_en": "Distributed Systems Engineering Labs",
+    "github_url": "https://github.com/mit-pdos/6.824-golabs",
+    "focus_cn": "专注于 MapReduce 分布式计算框架、基于 Raft 协议的复制状态机、强一致性 KV 存储服务、分片式 ShardKV 以及基于 2PC/Paxos 的分布式事务",
+    "focus_en": "Focuses on MapReduce runtime, Raft consensus algorithm implementation, fault-tolerant KV store, and dynamically sharded KV (ShardKV) with transactional 2PC.",
+    "l0_essence_cn": "分布式系统工程的本质是利用共识协议与状态机复制技术，在充满网络延迟、分区及节点崩溃的物理现实中，构建具备线性一致性与高容灾能力的统一状态服务。",
+    "l0_essence_en": "Teaches how to build reliable, fault-tolerant distributed storage systems through state machine replication, consensus protocols, and linearizability verification."
+  },
+  {
+    "name": "tikv",
+    "classification_id": "01",
+    "classification_cn": "分布式系统与共识算法",
+    "classification_en": "Distributed Systems & Consensus",
+    "path": "01-distributed-systems/58-tikv",
+    "is_published": true,
+    "title_cn": "TiKV",
+    "title_en": "TiKV",
+    "subtitle_cn": "分布式事务 Key-Value 数据库",
+    "subtitle_en": "Distributed Transactional Key-Value Database",
+    "github_url": "https://github.com/tikv/tikv",
+    "focus_cn": "专注于 Multi-Raft 复制组、基于 Percolator 模型的两阶段提交 (2PC) 分布式事务、RocksDB 底层存储引擎优化、以及 Coprocessor 算子下推与分布式计算优化",
+    "focus_en": "Focuses on Multi-Raft consensus, Percolator-based distributed 2PC transactions, RocksDB storage optimizations, and Coprocessor query push-down execution.",
+    "l0_essence_cn": "通过 Multi-Raft 机制实现数据的自动分片与一致性复制，引入 Percolator 算法保障分布式强事务，配合 RocksDB 列族存储，为大规模云原生数据计算提供高容错、高吞吐的存储底座。",
+    "l0_essence_en": "A highly-scalable transactional key-value store powered by Rust, Multi-Raft, RocksDB, and a Percolator-based 2-Phase Commit transaction engine."
+  },
+  {
+    "name": "clickhouse",
+    "classification_id": "02",
+    "classification_cn": "数据库内幕与存储引擎",
+    "classification_en": "Database Internals & Storage Engines",
+    "path": "02-database-internals/26-clickhouse",
+    "is_published": true,
+    "title_cn": "ClickHouse",
+    "title_en": "ClickHouse",
+    "subtitle_cn": "高性能分析型列式数据库",
+    "subtitle_en": "High-Performance Columnar Analytical DBMS",
+    "github_url": "https://github.com/ClickHouse/ClickHouse",
+    "focus_cn": "专注于 MergeTree 列式存储结构、稀疏索引与列压缩算法、向量化执行引擎 (SIMD)、分布式并行查询 (SMP)、以及基于 Paxos 协议的副本同步机制",
+    "focus_en": "Focuses on MergeTree columnar storage format, sparse primary indexes, vectorized query execution (SIMD), and distributed query processing.",
+    "l0_essence_cn": "针对大规模 OLAP 分析场景，将相同列的数据连续存储于物理磁盘，通过块级数据稀疏索引与 Lz4/Zstd 极速压缩，配合 CPU 向量化寄存器指令集，实现千亿级数据秒级聚合的分析系统。",
+    "l0_essence_en": "A fast open-source column-oriented DBMS for online analytical processing (OLAP) utilizing SIMD vectorization and parallel execution."
+  },
+  {
+    "name": "duckdb",
+    "classification_id": "02",
+    "classification_cn": "数据库内幕与存储引擎",
+    "classification_en": "Database Internals & Storage Engines",
+    "path": "02-database-internals/60-duckdb",
+    "is_published": true,
+    "title_cn": "DuckDB",
+    "title_en": "DuckDB",
+    "subtitle_cn": "嵌入式进程内分析型 SQL 引擎",
+    "subtitle_en": "Embedded In-Process Analytical SQL Engine",
+    "github_url": "https://github.com/duckdb/duckdb",
+    "focus_cn": "专注于 Vectorized Execution 向量化查询执行、HyperLogLog 基数估计、无冲突共享内存并发调度、以及单文件 Parquet/CSV 极速零拷贝分析",
+    "focus_en": "Focuses on vectorized engine, pipeline-breaker compilation, shared-memory concurrency, and zero-copy analysis of CSV/Parquet/Arrow files.",
+    "l0_essence_cn": "利用向量化执行引擎（以 1024 行 Vector 为数据处理单元）和多核并行调度（Pipeline Parallelism），提供高性能、零网络开销、即插即用的嵌入式进程内分析数据库。",
+    "l0_essence_en": "An in-process columnar database designed for analytical queries, supporting high-performance vector processing and deep integration with data pipelines."
+  },
+  {
+    "name": "postgres",
+    "classification_id": "02",
+    "classification_cn": "数据库内幕与存储引擎",
+    "classification_en": "Database Internals & Storage Engines",
+    "path": "02-database-internals/25-postgres",
+    "is_published": true,
+    "title_cn": "PostgreSQL",
+    "title_en": "PostgreSQL",
+    "subtitle_cn": "企业级关系型数据库内核",
+    "subtitle_en": "Enterprise Relational Database Kernel",
+    "github_url": "https://github.com/postgres/postgres",
+    "focus_cn": "专注于多进程并发架构 (Postmaster)、基于 MVCC 的多版本控制与元组隐藏列、WAL（预写日志）持久化与 ARIES 崩溃自愈、基于 B-Tree 索引的并发锁定机制、以及查询分析/重写与遗传算法优化器",
+    "focus_en": "Focuses on multi-process concurrency (Postmaster), MVCC tuple visibility flags, WAL & ARIES recovery, B-Tree index locking, and Cost-based Query Optimizer.",
+    "l0_essence_cn": "基于多进程安全并发模型，采用独特的页内元组物理多版本控制 (MVCC)，辅以共享内存 Buffer Pool 和双写缓冲区，构建高扩展、强健的关系型通用数据库管理系统。",
+    "l0_essence_en": "An advanced enterprise-class open source relational database utilizing a process-per-connection model and robust MVCC mechanics."
+  },
+  {
+    "name": "red_book",
+    "classification_id": "02",
+    "classification_cn": "数据库内幕与存储引擎",
+    "classification_en": "Database Internals & Storage Engines",
+    "path": "02-database-internals/22-red_book",
+    "is_published": true,
+    "title_cn": "Database Red Book",
+    "title_en": "Database Red Book",
+    "subtitle_cn": "数据库系统架构设计蓝图",
+    "subtitle_en": "Architecture of a Database System (Red Book)",
+    "github_url": "https://github.com/josephmhellerstein/db-book",
+    "focus_cn": "专注于进程线程并发模型、关系查询处理器与优化器、存储引擎管理器与 Buffer Pool 调度、SS2PL 并发锁控制、ARIES 崩溃恢复协议、以及 Shared-Nothing 并行分布式架构",
+    "focus_en": "Focuses on process/thread models, relation query compilation, Buffer Pool managers, SS2PL locking protocols, ARIES crash recovery, and Shared-Nothing systems.",
+    "l0_essence_cn": "在非易失性存储与易失性内存的物理限界下，通过并发控制与预写日志保证 ACID 强一致约束，并借由查询优化器与存储引擎最大化 I/O 与 CPU 吞吐的关系型计算系统。",
+    "l0_essence_en": "A fundamental text detailing the engineering trade-offs of modern relational database management systems, process models, caching, and ACID engines."
+  },
+  {
+    "name": "redis",
+    "classification_id": "02",
+    "classification_cn": "数据库内幕与存储引擎",
+    "classification_en": "Database Internals & Storage Engines",
+    "path": "02-database-internals/24-redis",
+    "is_published": true,
+    "title_cn": "Redis",
+    "title_en": "Redis",
+    "subtitle_cn": "极速单线程内存数据结构服务",
+    "subtitle_en": "In-Memory Data Structure Store & Net IO Model",
+    "github_url": "https://github.com/redis/redis",
+    "focus_cn": "专注于 Redis 单线程 Reactor 网络 I/O 复用、SDS 动态字符串与压缩列表底层结构、RDB 快照与 AOF 追加持久化、哨兵机制 (Sentinel) 与主从同步、以及 Redis Cluster 槽位分片路由",
+    "focus_en": "Focuses on Redis single-threaded Reactor IO multiplexing, SDS & ziplist memory representations, RDB/AOF persistence, Sentinel HA, and Cluster hash slots.",
+    "l0_essence_cn": "将丰富的通用数据结构存储于高速易失性内存中，采用单线程 Reactor 非阻塞多路复用驱动网络，辅以 AOF 追加与 RDB 快照持久化，实现极致吞吐的多数据类型缓存与调度系统。",
+    "l0_essence_en": "An in-memory key-value data structure store running on a single-threaded event loop (Reactor pattern) with high throughput and low-latency access."
+  },
+  {
+    "name": "rocksdb",
+    "classification_id": "02",
+    "classification_cn": "数据库内幕与存储引擎",
+    "classification_en": "Database Internals & Storage Engines",
+    "path": "02-database-internals/19-rocksdb",
+    "is_published": true,
+    "title_cn": "RocksDB",
+    "title_en": "RocksDB",
+    "subtitle_cn": "嵌入式 LSM-Tree 存储引擎",
+    "subtitle_en": "High-Performance Embedded LSM-Tree Key-Value Store",
+    "github_url": "https://github.com/facebook/rocksdb",
+    "focus_cn": "专注于 WAL 写入流、SSTable 磁盘物理布局、Leveled Compaction 归并整理策略、写放大 (Write Amplification) 控制与 Write Stall 写限速调优",
+    "focus_en": "Focuses on WAL writes, MemTable caching, SSTable layout, Leveled Compaction algorithms, write amplification control, and thread rate limiting.",
+    "l0_essence_cn": "为了在非易失性随机读写受限的存储介质上实现极速写入吞吐，通过内存缓冲顺序追加写（MemTable/WAL）与后台分层归并合并（Compaction），提供基于快照隔离（Snapshot）的高性能并发读写状态机。",
+    "l0_essence_en": "Optimizes high-performance write throughput on non-volatile media via sequential append logs and background sorted compactions (LSM-tree)."
+  },
+  {
+    "name": "sled",
+    "classification_id": "02",
+    "classification_cn": "数据库内幕与存储引擎",
+    "classification_en": "Database Internals & Storage Engines",
+    "path": "02-database-internals/61-sled",
+    "is_published": true,
+    "title_cn": "Sled",
+    "title_en": "Sled",
+    "subtitle_cn": "现代锁无关嵌入式存储引擎",
+    "subtitle_en": "Modern Lock-Free Embedded Storage Engine in Rust",
+    "github_url": "https://github.com/spacejam/sled",
+    "focus_cn": "专注于 Bw-Tree 锁无关并发 B-Tree、基于 Epoch-Based Reclamation (EBR) 的无锁内存垃圾回收、页替换算法 LSN 链式追加、以及高吞吐并发写隔离",
+    "focus_en": "Focuses on Bw-Tree lock-free node logic, Epoch-Based Memory Reclamation (EBR), log-structured log-appending page states, and concurrency safety.",
+    "l0_essence_cn": "基于 Rust 语言与 EBR 垃圾回收机制，利用 Bw-Tree 的比较并交换（CAS）映射表实现多线程锁无关访问，配合页状态日志式链式追加，构建极致并发性能的现代嵌入式 KV 引擎。",
+    "l0_essence_en": "A modern lock-free embedded database written in Rust utilizing Bw-Tree architecture and epoch-based GC to deliver high multi-threaded concurrency."
+  },
+  {
+    "name": "sqlite",
+    "classification_id": "02",
+    "classification_cn": "数据库内幕与存储引擎",
+    "classification_en": "Database Internals & Storage Engines",
+    "path": "02-database-internals/23-sqlite",
+    "is_published": true,
+    "title_cn": "SQLite",
+    "title_en": "SQLite",
+    "subtitle_cn": "嵌入式关系数据库内幕",
+    "subtitle_en": "Embedded Relational Database Internals",
+    "github_url": "https://github.com/sqlite/sqlite",
+    "focus_cn": "专注于 SQLite VDBE 虚拟机字节码流、B-Tree 页面结构与 Pager 缓存控制、Rollback Journal 事务回滚机制、WAL 读写并发机制以及 OS VFS 物理锁机制",
+    "focus_en": "Focuses on SQLite virtual machine (VDBE), B-Tree structure, Pager subsystem, Rollback Journal recovery, WAL concurrency, and OS VFS locking.",
+    "l0_essence_cn": "在单文件物理隔离的限界下，通过声明式 SQL 编译为 VDBE 寄存器字节码流，借由 B-Tree 页与 Pager 缓存抽象 I/O，并利用 Journal 或 WAL 模式下的 VFS OS 锁定机制提供跨进程 ACID 强一致性的轻量级嵌入式关系数据库。",
+    "l0_essence_en": "A self-contained relational SQL engine executing bytecode on a register-based VM (VDBE) and using a pager to provide ACID on a single file."
+  },
+  {
+    "name": "cilium",
+    "classification_id": "03",
+    "classification_cn": "操作系统与 Linux 内核",
+    "classification_en": "OS & Linux Kernel Internals",
+    "path": "03-operating-systems/57-cilium",
+    "is_published": true,
+    "title_cn": "Cilium",
+    "title_en": "Cilium",
+    "subtitle_cn": "基于 eBPF 的高性能云网络与安全",
+    "subtitle_en": "eBPF-powered Cloud-Native Networking & Security",
+    "github_url": "https://github.com/cilium/cilium",
+    "focus_cn": "专注于 K8s Pod 跨节点隧道通信 (VxLAN/Geneve)、eBPF 旁路内核协议栈重定向 (sockmap)、基于 L7 代理的 Envoy 服务网格、IPSec/WireGuard 数据链路安全加密以及 Hubble 可观测性拓扑图",
+    "focus_en": "Focuses on K8s CNI VXLAN overlays, eBPF TC bypass socket routing, Envoy L7 policy intercept, and Hubble security monitoring dashboards.",
+    "l0_essence_cn": "利用 eBPF 技术在 Linux 内核网卡驱动层 (TC/XDP) 直接挂载处理钩子，打破传统 iptables 规则链的性能黑洞，实现云原生架构下极速、高性能的容器网络互联与网络安全策略准入。",
+    "l0_essence_en": "An eBPF-based CNI plug-in for Kubernetes that bypasses TCP/IP stack overhead at the routing layer to deliver optimal performance and network policies."
+  },
+  {
+    "name": "dae",
+    "classification_id": "03",
+    "classification_cn": "操作系统与 Linux 内核",
+    "classification_en": "OS & Linux Kernel Internals",
+    "path": "03-operating-systems/63-dae",
+    "is_published": true,
+    "title_cn": "dae",
+    "title_en": "dae",
+    "subtitle_cn": "基于 eBPF 的高性能透明网络代理",
+    "subtitle_en": "eBPF-based High-Performance Network Proxy",
+    "github_url": "https://github.com/daeuniverse/dae",
+    "focus_cn": "专注于 eBPF XDP 流量侦听与分类、TC (Traffic Control) 流量旁路分流、TPROXY 零拷贝透明代理、SO_ORIGINAL_DST 原始目的地址恢复、以及高性能匹配引擎",
+    "focus_en": "Focuses on eBPF XDP early drop, TC redirection, transparent proxying (TPROXY), original destination recovery, and low-latency rule matching.",
+    "l0_essence_cn": "利用 Linux 内核 TC 与 XDP 阶段的 eBPF 程序拦截入站与出站数据包，避免用户态与内核态的频繁上下文切换，直接在内核态完成路由决策与协议栈重定向，提供极致低延迟的透明代理体验。",
+    "l0_essence_en": "A transparent proxy utilizing eBPF to route and manipulate packets directly inside the Linux kernel TC/XDP stages, reducing latency."
+  },
+  {
+    "name": "eBPF_bcc",
+    "classification_id": "03",
+    "classification_cn": "操作系统与 Linux 内核",
+    "classification_en": "OS & Linux Kernel Internals",
+    "path": "03-operating-systems/18-eBPF_bcc",
+    "is_published": true,
+    "title_cn": "eBPF & BCC",
+    "title_en": "eBPF & BCC",
+    "subtitle_cn": "Linux eBPF 动态追踪与内核观测",
+    "subtitle_en": "Linux eBPF Dynamic Tracing & Kernel Observability",
+    "github_url": "https://github.com/iovisor/bcc",
+    "focus_cn": "专注于 eBPF 虚拟机寄存器限制与内核校验器规则、Kprobe/Uprobe 动静态探针注册、Tracepoint 高性能埋点、Perf Ring Buffer 零拷贝用户态数据交互、以及 BCC 前端 Python/C 代码编译加载流",
+    "focus_en": "Focuses on eBPF bytecode verification, Kprobes/Uprobes registration, Tracepoints, BPF Maps, and BCC compile-and-load orchestration pipelines.",
+    "l0_essence_cn": "通过在内核受控的沙盒虚拟机中安全运行经过校验的 JIT 字节码，拦截关键系统调用与事件，实现对 Linux 内核与应用层的非侵入式、低开销、极致可观测性监控。",
+    "l0_essence_en": "Safely runs JIT-compiled bytecode inside a kernel-level sandboxed VM at specific probes to achieve zero-overhead observability."
+  },
+  {
+    "name": "linux_insides",
+    "classification_id": "03",
+    "classification_cn": "操作系统与 Linux 内核",
+    "classification_en": "OS & Linux Kernel Internals",
+    "path": "03-operating-systems/28-linux_insides",
+    "is_published": true,
+    "title_cn": "Linux Insides",
+    "title_en": "Linux Insides",
+    "subtitle_cn": "Linux 内核引导与段页式内存管理",
+    "subtitle_en": "Linux Kernel Booting & Memory Management Internals",
+    "github_url": "https://github.com/0xAX/linux-insides",
+    "focus_cn": "专注于实模式与保护模式的 CPU 状态转换、内核引导自举流程、段寄存器与页表初始化、Linux 虚拟内存映射与内核页故障 (Page Fault) 异常处理流程",
+    "focus_en": "Focuses on BIOS-to-Kernel assembly boots, Real/Protected/Long mode transitions, MMU page table creation, and Kernel Page Fault exception paths.",
+    "l0_essence_cn": "展示 Linux 内核如何从主板固件的物理实模式起步，逐步配置 CPU 全局描述符表（GDT）与多级页表，完成内存段页式转换，建立进程地址空间及中断响应系统的自举过程。",
+    "l0_essence_en": "An in-depth guide through the initial boot steps and virtual memory setups of the Linux x86_64 kernel, from assembly to C scheduling."
+  },
+  {
+    "name": "ostep",
+    "classification_id": "03",
+    "classification_cn": "操作系统与 Linux 内核",
+    "classification_en": "OS & Linux Kernel Internals",
+    "path": "03-operating-systems/27-ostep",
+    "is_published": true,
+    "title_cn": "OSTEP OS Principles",
+    "title_en": "OSTEP OS Principles",
+    "subtitle_cn": "操作系统三驾马车原理",
+    "subtitle_en": "Operating Systems: Three Easy Pieces",
+    "github_url": "https://github.com/remzi-arpacidusseau/ostep-projects",
+    "focus_cn": "专注于虚拟化 (Virtualization)——进程调度与内存分页、并发 (Concurrency)——互斥锁/信号量与条件变量、持久化 (Persistence)——文件系统与日志崩溃恢复",
+    "focus_en": "Focuses on Virtualization (CPU scheduling & virtual memory), Concurrency (locks, semaphores, condvars), and Persistence (RAID, journaling, file systems).",
+    "l0_essence_cn": "操作系统通过进程与虚拟内存对物理 CPU 与内存资源进行受控的虚拟化隔离，利用锁和信号量协调高并发线程，并借由日志式文件系统保障断电物理存储的持久一致性。",
+    "l0_essence_en": "A deep dive into virtualization, concurrency, and persistence, explaining the structural foundations of CPU scheduling, MMU translation, and file storage."
+  },
+  {
+    "name": "xv6_riscv",
+    "classification_id": "03",
+    "classification_cn": "操作系统与 Linux 内核",
+    "classification_en": "OS & Linux Kernel Internals",
+    "path": "03-operating-systems/29-xv6_riscv",
+    "is_published": true,
+    "title_cn": "xv6-riscv",
+    "title_en": "xv6-riscv",
+    "subtitle_cn": "教案级 Unix-Like 操作系统内核",
+    "subtitle_en": "Unix-Like Educational OS Kernel for RISC-V",
+    "github_url": "https://github.com/mit-pdos/xv6-riscv",
+    "focus_cn": "专注于用户态与内核态特权级切换、硬中断与软中断陷阱 (Trap) 向量分发、进程控制块 (PCB) 状态机调度、页表映射与内存动态扩展",
+    "focus_en": "Focuses on user-kernel privilege mode switching (trampoline), PLIC interrupt vectors, process control blocks scheduling, and virtual page mappings.",
+    "l0_essence_cn": "在 RISC-V 硬件特权级限制下，通过 Trampoline 蹦床页保护上下文切换，利用多路复用时钟中断驱动多进程时间片轮转，在极小代码规模内阐明现代 Unix 操作系统微型内核的基本解构模型。",
+    "l0_essence_en": "A simple Unix v6 clone re-implemented for RISC-V processors, serving as a clean codebase to learn OS scheduling, traps, and memory page isolation."
+  },
+  {
+    "name": "dpdk",
+    "classification_id": "04",
+    "classification_cn": "计算机网络与高性能 IO",
+    "classification_en": "Computer Networking & High-Performance IO",
+    "path": "04-computer-networks/31-dpdk",
+    "is_published": true,
+    "title_cn": "DPDK",
+    "title_en": "DPDK",
+    "subtitle_cn": "用户态数据包极速处理框架",
+    "subtitle_en": "Data Plane Development Kit",
+    "github_url": "https://github.com/DPDK/dpdk",
+    "focus_cn": "专注于 UIO/VFIO 用户态网卡驱动绕过内核、PMD (Poll Mode Driver) 无中断轮询模式、大页内存 (Hugepages) 减少 TLB 抖动、无锁环形缓冲区 (Ring Buffer) 并发交互、以及 NUMA 架构下 CPU 亲和性绑定",
+    "focus_en": "Focuses on VFIO user-space PCIe drivers, Poll Mode Drivers (PMD), Hugepages allocation, lockless ring buffers, and NUMA-aware core binding.",
+    "l0_essence_cn": "为了打破 Linux 内核网络协议栈的性能中断与拷贝黑洞，采用用户态网卡驱动与 PMD 循环轮询机制，利用大页内存和无锁并发缓冲，最大化网络数据平面吞吐与包处理速率。",
+    "l0_essence_en": "Bypasses the OS kernel networking stack by placing hardware NIC ring controls in user-space, running continuous poll-mode iterations."
+  },
+  {
+    "name": "envoy",
+    "classification_id": "04",
+    "classification_cn": "计算机网络与高性能 IO",
+    "classification_en": "Computer Networking & High-Performance IO",
+    "path": "04-computer-networks/32-envoy",
+    "is_published": true,
+    "title_cn": "Envoy",
+    "title_en": "Envoy",
+    "subtitle_cn": "云原生高性能网关与服务代理",
+    "subtitle_en": "Cloud-Native High-Performance Proxy",
+    "github_url": "https://github.com/envoyproxy/envoy",
+    "focus_cn": "专注于非阻塞 EventLoop 线程模型与 Worker 亲和性分配、动态配置 API (xDS) 协议、主动/被动健康检查机制、过滤器链 (Filter Chain) 架构设计、以及负载均衡与服务治理",
+    "focus_en": "Focuses on multi-threaded event-driven workers, Dynamic Config APIs (xDS), filter chains, health-checking protocols, and traffic-routing engines.",
+    "l0_essence_cn": "基于 C++ 异步非阻塞网络模型，采用单进程多 Worker 线程池结合 libevent 事件驱动，设计基于过滤器模式的可扩展管道，配合 xDS 动态发现机制，提供低时延的容器级服务网格网关底座。",
+    "l0_essence_en": "An L7 proxy and communication bus designed for large microservice service meshes, featuring dynamic configuration and filter pipes."
+  },
+  {
+    "name": "quic_http3",
+    "classification_id": "04",
+    "classification_cn": "计算机网络与高性能 IO",
+    "classification_en": "Computer Networking & High-Performance IO",
+    "path": "04-computer-networks/33-quic_http3",
+    "is_published": true,
+    "title_cn": "QUIC & HTTP/3",
+    "title_en": "QUIC & HTTP/3",
+    "subtitle_cn": "下一代安全传输层协议解析",
+    "subtitle_en": "Next-Generation Transport Protocol Analysis",
+    "github_url": "https://github.com/quicwg/base-drafts",
+    "focus_cn": "专注于基于 UDP 封装的可靠传输实现、1-RTT / 0-RTT 极速连接建立与 TLS 1.3 深度融合、连接 ID (Connection ID) 应对移动网络漂移、解开 TCP 队头阻塞 (HOL) 的多流物理隔离模式、以及 QPACK 头部压缩机制",
+    "focus_en": "Focuses on UDP reliable stream mechanisms, 0-RTT TLS 1.3 handshakes, connection migration via CID, HTTP/3 stream multiplexing, and QPACK state compression.",
+    "l0_essence_cn": "通过在 UDP 协议之上重新实现可靠传输、并发流隔离与拥塞控制，将加密握手与传输层结合，彻底解决 TCP 协议在复杂无线网络下的队头阻塞与迁移断连痛点。",
+    "l0_essence_en": "A UDP-based multiplexed and secure transport protocol that solves Head-of-Line blocking and enables seamless connection migration."
+  },
+  {
+    "name": "seastar",
+    "classification_id": "04",
+    "classification_cn": "计算机网络与高性能 IO",
+    "classification_en": "Computer Networking & High-Performance IO",
+    "path": "04-computer-networks/62-seastar",
+    "is_published": true,
+    "title_cn": "Seastar",
+    "title_en": "Seastar",
+    "subtitle_cn": "锁无关 Shared-Nothing 高并发网络框架",
+    "subtitle_en": "Lock-Free Shared-Nothing Network Framework in C++",
+    "github_url": "https://github.com/scylladb/seastar",
+    "focus_cn": "专注于 C++20 协程与 Future-Promise 级联设计、Shared-Nothing 无共享内存多核分片架构、线程与物理网卡队列亲和性绑定、以及基于极少核间通信的锁无关数据通道",
+    "focus_en": "Focuses on Shared-Nothing thread-per-core partitions, C++20 coroutine streams, hardware-affinity lockless execution, and core messaging bus.",
+    "l0_essence_cn": "采用 Shared-Nothing (无共享) 的 Thread-per-core (单核单线程) 物理隔离设计，废弃互斥锁与条件变量，全量网络与磁盘 I/O 绕过系统调度，最大化发挥现代多核高并发硬件架构的物理吞吐潜力。",
+    "l0_essence_en": "An advanced framework for high-performance server applications using a thread-per-core architecture to completely eliminate locking overhead."
+  },
+  {
+    "name": "tokio",
+    "classification_id": "04",
+    "classification_cn": "计算机网络与高性能 IO",
+    "classification_en": "Computer Networking & High-Performance IO",
+    "path": "04-computer-networks/55-tokio",
+    "is_published": true,
+    "title_cn": "Tokio",
+    "title_en": "Tokio",
+    "subtitle_cn": "Rust 异步事件驱动 I/O 运行时",
+    "subtitle_en": "Rust Asynchronous Event-Driven I/O Runtime",
+    "github_url": "https://github.com/tokio-rs/tokio",
+    "focus_cn": "专注于 Rust 协程 (Future/Task) 执行调度、M:N 多线程多路复用调度模型、Work-Stealing (工作窃取) 负载均衡调度算法、Mio 网络多路复用 (Mio EventLoop) 以及协作式任务抢占 (Cooperative Budget)",
+    "focus_en": "Focuses on Future poll mechanics, Work-Stealing scheduler loops, Mio epoll integration, cooperative scheduling budget, and runtime timers.",
+    "l0_essence_cn": "在 Rust 的 Future 反应器模式之上，基于工作窃取（Work-Stealing）的多线程调度队列，配合非阻塞多路复用（Mio/epoll），构建高吞吐、零开销抽象的现代异步并发网络运行时。",
+    "l0_essence_en": "The premier event-driven platform for writing asynchronous applications in Rust, featuring a high-performance work-stealing scheduler."
+  },
+  {
+    "name": "top_down_networking",
+    "classification_id": "04",
+    "classification_cn": "计算机网络与高性能 IO",
+    "classification_en": "Computer Networking & High-Performance IO",
+    "path": "04-computer-networks/30-top_down_networking",
+    "is_published": true,
+    "title_cn": "Computer Networking: A Top-Down Approach",
+    "title_en": "Top-Down Networking",
+    "subtitle_cn": "自顶向下计算机网络体系结构",
+    "subtitle_en": "Computer Networking: A Top-Down Approach",
+    "github_url": "https://github.com/kurose-ross/computer-networking-supplementary",
+    "focus_cn": "专注于应用层 DNS/HTTP、传输层 TCP 可靠数据传输 (rdt) 与拥塞控制 (TCP Reno/BBR)、网络层 IP 编址与 OSPF 路由协议、链路层 CSMA/CD 与交换机转发机制",
+    "focus_en": "Focuses on TCP reliable transfer states, TCP Reno/BBR congestion loops, IP routing protocols (OSPF/BGP), and MAC-layer CSMA/CD logic.",
+    "l0_essence_cn": "从用户视角的应用层协议逐步解构到物理比特传输，着重阐明 TCP 状态机如何克服底层物理信道不可靠性实现端到端字节流可靠传递，以及路由器分布式路由算路的因特网体系结构。",
+    "l0_essence_en": "The classic structural breakdown of the TCP/IP stack from application layer down to link layer, focusing on reliable transport and routing."
+  },
+  {
+    "name": "awesome_scalability",
+    "classification_id": "05",
+    "classification_cn": "系统设计与高扩展架构",
+    "classification_en": "System Design & High-Scalability Architecture",
+    "path": "05-system-design/35-awesome_scalability",
+    "is_published": true,
+    "title_cn": "Awesome Scalability",
+    "title_en": "Awesome Scalability",
+    "subtitle_cn": "高扩展性架构演进设计",
+    "subtitle_en": "High-Scalability Architecture Patterns",
+    "github_url": "https://github.com/binhnguyennus/awesome-scalability",
+    "focus_cn": "专注于无状态计算节点扩展、分布式锁设计模式、多级缓存实战设计、高并发数据库选型策略、以及消息总线解耦模式",
+    "focus_en": "Focuses on stateless application scaling, distributed locking patterns, multi-level caching, high-concurrency storage, and messaging queues.",
+    "l0_essence_cn": "系统性收集与归纳大规模互联网巨头（如 Google, Netflix）在高扩展性、高可用性、可维护性等维度上的核心软件设计模式与实际架构落地准则。",
+    "l0_essence_en": "An organized list of design patterns, articles, and case studies detailing how modern software platforms scale to millions of concurrent users."
+  },
+  {
+    "name": "dapr",
+    "classification_id": "05",
+    "classification_cn": "系统设计与高扩展架构",
+    "classification_en": "System Design & High-Scalability Architecture",
+    "path": "05-system-design/64-dapr",
+    "is_published": true,
+    "title_cn": "Dapr",
+    "title_en": "Dapr",
+    "subtitle_cn": "分布式应用运行时 Sidecar 架构",
+    "subtitle_en": "Distributed Application Runtime Sidecar Architecture",
+    "github_url": "https://github.com/dapr/dapr",
+    "focus_cn": "专注于 Sidecar 模式物理隔离网络交互、服务调用 (Service Invocation) 状态路由、发布订阅 (Pub/Sub) 多组件接入、状态管理模型以及 actors 虚拟actor高并发状态管理",
+    "focus_en": "Focuses on Sidecar process isolation, service-to-service gRPC routing, pub/sub adapters, state store abstraction, and Virtual Actors design.",
+    "l0_essence_cn": "采用 Sidecar (边车) 进程独立运行模型，将底层复杂的分布式服务治理 (重试、路由、状态一致性) 封装为统一的 gRPC/HTTP API 接口，实现分布式应用开发的多语言与多云平台解耦。",
+    "l0_essence_en": "A portable, serverless, and event-driven runtime that simplifies cloud-native microservice development using the Sidecar pattern."
+  },
+  {
+    "name": "devops_firefighting",
+    "classification_id": "05",
+    "classification_cn": "系统设计与高扩展架构",
+    "classification_en": "System Design & High-Scalability Architecture",
+    "path": "05-system-design/73-devops_firefighting",
+    "is_published": true,
+    "title_cn": "DevOps Firefighting",
+    "title_en": "DevOps Firefighting",
+    "subtitle_cn": "SRE 生产应急救火手册",
+    "subtitle_en": "SRE Production Firefighting & Incident Mitigation Manual",
+    "github_url": "https://github.com/kubernetes/kubernetes",
+    "focus_cn": "专注于 K8s Pod 挂载与崩溃定位、Nginx 超时与 502/504 网络分析、DNS 解析失败与 CoreDNS 性能调优、以及云原生配置冲突修复",
+    "focus_en": "Focuses on K8s Pod CrashLoopBackOff diagnostics, Nginx gateway timeout paths, CoreDNS resolution tuning, and Terraform state conflicts.",
+    "l0_essence_cn": "以实战应急为导向，提炼生产环境中最致命的 K8s 漂移、Nginx 超时、DNS 解析瘫痪等云原生底层排障步法，助力 SRE 工程师在黄金 5 分钟内快速止血降级。",
+    "l0_essence_en": "A highly practical SRE incident guide for debugging high-priority system crashes, network timeouts, and dynamic scheduling failures in production."
+  },
+  {
+    "name": "sre_book",
+    "classification_id": "05",
+    "classification_cn": "系统设计与高扩展架构",
+    "classification_en": "System Design & High-Scalability Architecture",
+    "path": "05-system-design/36-sre_book",
+    "is_published": true,
+    "title_cn": "Google SRE Book",
+    "title_en": "Google SRE Book",
+    "subtitle_cn": "Google 站点可靠性工程实践",
+    "subtitle_en": "Google Site Reliability Engineering Practices",
+    "github_url": "https://github.com/google/sre-book",
+    "focus_cn": "专注于服务质量指标 (SLI/SLO/SLA) 与错误预算 (Error Budget)、线上故障应急排查与事后复盘、过载防御机制 (限流/降级/重试)、以及分布式系统监控与警报",
+    "focus_en": "Focuses on SLI/SLO/SLA design, Error Budgets, post-mortems, rate limiting, circuit breaking, cascading failures prevention, and monitoring telemetry.",
+    "l0_essence_cn": "将软件工程的设计方法引入基础设施运维工作中，以精确可量化的“错误预算”协调产品迭代速度与系统稳定性，实现高可用生产环境的智能自愈治理。",
+    "l0_essence_en": "Teaches how Google applies software development principles to manage, monitor, and scale production infrastructure reliability."
+  },
+  {
+    "name": "system_design_primer",
+    "classification_id": "05",
+    "classification_cn": "系统设计与高扩展架构",
+    "classification_en": "System Design & High-Scalability Architecture",
+    "path": "05-system-design/34-system_design_primer",
+    "is_published": true,
+    "title_cn": "System Design Primer",
+    "title_en": "System Design Primer",
+    "subtitle_cn": "系统设计入门与架构基石",
+    "subtitle_en": "System Design Primer & Architectural Foundations",
+    "github_url": "https://github.com/donnemartin/system-design-primer",
+    "focus_cn": "专注于高可用负载均衡 (Nginx/HAProxy)、水平扩展与垂直扩展、缓存设计 (CDN/Redis)、数据库分区 (Sharding/Replication)、一致性哈希以及 CAP/PACELC 定理分析",
+    "focus_en": "Focuses on Load Balancers, database sharding/replication, CAP/PACELC theorem, horizontal scaling, caching strategies, and CDN networks.",
+    "l0_essence_cn": "指导如何将单机服务演化为横跨全球的高可用、高容错、一致性分布式系统，在可用性、一致性与延迟物理边界之间进行非黑即白的工程折中决策。",
+    "l0_essence_en": "A structured guide and learning pathway for building web-scale, fault-tolerant, and high-availability software architectures."
+  },
+  {
+    "name": "tech_selection",
+    "classification_id": "05",
+    "classification_cn": "系统设计与高扩展架构",
+    "classification_en": "System Design & High-Scalability Architecture",
+    "path": "05-system-design/74-tech_selection",
+    "is_published": true,
+    "title_cn": "Opinionated Tech Selection",
+    "title_en": "Opinionated Tech Selection",
+    "subtitle_cn": "高频架构设计折中选型矩阵",
+    "subtitle_en": "Opinionated Architecture & Tech Selection Matrix",
+    "github_url": "https://github.com/system-design-resources",
+    "focus_cn": "专注于 NoSQL 数据库选型比对、分布式消息队列架构折中、API 通信协议权衡、分布式协调组件抉择以及微服务框架性能与生态对比",
+    "focus_en": "Focuses on NoSQL storage trade-offs, Message Queue performance metrics, API protocol design decisions, and microservice mesh configurations.",
+    "l0_essence_cn": "深入技术选型的物理限界与架构博弈，为分布式缓存、计算网络、消息总线等关键组件提供不流于形式的、带有工程实践经验倾向的强偏见折中评估框架。",
+    "l0_essence_en": "Provides highly-structured trade-off decision models to evaluate technologies based on operational costs, latencies, and scalability limits."
+  },
+  {
+    "name": "craftinginterpreters",
+    "classification_id": "06",
+    "classification_cn": "编译器、虚拟机与语言运行时",
+    "classification_en": "Compilers, VMs & Language Runtimes",
+    "path": "06-compilers-and-runtimes/39-craftinginterpreters",
+    "is_published": true,
+    "title_cn": "Crafting Interpreters",
+    "title_en": "Crafting Interpreters",
+    "subtitle_cn": "编译器设计与解释器实现",
+    "subtitle_en": "Crafting Interpreters & VM Design",
+    "github_url": "https://github.com/munificent/craftinginterpreters",
+    "focus_cn": "专注于词法分析器 (Scanner) 与手写递归下降解析器 (Recursive Descent Parser)、抽象语法树 (AST) 遍历求值解释器 (Lox)、基于栈 (Stack-based) 架构的字节码虚拟机 (clox)、寄存器指令编码设计以及双重空间垃圾回收",
+    "focus_en": "Focuses on recursive descent Pratt parsing, AST trees, bytecode compilers, register structures, stack-based VMs, and double-space GC.",
+    "l0_essence_cn": "通过从零实现 Lox 编程语言的两个运行环境，对比解构基于 AST 的慢速树遍历解释器与基于字节码的高性能栈虚拟机在语义解析与运行时计算上的性能差距。",
+    "l0_essence_en": "Takes you step-by-step through building Lox, a tree-walk interpreter, and clox, a stack-based bytecode virtual machine in C."
+  },
+  {
+    "name": "golang",
+    "classification_id": "06",
+    "classification_cn": "编译器、虚拟机与语言运行时",
+    "classification_en": "Compilers, VMs & Language Runtimes",
+    "path": "06-compilers-and-runtimes/42-golang",
+    "is_published": true,
+    "title_cn": "Go Runtime",
+    "title_en": "Go Runtime",
+    "subtitle_cn": "Go 语言并发调度与运行时内核",
+    "subtitle_en": "Go Concurrency Scheduler & Runtime Internals",
+    "github_url": "https://github.com/golang/go",
+    "focus_cn": "专注于 GMP (Goroutine-Machine-Processor) 并发调度模型与系统调用捕获、系统监控线程 (sysmon) 与协作/非协作式抢占调度、TCMalloc 风格的 mcache/mcentral/mheap 三级内存分配架构、以及基于写屏障的三色标记清除垃圾回收算法",
+    "focus_en": "Focuses on GMP scheduling model, sysmon daemon loops, collaborative preemption, TCMalloc-style memory cache structure, and tri-color sweep GC.",
+    "l0_essence_cn": "利用 GMP 三元组模型在用户态实现极轻量级的协程（Goroutine）多路复用，配合底层的非抢占/抢占式调度器、高速内存分配器和后台并发垃圾回收，降低应用高并发开发的门槛。",
+    "l0_essence_en": "The core engine of Go language, explaining the details of GMP scheduling, runtime memory allocator, and garbage collection."
+  },
+  {
+    "name": "llvm",
+    "classification_id": "06",
+    "classification_cn": "编译器、虚拟机与语言运行时",
+    "classification_en": "Compilers, VMs & Language Runtimes",
+    "path": "06-compilers-and-runtimes/43-llvm",
+    "is_published": true,
+    "title_cn": "LLVM Compiler Infrastructure",
+    "title_en": "LLVM Compiler Infrastructure",
+    "subtitle_cn": "LLVM 编译器架构与中间表示",
+    "subtitle_en": "LLVM Compiler Architecture & Intermediate Representation",
+    "github_url": "https://github.com/llvm/llvm-project",
+    "focus_cn": "专注于 LLVM IR (中间表示) 静态单赋值 (SSA) 形式、Pass 优化管理器与常用优化 Pass 实现、代码生成器 (CodeGen) 目标平台指令转换、以及 LLVM 模块化后端架构设计",
+    "focus_en": "Focuses on LLVM IR static single assignment (SSA), compiler passes pipelines, target-independent CodeGen, and target architecture emission.",
+    "l0_essence_cn": "通过定义与平台无关的高水准中间表示 (LLVM IR)，采用模块化的前端-中端(优化)-后端三段式设计，使得多种高级语言可以共享相同的编译优化和多硬件平台代码生成服务。",
+    "l0_essence_en": "A modular compiler library toolkit that translates high-level code into strongly-typed SSA-based intermediate representations (IR)."
+  },
+  {
+    "name": "openjdk",
+    "classification_id": "06",
+    "classification_cn": "编译器、虚拟机与语言运行时",
+    "classification_en": "Compilers, VMs & Language Runtimes",
+    "path": "06-compilers-and-runtimes/41-openjdk",
+    "is_published": true,
+    "title_cn": "OpenJDK HotSpot VM",
+    "title_en": "OpenJDK HotSpot VM",
+    "subtitle_cn": "Java HotSpot 虚拟机原理",
+    "subtitle_en": "OpenJDK HotSpot VM Internals",
+    "github_url": "https://github.com/openjdk/jdk",
+    "focus_cn": "专注于基于 TemplateTable 的字节码快速执行器、C1 (Client) 与 C2 (Server) 双重 JIT 编译及分层编译策略、逃逸分析与锁粗化等主动优化、Java 内存模型 (JMM) 在 CPU 层面的屏障映射、以及 ZGC 染色指针与读屏障无停顿垃圾回收",
+    "focus_en": "Focuses on Template Interpreter, C1/C2 JIT tier compilations, Escape Analysis, JMM CPU-barriers mapping, Loom virtual threads, and ZGC barrier logic.",
+    "l0_essence_cn": "结合分层 JIT 编译技术与逃逸分析等动态自适应优化，在屏蔽物理底层的跨平台 Java 字节码虚拟机之上，提供高性能虚拟线程与无停顿垃圾回收的复杂计算系统。",
+    "l0_essence_en": "The reference implementation of Java VM, detailing template interpreters, multi-stage JIT compilers, virtual threads, and ZGC GC."
+  },
+  {
+    "name": "rustc",
+    "classification_id": "06",
+    "classification_cn": "编译器、虚拟机与语言运行时",
+    "classification_en": "Compilers, VMs & Language Runtimes",
+    "path": "06-compilers-and-runtimes/65-rustc",
+    "is_published": true,
+    "title_cn": "rustc",
+    "title_en": "rustc",
+    "subtitle_cn": "Rust 编译器编译流与生命周期",
+    "subtitle_en": "rustc Compiler Architecture & Lifecycle",
+    "github_url": "https://github.com/rust-lang/rust",
+    "focus_cn": "专注于 HIR-MIR 多级 AST 转换与类型擦除、基于 NLL (Non-Lexical Lifetimes) 的生命周期借用校验算法、Trait 约束解算引擎、单态化机器码生成以及编译期计算 (Miri/const eval)",
+    "focus_en": "Focuses on AST parsing, HIR/MIR transitions, Non-Lexical Lifetimes (NLL) borrow calculations, monomorphization, and Miri compilation.",
+    "l0_essence_cn": "利用强类型推导与高度严谨的借用检查器 (Borrow Checker)，在编译期静态排除悬垂指针、数据竞争等内存缺陷，在无需 GC 的前提下，产出兼具安全性与物理效率的原生二进制。",
+    "l0_essence_en": "The Rust compiler backend, showing AST-to-HIR-to-MIR lowering, monomorphization, and borrow-checking lifetime logic."
+  },
+  {
+    "name": "v8",
+    "classification_id": "06",
+    "classification_cn": "编译器、虚拟机与语言运行时",
+    "classification_en": "Compilers, VMs & Language Runtimes",
+    "path": "06-compilers-and-runtimes/40-v8",
+    "is_published": true,
+    "title_cn": "V8 JavaScript Engine",
+    "title_en": "V8 JavaScript Engine",
+    "subtitle_cn": "高性能 JavaScript 虚拟机内幕",
+    "subtitle_en": "V8 High-Performance JavaScript Engine Internals",
+    "github_url": "https://github.com/v8/v8",
+    "focus_cn": "专注于基于 Map/Shape 的 JavaScript 动态对象属性快速查找、隐藏类 (Hidden Class) 与 inline cache (内联缓存 IC)、Ignition 字节码编译器与 TurboFan 优化/去优化 (Deoptimization) 编译器、以及 Cheney 双空间复制与 Major MC 垃圾回收算法",
+    "focus_en": "Focuses on Hidden Classes (Maps), Inline Caches (IC), Ignition interpreter, TurboFan JIT optimizations, deopt pipelines, and Cheney GC.",
+    "l0_essence_cn": "将高度动态、弱类型的 JavaScript 源码，通过 JIT 编译器在内存中动态翻译为高效的 x86/ARM 机器码，基于隐藏类消除动态寻址，构建极致性能的现代语言运行沙箱。",
+    "l0_essence_en": "Google's open-source JavaScript and WebAssembly engine, showing how raw JS is JIT-compiled into native assembly."
+  },
+  {
+    "name": "wasmtime",
+    "classification_id": "06",
+    "classification_cn": "编译器、虚拟机与语言运行时",
+    "classification_en": "Compilers, VMs & Language Runtimes",
+    "path": "06-compilers-and-runtimes/56-wasmtime",
+    "is_published": true,
+    "title_cn": "Wasmtime",
+    "title_en": "Wasmtime",
+    "subtitle_cn": "高性能 WebAssembly 运行时引擎",
+    "subtitle_en": "High-Performance WebAssembly Runtime Engine in Rust",
+    "github_url": "https://github.com/bytecodealliance/wasmtime",
+    "focus_cn": "专注于 Cranelift 高效 JIT 编译器、Wasm 模块解析与指令译码验证、基于 Memory-Sandbox 的线性内存安全物理隔离模型、以及与 Host 主宿主环境的高性能跨边界交互",
+    "focus_en": "Focuses on Cranelift compiler engine, WebAssembly validation, linear memory sandbox bounds checks, and cross-boundary runtime calls.",
+    "l0_essence_cn": "采用高效的 Cranelift 后端将 WebAssembly 字节码编译为原生机器指令，并依托底层的虚拟地址缺页保护与严格边界校验，在极小开销下提供强隔离、高安全性的沙箱代码沙盒环境。",
+    "l0_essence_en": "A fast, secure, and sandboxed WebAssembly runtime built in Rust, leveraging Cranelift JIT compiler and safe memory partitions."
+  },
+  {
+    "name": "bpftrace",
+    "classification_id": "07",
+    "classification_cn": "性能调优与系统诊断",
+    "classification_en": "Performance Tuning & Diagnostics",
+    "path": "07-performance-and-diagnostics/66-bpftrace",
+    "is_published": true,
+    "title_cn": "bpftrace",
+    "title_en": "bpftrace",
+    "subtitle_cn": "极简内核与应用级动态探针追踪",
+    "subtitle_en": "Safe & Dynamic Kernel Tracing Language",
+    "github_url": "https://github.com/bpftrace/bpftrace",
+    "focus_cn": "专注于 bpftrace DSL 语法设计与词法解析、LLVM 后端动态编译生成 eBPF 字节码流、内核 kprobe/tracepoint/uprobe 挂载映射、以及多维图表聚合聚合与性能损耗控制",
+    "focus_en": "Focuses on bpftrace DSL parsing, LLVM runtime JIT generation, maps aggregation, and low-overhead tracepoints probing.",
+    "l0_essence_cn": "通过声明式的极简追踪脚本语言，利用 LLVM 后端在用户态即时编译为 eBPF 字节码，挂载到运行期内核或应用的探针之上，提供实时、低成本的安全生产排障监控分析。",
+    "l0_essence_en": "A high-level tracing language for Linux eBPF, compiling script filters into bytecode to diagnose live production crashes safely."
+  },
+  {
+    "name": "daily_diagnostics",
+    "classification_id": "07",
+    "classification_cn": "性能调优与系统诊断",
+    "classification_en": "Performance Tuning & Diagnostics",
+    "path": "07-performance-and-diagnostics/72-daily_diagnostics",
+    "is_published": true,
+    "title_cn": "Everyday Development Diagnostics",
+    "title_en": "Everyday Development Diagnostics",
+    "subtitle_cn": "日常开发性能榨汁机与线上故障定位",
+    "subtitle_en": "Daily Diagnostics & Performance Squeezer",
+    "github_url": "https://github.com/performance-tuning-handbook",
+    "focus_cn": "专注于 Go/Java/Rust 内存泄漏 (OOM) 的火焰图定位、MySQL 读写延迟排查与锁竞争诊断、Redis 缓存雪崩与击穿治理、以及高并发线程死锁拓扑定位",
+    "focus_en": "Focuses on OOM memory flame graph profiling, MySQL replication lags, Redis cache breakdown tuning, and deadlock topology locks.",
+    "l0_essence_cn": "直面中高级工程师在日常开发和值班救火中的高频痛点，解构内存溢出、慢 SQL、Redis 缓存穿透等核心故障，总结出具备强防守意义的线上诊断排障模型。",
+    "l0_essence_en": "A practical collection of standard debugging procedures for database locking, heap profiling, and cache bottlenecks."
+  },
+  {
+    "name": "sanitizers",
+    "classification_id": "07",
+    "classification_cn": "性能调优与系统诊断",
+    "classification_en": "Performance Tuning & Diagnostics",
+    "path": "07-performance-and-diagnostics/45-sanitizers",
+    "is_published": true,
+    "title_cn": "Compiler Sanitizers",
+    "title_en": "Compiler Sanitizers",
+    "subtitle_cn": "内存与并发缺陷动态编译器诊断",
+    "subtitle_en": "Compiler-Assisted Runtime Sanitizers",
+    "github_url": "https://github.com/google/sanitizers",
+    "focus_cn": "专注于 AddressSanitizer (ASan) 影子内存 (Shadow Memory) 脏数据隔离、ThreadSanitizer (TSan) 向量时钟锁顺序记录与数据竞争检测、MemorySanitizer (MSan) 未初始化读捕获、以及 UndefinedBehaviorSanitizer (UBSan) 溢出与空指针捕获",
+    "focus_en": "Focuses on ASan shadow memory mapping, TSan vector clocks data race detection, MSan uninitialized reads, and UBSan behaviors.",
+    "l0_essence_cn": "通过在编译期间向目标代码中插装（Instrumentation）边界检查和状态记录指令，并在运行期间配合专门的影子内存状态映射，高效率检测悬垂指针、缓冲区溢出与并发数据竞争缺陷。",
+    "l0_essence_en": "A suite of diagnostic tools (ASan, TSan, MSan) utilizing compiler instrumentation and shadow memory tags to catch runtime errors."
+  },
+  {
+    "name": "system_performance",
+    "classification_id": "07",
+    "classification_cn": "性能调优与系统诊断",
+    "classification_en": "Performance Tuning & Diagnostics",
+    "path": "07-performance-and-diagnostics/44-system_performance",
+    "is_published": true,
+    "title_cn": "Systems Performance",
+    "title_en": "Systems Performance",
+    "subtitle_cn": "现代系统性能剖析与诊断",
+    "subtitle_en": "Modern Systems Performance & Telemetry",
+    "github_url": "https://github.com/brendangregg/system-performance-book",
+    "focus_cn": "专注于 CPU、内存、网络及磁盘 I/O 各层级观测指标、USE/RED 分析法、火焰图 (Flame Graph) 物理调用链深度解构、底层内核调度器对应用层时延的物理影响分析",
+    "focus_en": "Focuses on USE method metrics, kernel scheduler latency, disk IO wait profiles, and Flame Graph call-graph tracing.",
+    "l0_essence_cn": "从硬件边界与操作系统内核的交叉视角出发，利用动态跟踪探针、统计探针与性能计数器，系统化诊断和量化分析应用层程序在物理服务器上的运行能效。",
+    "l0_essence_en": "Brendan Gregg's methodology for dissecting system performance limits across CPU scheduler, virtual memory, disk, and socket lanes."
+  },
+  {
+    "name": "cuda_programming",
+    "classification_id": "08",
+    "classification_cn": "计算机体系结构与芯片设计",
+    "classification_en": "Computer Architecture & Chip Design",
+    "path": "08-computer-architecture/47-cuda_programming",
+    "is_published": true,
+    "title_cn": "CUDA Programming",
+    "title_en": "CUDA Programming",
+    "subtitle_cn": "GPGPU 异构计算与 GPU 算子编写",
+    "subtitle_en": "Heterogeneous Parallel Computing with CUDA",
+    "github_url": "https://github.com/NVIDIA/cuda-samples",
+    "focus_cn": "专注于 GPU 硬件 SM (流式多处理器) 调度模型、网格 (Grid)-线程块 (Block)-线程 (Thread) 的三维逻辑寻址、共享内存 (Shared Memory) 与全局内存合并访问优化、核函数 (Kernel) 同步与协作壁垒、以及矩阵乘法算子编写",
+    "focus_en": "Focuses on GPU SM architecture, Grid-Block-Thread mapping, coalesced memory access, Shared Memory cache bank conflicts, and Matrix multiplication tiling.",
+    "l0_essence_cn": "在 GPGPU 大规模 SIMT 并行物理架构下，通过将多核线程并行计算与高速片上 SRAM 共享缓存（Shared Memory）相结合，并利用全局内存的合并对齐读写，最大化浮点运算吞吐与带宽瓶颈效能。",
+    "l0_essence_en": "A developer's guide to utilizing NVIDIA GPUs for massively parallel computations, writing kernel matrices, and reducing thread divergences."
+  },
+  {
+    "name": "riscv_isa",
+    "classification_id": "08",
+    "classification_cn": "计算机体系结构与芯片设计",
+    "classification_en": "Computer Architecture & Chip Design",
+    "path": "08-computer-architecture/46-riscv_isa",
+    "is_published": true,
+    "title_cn": "RISC-V ISA Spec",
+    "title_en": "RISC-V ISA Spec",
+    "subtitle_cn": "RISC-V 开放式指令集架构与规范",
+    "subtitle_en": "RISC-V Instruction Set Architecture Spec",
+    "github_url": "https://github.com/riscv/riscv-isa-manual",
+    "focus_cn": "专注于 RV32I/RV64I 基础整数指令编码格式、控制与状态寄存器 (CSR) 读写规范、M/A/F/D 扩展指令设计原则、指令周期流水线物理译码、以及多核存储一致性模型 (RVWMO)",
+    "focus_en": "Focuses on R-I-S-U encoding layouts, CSR registers states, memory fence models (RVWMO), and floating-point expansion ports.",
+    "l0_essence_cn": "作为定义软硬件接口的开放式标准，以极简的 40 余条基础整数指令编码为核心，支持高度模块化的应用特定扩展，为现代 CPU 体系结构提供精简、高能效的逻辑规范规约。",
+    "l0_essence_en": "The open standard instruction set architecture (ISA) defining modern CPU interfaces, CPU execution modes, and extensions."
+  },
+  {
+    "name": "rocket_chip",
+    "classification_id": "08",
+    "classification_cn": "计算机体系结构与芯片设计",
+    "classification_en": "Computer Architecture & Chip Design",
+    "path": "08-computer-architecture/67-rocket_chip",
+    "is_published": true,
+    "title_cn": "Rocket Chip",
+    "title_en": "Rocket Chip",
+    "subtitle_cn": "Rocket Chip RISC-V SoC 芯片设计与 TileLink 一致性",
+    "subtitle_en": "Rocket Chip RISC-V SoC Generator & TileLink",
+    "github_url": "https://github.com/chipsalliance/rocket-chip",
+    "focus_cn": "专注于 RISC-V 五级流水线旁路分支前推 (Bypass/Forwarding)、L1/L2 Cache 物理结构与一致性追踪、TileLink 总线五通道一致性状态转换逻辑、SoC 外设互联、以及 Chisel 硬件描述语言编译生成物理电路",
+    "focus_en": "Focuses on RISC-V 5-stage pipelines, TileLink 5-channel cache coherence states, SoC bus interconnects, and Chisel hardware compilations.",
+    "l0_essence_cn": "采用高级硬件描述语言 Chisel，以高度可配置的参数化生成器为核心，实现符合 RISC-V 规范的五级标量流水线处理器核，并通过 TileLink 总线协议保障多核缓存强一致的片上系统 SoC 设计。",
+    "l0_essence_en": "An open-source RISC-V SoC generator written in Chisel, outlining how standard processor logic and coherent memory networks are generated."
+  },
+  {
+    "name": "intel_sgx",
+    "classification_id": "09",
+    "classification_cn": "现代密码学与硬件安全隔离",
+    "classification_en": "Modern Cryptography & Hardware Enclaves",
+    "path": "09-cryptography-and-security/49-intel_sgx",
+    "is_published": true,
+    "title_cn": "Intel SGX",
+    "title_en": "Intel SGX",
+    "subtitle_cn": "硬件级机密计算与安全隔离飞地",
+    "subtitle_en": "Intel SGX Hardware Enclaves & Shielded Execution",
+    "github_url": "https://github.com/intel/linux-sgx",
+    "focus_cn": "专注于 Enclave 飞地内存物理隔离机制 (EPC)、硬件页面访问控制表 (PRM)、内核上下文特权级进入与退出 (ECALL/OCALL)、以及远程证明 (Remote Attestation) 签名握手与校验机制",
+    "focus_en": "Focuses on Enclave Page Cache (EPC), page tables restriction, ECALL/OCALL transitions context, and Remote Attestation signatures.",
+    "l0_essence_cn": "通过在 CPU 硬件层引入不可信 OS 物理隔离的机密计算飞地 (Enclave)，在内存中对飞地页进行物理加密 (MEE)，即使操作系统内核遭破，也能为核心代码和数据提供硬件级的隔离保护与证明。",
+    "l0_essence_en": "An architectural extension for Intel CPUs that creates highly isolated memory partitions (Enclaves) to defend data in untrusted environments."
+  },
+  {
+    "name": "openssl",
+    "classification_id": "09",
+    "classification_cn": "现代密码学与硬件安全隔离",
+    "classification_en": "Modern Cryptography & Hardware Enclaves",
+    "path": "09-cryptography-and-security/48-openssl",
+    "is_published": true,
+    "title_cn": "OpenSSL",
+    "title_en": "OpenSSL",
+    "subtitle_cn": "密码学套件与安全通信协议实现",
+    "subtitle_en": "Cryptographic Toolkit & SSL/TLS Protocol Library",
+    "github_url": "https://github.com/openssl/openssl",
+    "focus_cn": "专注于对称加密 (AES/ChaCha20) 与分组密码模式、非对称加密 (RSA/ECDH) 密钥交换协议、安全哈希算法与消息认证码 (HMAC)、以及 TLS 握手状态机实现与防御机制",
+    "focus_en": "Focuses on AES/ChaCha20 block modes, RSA/ECDH key exchanges, SHA2/SHA3 digest structures, and TLS handshake state machine steps.",
+    "l0_essence_cn": "作为因特网安全的底层基石，以极度优化的汇编和 C 语言实现各项主流加密和哈希算法，并在其上提供完整的 TLS 安全通信套件，保障网络数据的保密性、完整性与真实性验证。",
+    "l0_essence_en": "A robust, commercial-grade open-source toolkit implementing SSL and TLS protocols as well as full-strength general-purpose cryptography."
+  },
+  {
+    "name": "rustls",
+    "classification_id": "09",
+    "classification_cn": "现代密码学与硬件安全隔离",
+    "classification_en": "Modern Cryptography & Hardware Enclaves",
+    "path": "09-cryptography-and-security/68-rustls",
+    "is_published": true,
+    "title_cn": "Rustls",
+    "title_en": "Rustls",
+    "subtitle_cn": "基于 Rust 的高性能安全 TLS 1.3 协议栈",
+    "subtitle_en": "Modern & Memory-Safe TLS Implementation in Rust",
+    "github_url": "https://github.com/rustls/rustls",
+    "focus_cn": "专注于 Rustls 状态机驱动网络连接模式、常数时间 (Constant-Time) AEAD 加密计算侧信道防御、HKDF 密钥流派生与更新机制、以及 Ring 密码套件极简集成",
+    "focus_en": "Focuses on state machine routing, constant-time AEAD operations, HKDF key derivation, ring backend integrations, and zero-allocation socket parser.",
+    "l0_essence_cn": "通过在编译期消除内存缓冲区溢出等常规网络编程漏洞，抛弃 SSL 历史包袱，仅支持现代安全的 TLS 1.2/1.3 协议套件，以最精简、高能效的代码构建高度抗攻击的现代安全传输层实现。",
+    "l0_essence_en": "A modern, memory-safe alternative to OpenSSL, implemented in Rust and focusing strictly on modern TLS protocols and secure cryptosystems."
+  },
+  {
+    "name": "awesome_robotics",
+    "classification_id": "10",
+    "classification_cn": "复杂物理系统、控制理论与电网",
+    "classification_en": "Complex Physical Systems, Control & Power Grids",
+    "path": "10-physical-systems-and-control/50-awesome_robotics",
+    "is_published": true,
+    "title_cn": "Awesome Robotics",
+    "title_en": "Awesome Robotics",
+    "subtitle_cn": "机器人运动规划与 SLAM 状态估计",
+    "subtitle_en": "Robotics Motion Planning & SLAM State Estimation",
+    "github_url": "https://github.com/kiloreux/awesome-robotics",
+    "focus_cn": "专注于机器人三维刚体运动学建模、EKF (扩展卡尔曼滤波) / 因子图非线性优化状态估计、A*/Dijkstra/DWA 路径规划与轨迹平滑、以及激光/视觉 SLAM 建图定位",
+    "focus_en": "Focuses on 3D rigid body kinematics, Extended Kalman Filter (EKF) mapping, A*/D* path planning, and LiDAR/Visual SLAM loop closing.",
+    "l0_essence_cn": "展示如何利用数学模型与传感器观测输入，通过卡尔曼滤波或非线性优化解决机器人在未知环境下的自我定位问题，并规划无碰撞的极小轨迹时间曲线。",
+    "l0_essence_en": "A curated collection of foundational robotics materials covering Kinematics, SLAM, Kalman Filtering, and Path Planning."
+  },
+  {
+    "name": "power_systems",
+    "classification_id": "10",
+    "classification_cn": "复杂物理系统、控制理论与电网",
+    "classification_en": "Complex Physical Systems, Control & Power Grids",
+    "path": "10-physical-systems-and-control/51-power_systems",
+    "is_published": true,
+    "title_cn": "Power Systems",
+    "title_en": "Power Systems",
+    "subtitle_cn": "电力系统分析与潮流计算",
+    "subtitle_en": "Modern Power Grid Analysis & Load Flow Calculation",
+    "github_url": "https://github.com/power-system-analysis/power-system-simulation",
+    "focus_cn": "专注于输电线路相量参数建模、节点导纳矩阵 (Admittance Matrix) 物理构建、牛顿-拉夫逊 (Newton-Raphson) 潮流非线性迭代计算、以及电网频率/电压动态响应与暂态稳定分析",
+    "focus_en": "Focuses on transmission line modeling, Admittance Matrix calculations, Newton-Raphson iteration loops, and transient stability analysis.",
+    "l0_essence_cn": "建立复杂的交流电网物理系统方程，利用数值分析与导数雅可比矩阵进行快速非线性寻优，计算各节点电功率、相角分布以及在扰动下的电网自愈稳定裕度。",
+    "l0_essence_en": "A rigorous engineering analysis of modern electricity power grids, modeling load flows, dynamic frequency responses, and grid stabilizers."
+  },
+  {
+    "name": "ros2",
+    "classification_id": "10",
+    "classification_cn": "复杂物理系统、控制理论与电网",
+    "classification_en": "Complex Physical Systems, Control & Power Grids",
+    "path": "10-physical-systems-and-control/69-ros2",
+    "is_published": true,
+    "title_cn": "ROS 2",
+    "title_en": "ROS 2",
+    "subtitle_cn": "机器人分布式中间件与共享内存零拷贝",
+    "subtitle_en": "ROS 2 Robotics Middleware & Shared Memory Zero-Copy",
+    "github_url": "https://github.com/ros2/ros2",
+    "focus_cn": "专注于 DDS (Data Distribution Service) 发现协议、基于 iceoryx 的共享内存 (SHM) 零拷贝通信、rclcpp 执行器 (Executor) 线程调度模型、QoS (服务质量) 策略对可靠传输与时延影响",
+    "focus_en": "Focuses on DDS dynamic discovery, iceoryx SHM zero-copy routing, rclcpp multi-threaded executors, and QoS transmission policy tuning.",
+    "l0_essence_cn": "通过定义一致的订阅/发布发布语义，在操作系统上层构建基于 DDS 规范的强一致实时消息交互总线，配合冰羚 (iceoryx) 共享内存，消除大吞吐图像/雷达点云通信的物理拷贝时延延迟。",
+    "l0_essence_en": "The second-generation Robot Operating System middleware, implementing a real-time, zero-copy message passing bus on top of DDS and iceoryx."
+  },
+  {
+    "name": "coding_interview_university",
+    "classification_id": "11",
+    "classification_cn": "现代软件开发方法论与高级模式",
+    "classification_en": "Software Engineering & Advanced Patterns",
+    "path": "11-software-methodologies/54-coding_interview_university",
+    "is_published": true,
+    "title_cn": "Coding Interview University",
+    "title_en": "Coding Interview University",
+    "subtitle_cn": "计算机底层工程基石知识点",
+    "subtitle_en": "Computer Science Engineering Foundations",
+    "github_url": "https://github.com/jwasham/coding-interview-university",
+    "focus_cn": "专注于大 O 复杂度分析、红黑树/哈希表/动态数组底层实现、图搜索算法 (DFS/BFS) 与最短路径、Dijkstra 动态规划、以及位运算优化",
+    "focus_en": "Focuses on Big-O notations, data structures implementations (Red-Black Trees, Heaps), sorting algorithms, and Bit manipulation logic.",
+    "l0_essence_cn": "系统性提炼和解构软件工程基石学科知识，深入理解数据结构在内存物理分布与寻址上的效率差异，为编写高性能系统程序打下坚实的物理心智基石。",
+    "l0_essence_en": "A highly-structured training plan covering sorting, graph algorithms, memory layouts, and algorithmic optimization patterns."
+  },
+  {
+    "name": "developer_roadmap",
+    "classification_id": "11",
+    "classification_cn": "现代软件开发方法论与高级模式",
+    "classification_en": "Software Engineering & Advanced Patterns",
+    "path": "11-software-methodologies/52-developer_roadmap",
+    "is_published": true,
+    "title_cn": "Developer Roadmap",
+    "title_en": "Developer Roadmap",
+    "subtitle_cn": "资深全栈系统工程师技能路径",
+    "subtitle_en": "Senior Systems Developer Skill Roadmap",
+    "github_url": "https://github.com/kamranahmedse/developer-roadmap",
+    "focus_cn": "专注于计算机科学原理、现代后端架构、底层内核调用接口、网络栈优化、密码学及云原生微服务全链路演进技能图谱",
+    "focus_en": "Focuses on computer science essentials, network optimization skills, operating system system-calls, security, and cloud architectures.",
+    "l0_essence_cn": "为系统工程师规划一套系统科学的成长阶梯，帮助其从基础编码起步，穿过网络协议栈与操作系统内核的黑盒，成长为具备解决大型高吞吐系统故障的综合技术带头人。",
+    "l0_essence_en": "A visually-guided roadmap of senior engineering domains, tracing paths across systems backend programming, compilers, and DevOps."
+  },
+  {
+    "name": "java_design_patterns",
+    "classification_id": "11",
+    "classification_cn": "现代软件开发方法论与高级模式",
+    "classification_en": "Software Engineering & Advanced Patterns",
+    "path": "11-software-methodologies/53-java_design_patterns",
+    "is_published": true,
+    "title_cn": "Java Design Patterns",
+    "title_en": "Java Design Patterns",
+    "subtitle_cn": "Java 经典设计模式与并发架构",
+    "subtitle_en": "Java High-Concurrency & Enterprise Design Patterns",
+    "github_url": "https://github.com/iluwatar/java-design-patterns",
+    "focus_cn": "专注于创建型/结构型/行为型经典模式、反应器模式 (Reactor) 与异步 I/O、双重校验锁 (DCL) 线程安全模式、以及企业服务模式",
+    "focus_en": "Focuses on GoF design patterns, asynchronous Reactor patterns, Double-Checked Locking concurrency, and enterprise integration patterns.",
+    "l0_essence_cn": "将经典的面向对象软件设计模式与 Java 高并发运行时机制结合，提供在内存安全与垃圾回收机制限界下的强内聚、低耦合的可复用架构落地蓝图。",
+    "l0_essence_en": "A comprehensive directory of software design patterns implemented in Java, mapping object-oriented designs to high-performance runtimes."
+  },
+  {
+    "name": "production_survival",
+    "classification_id": "11",
+    "classification_cn": "现代软件开发方法论与高级模式",
+    "classification_en": "Software Engineering & Advanced Patterns",
+    "path": "11-software-methodologies/71-production_survival",
+    "is_published": true,
+    "title_cn": "Production Survival & Refactoring",
+    "title_en": "Production Survival & Refactoring",
+    "subtitle_cn": "业务工程学与微服务防雪崩重构",
+    "subtitle_en": "Production Survival & Microservice Refactoring Guide",
+    "github_url": "https://github.com/Netflix/Hystrix",
+    "focus_cn": "专注于单体系统零闪断微服务拆分（双写、逆向网关、灰度分流）、分布式事务（TCC / Saga）强一致落地、以及多级熔断限流控制与防腐隔离层设计",
+    "focus_en": "Focuses on zero-downtime microservice splitting, TCC/Saga distributed transactions, multi-level rate limiters, and Anticorruption Layers.",
+    "l0_essence_cn": "以日常生产防爆死、重构不挂为导向，提炼业务重构升级步法与级联故障熔断降级闭环，帮助业务工程师构建在大并发流量侵袭下“优雅降级”的韧性架构体系。",
+    "l0_essence_en": "A collection of architectural safety designs mapping dual-writing state migrations, ACL layers, and cascading failure blockages."
+  },
+  {
+    "name": "rust_patterns",
+    "classification_id": "11",
+    "classification_cn": "现代软件开发方法论与高级模式",
+    "classification_en": "Software Engineering & Advanced Patterns",
+    "path": "11-software-methodologies/70-rust_patterns",
+    "is_published": true,
+    "title_cn": "Rust Advanced Borrow Patterns",
+    "title_en": "Rust Advanced Borrow Patterns",
+    "subtitle_cn": "Rust 高级借用模式与类型状态设计",
+    "subtitle_en": "Rust Advanced Borrow Patterns & Typestate Safety",
+    "github_url": "https://github.com/rust-unofficial/patterns",
+    "focus_cn": "专注于编译期 Typestate 状态强类型跃迁断言、自引用结构与 Pin/Pinning 内存固定、RAII 资源自动释放以及高级生命周期约束",
+    "focus_en": "Focuses on Typestate pattern state transitions, Pin/Unpin memory pinning, RAII lifetimes management, and unsafe-cell wrappers.",
+    "l0_essence_cn": "利用 Rust 独特的零开销所有权与生命周期静态约束，在编译阶段锁死非法内存移动与状态逻辑错误，构建极高安全性且无运行时损耗的并发软件架构模式。",
+    "l0_essence_en": "Advanced techniques leveraging Rust's compiler, type states, borrow checkers, and lifetimes to build zero-cost safe systems."
+  }
+];
+        const classifications = [
+  {
+    "id": "01",
+    "cn": "分布式系统与共识算法",
+    "en": "Distributed Systems & Consensus",
+    "color": "#7A8B99"
+  },
+  {
+    "id": "02",
+    "cn": "数据库内幕与存储引擎",
+    "en": "Database Internals & Storage",
+    "color": "#7D8F7B"
+  },
+  {
+    "id": "03",
+    "cn": "操作系统与 Linux 内核",
+    "en": "OS & Linux Kernel Internals",
+    "color": "#9E828A"
+  },
+  {
+    "id": "04",
+    "cn": "计算机网络与高性能 IO",
+    "en": "Networking & High-Performance IO",
+    "color": "#B58A7D"
+  },
+  {
+    "id": "05",
+    "cn": "系统设计与高扩展架构",
+    "en": "System Design & High-Scalability",
+    "color": "#5F7582"
+  },
+  {
+    "id": "06",
+    "cn": "编译器、虚拟机与语言运行时",
+    "en": "Compilers, VMs & Runtimes",
+    "color": "#BFA88F"
+  },
+  {
+    "id": "07",
+    "cn": "性能调优与系统诊断",
+    "en": "Performance Tuning & Diagnostics",
+    "color": "#8A89A6"
+  },
+  {
+    "id": "08",
+    "cn": "计算机体系结构与芯片设计",
+    "en": "Computer Architecture & Chip Design",
+    "color": "#94A895"
+  },
+  {
+    "id": "09",
+    "cn": "现代密码学与硬件安全隔离",
+    "en": "Cryptography & Hardware Enclaves",
+    "color": "#C2B29F"
+  },
+  {
+    "id": "10",
+    "cn": "复杂物理系统与控制理论",
+    "en": "Complex Systems & Control",
+    "color": "#6E7B8B"
+  },
+  {
+    "id": "11",
+    "cn": "现代软件开发方法论与高级模式",
+    "en": "Software Engineering & Patterns",
+    "color": "#A67C7C"
+  }
+];
+        
+        let currentLang = 'zh'; // 'zh' or 'en'
+        let selectedCategory = 'all';
+        let statusFilter = 'all';
+        let searchQuery = '';
+        
+        // Populate Categories Sidebar
+        function populateCategories() {
+            const categoryList = document.getElementById('category-list');
+            categoryList.innerHTML = '';
+            
+            // "All Categories" button
+            const allLi = document.createElement('li');
+            allLi.className = `category-item ${selectedCategory === 'all' ? 'active' : ''}`;
+            
+            const totalCount = projects.length;
+            
+            allLi.innerHTML = `
+                <button onclick="setCategory('all')">
+                    <span data-zh="全部主题" data-en="All Categories">${currentLang === 'zh' ? '全部分类' : 'All Categories'}</span>
+                    <span class="category-count">${totalCount}</span>
+                </button>
+            `;
+            categoryList.appendChild(allLi);
+            
+            // Render specific categories
+            classifications.forEach(cls => {
+                const count = projects.filter(p => p.classification_id === cls.id).length;
+                const li = document.createElement('li');
+                li.className = `category-item ${selectedCategory === cls.id ? 'active' : ''}`;
+                
+                const clsName = currentLang === 'zh' ? cls.cn : cls.en;
+                
+                li.innerHTML = `
+                    <button onclick="setCategory('${cls.id}')">
+                        <span>${cls.id} - ${clsName}</span>
+                        <span class="category-count">${count}</span>
+                    </button>
+                `;
+                categoryList.appendChild(li);
+            });
+        }
+        
+        // Set Selected Category
+        function setCategory(catId) {
+            selectedCategory = catId;
+            renderPortfolio();
+            populateCategories();
+        }
+        
+        // Set Status Filter
+        function setStatusFilter(status) {
+            statusFilter = status;
+            
+            // Update button styles
+            const buttons = document.querySelectorAll('.status-filter button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            // Determine active button based on parameter
+            event.target.classList.add('active');
+            renderPortfolio();
+        }
+        
+        // Search Filter
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase().trim();
+            renderPortfolio();
+        });
+        
+        // Toggle Language
+        function toggleLanguage() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            
+            // Update body class for styling transitions
+            if (currentLang === 'en') {
+                document.body.classList.remove('lang-zh');
+                document.body.classList.add('lang-en');
+                document.getElementById('btn-zh').classList.remove('active');
+                document.getElementById('btn-en').classList.add('active');
+            } else {
+                document.body.classList.remove('lang-en');
+                document.body.classList.add('lang-zh');
+                document.getElementById('btn-zh').classList.add('active');
+                document.getElementById('btn-en').classList.remove('active');
+            }
+            
+            // Update placeholders
+            const searchInput = document.getElementById('search-input');
+            searchInput.placeholder = searchInput.getAttribute(`data-${currentLang}-placeholder`);
+            
+            // Translate static DOM tags
+            document.querySelectorAll('[data-zh]').forEach(el => {
+                el.textContent = el.getAttribute(`data-${currentLang}`);
+            });
+            
+            populateCategories();
+            renderPortfolio();
+        }
+        
+        // Render Cards Grid
+        function renderPortfolio() {
+            const grid = document.getElementById('portfolio-grid');
+            grid.innerHTML = '';
+            
+            const filtered = projects.filter(p => {
+                // Category match
+                if (selectedCategory !== 'all' && p.classification_id !== selectedCategory) return false;
+                
+                // Status match
+                if (statusFilter === 'published' && !p.is_published) return false;
+                if (statusFilter === 'planned' && p.is_published) return false;
+                
+                // Search match
+                if (searchQuery) {
+                    const matchText = [
+                        p.name,
+                        p.title_cn,
+                        p.title_en,
+                        p.subtitle_cn,
+                        p.subtitle_en,
+                        p.focus_cn,
+                        p.focus_en,
+                        p.l0_essence_cn,
+                        p.l0_essence_en,
+                        p.classification_cn,
+                        p.classification_en
+                    ].join(' ').toLowerCase();
+                    
+                    if (!matchText.includes(searchQuery)) return false;
+                }
+                
+                return true;
+            });
+            
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-results" style="grid-column: 1 / -1;">
+                        <h6 data-zh="未找到匹配专题" data-en="No Projects Found">${currentLang === 'zh' ? '未找到匹配的硬核专题' : 'No matching projects found'}</h6>
+                        <p data-zh="请尝试使用其他关键字进行检索" data-en="Try searching for another keyword">${currentLang === 'zh' ? '请更换搜索条件重新搜索' : 'Please check your search terms or filters.'}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            filtered.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'project-card';
+                
+                const cls = classifications.find(c => c.id === p.classification_id);
+                card.style.setProperty('--card-accent', cls ? cls.color : 'var(--primary)');
+                
+                const title = currentLang === 'zh' ? p.title_cn : p.title_en;
+                const subtitle = currentLang === 'zh' ? p.subtitle_cn : p.subtitle_en;
+                const desc = currentLang === 'zh' ? (p.l0_essence_cn || p.focus_cn) : (p.l0_essence_en || p.focus_en);
+                
+                const badgeText = currentLang === 'zh' ? 
+                    (p.is_published ? '交互沙盒已上线' : '规划中') : 
+                    (p.is_published ? 'Sandbox Live' : 'Planned');
+                
+                card.className = `project-card ${p.is_published ? 'status-published' : 'status-planned'}`;
+                
+                card.onclick = () => openDrawer(p);
+                
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="cls-badge">${p.classification_id}</span>
+                        <div class="status-indicator">
+                            <span class="dot"></span>
+                            <span>${badgeText}</span>
+                        </div>
+                    </div>
+                    <h5>${title}</h5>
+                    <div class="subtitle">${subtitle}</div>
+                    <p class="description">${desc}</p>
+                    <div class="card-footer">
+                        <span>${p.name.toUpperCase()} / WORKSPACE</span>
+                        <span class="card-action-hint">
+                            <span>${currentLang === 'zh' ? '查看详情' : 'Inspect'}</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        // Open Slide-out Drawer
+        function openDrawer(p) {
+            document.getElementById('drawer-cls-badge').textContent = p.classification_id;
+            
+            const title = currentLang === 'zh' ? p.title_cn : p.title_en;
+            const subtitle = currentLang === 'zh' ? p.subtitle_cn : p.subtitle_en;
+            
+            document.getElementById('drawer-title').textContent = title;
+            document.getElementById('drawer-subtitle').textContent = subtitle;
+            
+            // Set Color Accent
+            const cls = classifications.find(c => c.id === p.classification_id);
+            document.getElementById('drawer-cls-badge').style.borderColor = cls ? cls.color : 'var(--primary)';
+            document.getElementById('drawer-cls-badge').style.color = cls ? cls.color : 'var(--primary)';
+            
+            // Focus and L0
+            document.getElementById('drawer-l0').textContent = currentLang === 'zh' ? 
+                (p.l0_essence_cn || '系统核心原理公理，揭示第一性本质。') : 
+                (p.l0_essence_en || 'System first principles and architectural axioms.');
+                
+            document.getElementById('drawer-focus').textContent = currentLang === 'zh' ? 
+                (p.focus_cn || '系统核心流程与重点瓶颈拆解。') : 
+                (p.focus_en || 'Detailed breakdown of high-frequency engineering bottlenecks.');
+            
+            const sandboxSection = document.getElementById('drawer-sandbox-section');
+            const actionButtons = document.getElementById('drawer-actions');
+            const plannedBanner = document.getElementById('drawer-planned-banner');
+            
+            if (p.is_published) {
+                plannedBanner.style.display = 'none';
+                sandboxSection.style.display = 'block';
+                actionButtons.style.display = 'grid';
+                
+                // Set iframe src to the localized sandbox path (using p.path instead of p.name for workspace nesting!)
+                const sandboxPath = currentLang === 'zh' ? 
+                    `${p.path}/${p.name}-互动演练沙盒-v1.html` : 
+                    `${p.path}/${p.name}-互动演练沙盒-v1-en.html`;
+                
+                document.getElementById('sandbox-iframe').src = sandboxPath;
+                
+                // Populate action buttons using p.path
+                const cheatsheetPath = currentLang === 'zh' ? 
+                    `${p.path}/${p.name}-Cheatsheet-v1.pdf` : 
+                    `${p.path}/${p.name}-Cheatsheet-v1-en.pdf`;
+                
+                const mapPath = currentLang === 'zh' ? 
+                    `${p.path}/${p.name}-精美知识图谱-v1.html` : 
+                    `${p.path}/${p.name}-精美知识图谱-v1-en.html`;
+                    
+                const mdPath = currentLang === 'zh' ? 
+                    `${p.path}/${p.name}-Cheatsheet-v1.md` : 
+                    `${p.path}/${p.name}-Cheatsheet-v1-en.md`;
+                
+                actionButtons.innerHTML = `
+                    <a href="${sandboxPath}" target="_blank" class="action-button primary-action">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        <span data-zh="独立运行沙盒" data-en="Launch Sandbox">${currentLang === 'zh' ? '独立运行沙盒' : 'Launch Sandbox'}</span>
+                    </a>
+                    <a href="${mapPath}" target="_blank" class="action-button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                        <span data-zh="交互式图谱" data-en="Interactive Map">${currentLang === 'zh' ? '关系知识图谱' : 'Open Knowledge Map'}</span>
+                    </a>
+                    <a href="${cheatsheetPath}" target="_blank" class="action-button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span data-zh="下载海报 PDF" data-en="Download PDF">${currentLang === 'zh' ? '下载海报 PDF' : 'Download PDF'}</span>
+                    </a>
+                    <a href="${mdPath}" target="_blank" class="action-button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <span data-zh="阅读卡片原文" data-en="Read Cheatsheet">${currentLang === 'zh' ? '阅读卡片原文' : 'Read Cheatsheet'}</span>
+                    </a>
+                `;
+            } else {
+                sandboxSection.style.display = 'none';
+                actionButtons.style.display = 'none';
+                plannedBanner.style.display = 'block';
+                document.getElementById('sandbox-iframe').src = '';
+            }
+            
+            document.getElementById('drawer-overlay').classList.add('active');
+        }
+        
+        // Close Slide-out Drawer
+        function closeDrawer() {
+            document.getElementById('drawer-overlay').classList.remove('active');
+            document.getElementById('sandbox-iframe').src = '';
+        }
+        
+        // Initialize Portfolio Page
+        window.addEventListener('DOMContentLoaded', () => {
+            populateCategories();
+            renderPortfolio();
+        });
+    </script>
+</body>
+</html>

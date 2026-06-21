@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ROS 2 DDS Discovery & Zero-Copy Shared Memory Sandbox</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+            font-size: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            font-size: 12px;
+        }
+        select, input, .btn {
+            background-color: #151D30;
+            color: white;
+            border: 1px solid #24324F;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        input {
+            flex: 1;
+        }
+        .btn {
+            background-color: #9C6666;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 280px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-sizing: border-box;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            box-sizing: border-box;
+        }
+        .step-row {
+            background-color: #1A202C;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px dashed #4B5F7A;
+            font-size: 11px;
+        }
+        .node-network {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            position: relative;
+            height: 120px;
+        }
+        .node-box {
+            width: 120px;
+            background-color: #1A202C;
+            border: 1px solid #4B5F7A;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            font-size: 11px;
+        }
+        .node-title {
+            font-weight: bold;
+            color: #9A825A;
+        }
+        .node-details {
+            font-size: 9px;
+            color: #7A7A7A;
+            margin-top: 5px;
+        }
+        .packet {
+            width: 12px;
+            height: 12px;
+            background-color: #9C6666;
+            border-radius: 50%;
+            position: absolute;
+            top: 55px;
+            left: 140px;
+            display: none;
+            box-shadow: 0 0 8px #9C6666;
+        }
+        .shm-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .shm-pool {
+            border: 2px dashed #6B8272;
+            border-radius: 6px;
+            background-color: #0D1117;
+            padding: 10px;
+            text-align: center;
+            font-size: 11px;
+            color: #6B8272;
+            font-weight: bold;
+        }
+        .bench-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 11px;
+        }
+        .bench-card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 4px;
+            padding: 8px;
+        }
+        .bench-val {
+            font-size: 15px;
+            font-weight: bold;
+            color: #39D353;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ROS 2 DDS Discovery & Zero-Copy Shared Memory Sandbox</h1>
+        <div class="grid">
+            <!-- Sandbox 1: DDS Discovery & QoS -->
+            <div class="card">
+                <h2>ROS 2 DDS Discovery & QoS Simulator</h2>
+                <div class="control-group">
+                    <div class="row">
+                        <strong>Publisher Node (Offer):</strong>
+                        <select id="pub-qos" onchange="runQosDiscovery()">
+                            <option value="reliable">Reliable</option>
+                            <option value="best_effort">Best Effort</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <strong>Subscriber Node (Request):</strong>
+                        <select id="sub-qos" onchange="runQosDiscovery()">
+                            <option value="reliable">Reliable</option>
+                            <option value="best_effort">Best Effort</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <strong>Network Packet Loss:</strong>
+                        <select id="net-loss">
+                            <option value="0">0% Loss</option>
+                            <option value="20">20% Loss</option>
+                            <option value="50">50% Loss</option>
+                        </select>
+                        <button class="btn" onclick="transmitMessage()">Transmit Msg</button>
+                    </div>
+                </div>
+                <div class="visualizer">
+                    <div class="node-network">
+                        <div class="node-box" id="node-pub">
+                            <div class="node-title">Publisher</div>
+                            <div class="node-details" id="pub-desc">Offered: Reliable</div>
+                        </div>
+                        <div class="packet" id="sim-packet"></div>
+                        <div class="node-box" id="node-sub">
+                            <div class="node-title">Subscriber</div>
+                            <div class="node-details" id="sub-desc">Requested: Reliable</div>
+                        </div>
+                    </div>
+                    <div class="step-row" id="discovery-status">
+                        <strong>DDS Discovery Status:</strong> Matching endpoints...
+                    </div>
+                </div>
+                <div class="console" id="qos-console">
+                    [Console] Adjust QoS settings to examine SDP matching status.
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Zero-Copy Shared Memory -->
+            <div class="card">
+                <h2>{lbl_shm}</h2>
+                <div class="control-group">
+                    <div class="row">
+                        <strong>{lbl_shm_size}</strong>
+                        <select id="payload-size">
+                            <option value="1">1 KB (Control Signal)</option>
+                            <option value="1000">1 MB (Camera Frame)</option>
+                            <option value="100000">100 MB (High-Res Point Cloud)</option>
+                        </select>
+                        <button class="btn" style="background-color:#755B77;" onclick="runShmBenchmark()">{lbl_run_bench}</button>
+                    </div>
+                </div>
+                <div class="visualizer">
+                    <div class="shm-container">
+                        <div class="shm-pool" id="shm-block">
+                            iceoryx Shared Memory Pool
+                            <div style="font-size:9px;color:#7A7A7A;font-weight:normal;margin-top:4px;" id="shm-status">Pool Idle</div>
+                        </div>
+                        <div class="bench-grid">
+                            <div class="bench-card">
+                                <div>Traditional Copy IPC</div>
+                                <div class="bench-val" id="bench-copy-time">-- ms</div>
+                                <div style="font-size:9px;color:#7A7A7A;" id="bench-copy-cpu">CPU: --%</div>
+                            </div>
+                            <div class="bench-card">
+                                <div>Zero-Copy (iceoryx)</div>
+                                <div class="bench-val" id="bench-shm-time">-- ms</div>
+                                <div style="font-size:9px;color:#7A7A7A;" id="bench-shm-cpu">CPU: --%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="console" id="shm-console">
+                    [Console] Press Execute Benchmark to compare serialization/copy vs zero-copy IPC.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sandbox 1: Discovery & QoS
+        function runQosDiscovery() {
+            const pub = document.getElementById("pub-qos").value;
+            const sub = document.getElementById("sub-qos").value;
+            const isEn = true;
+
+            // Offered vs Requested logic: Offered must be >= Requested (Reliable > BestEffort)
+            let isCompatible = true;
+            if (pub === "best_effort" && sub === "reliable") {
+                isCompatible = false;
+            }
+
+            document.getElementById("pub-desc").innerText = (isEn ? "Offered: " : "提供: ") + pub;
+            document.getElementById("sub-desc").innerText = (isEn ? "Requested: " : "要求: ") + sub;
+
+            const statusBox = document.getElementById("discovery-status");
+            const consoleBox = document.getElementById("qos-console");
+
+            if (isCompatible) {
+                statusBox.innerHTML = `<strong>DDS Discovery:</strong> <span style="color:#39D353;">` + (isEn ? "Matched & Linked" : "匹配成功并已建连") + `</span>`;
+                consoleBox.innerText = isEn ?
+                    `[SDP Discovery]\\n -> Matched Offered QoS [${{pub}}] with Requested QoS [${{sub}}].\\n -> Endpoint connection established.` :
+                    `[SDP 动态发现]\\n -> 校验兼容性成功：发布端 Offered [${{pub}}] 符合订阅端 Requested [${{sub}}]。\\n -> DDS 通信逻辑信道已成功绑定。`;
+            } else {
+                statusBox.innerHTML = `<strong>DDS Discovery:</strong> <span style="color:#FF4D4D;">` + (isEn ? "QoS Incompatible (Blocked)" : "QoS 不兼容 (阻塞断开)") + `</span>`;
+                consoleBox.innerText = isEn ?
+                    `[SDP Discovery Warning]\\n -> Offered QoS [${{pub}}] is weaker than Requested QoS [${{sub}}].\\n -> ERROR: dds_qos_incompatible_match. Connections blocked!` :
+                    `[SDP 发现警告]\\n -> Offered [${{pub}}] 强度低于 Requested [${{sub}}] (不匹配规则 Offered >= Requested)。\\n -> 异常触发: dds_qos_incompatible_match，节点间有线网络拒绝接收该话题。`;
+            }
+            return isCompatible;
+        }
+
+        let isTransmitting = false;
+        function transmitMessage() {
+            if (isTransmitting) return;
+            const isCompatible = runQosDiscovery();
+            if (!isCompatible) return;
+
+            isTransmitting = true;
+            const loss = parseInt(document.getElementById("net-loss").value);
+            const pub = document.getElementById("pub-qos").value;
+            const isEn = true;
+
+            const pkt = document.getElementById("sim-packet");
+            pkt.style.display = "block";
+            pkt.style.left = "140px";
+
+            // Packet animation
+            let pos = 140;
+            const interval = setInterval(() => {
+                pos += 10;
+                pkt.style.left = pos + "px";
+                if (pos >= 360) {
+                    clearInterval(interval);
+                    pkt.style.display = "none";
+                    isTransmitting = false;
+                    
+                    // Process result based on loss and qos
+                    const consoleBox = document.getElementById("qos-console");
+                    const rand = Math.floor(Math.random() * 100);
+                    const lost = rand < loss;
+
+                    if (lost) {
+                        if (pub === "reliable") {
+                            consoleBox.innerText += isEn ?
+                                `\\n[Packet Transmit]\\n -> Frame lost during transmission!\\n -> [Reliable QoS active]: Sub requested NACK, Pub re-sent frame. Msg successfully delivered via recovery.` :
+                                `\\n[物理网络传输]\\n -> 话题数据帧在网络中丢失！\\n -> [Reliable 模式生效]：订阅端未收到序号包，发起 NACK 重传申请；发布端重发；消息经重传最终送达。`;
+                        } else {
+                            consoleBox.innerText += isEn ?
+                                `\\n[Packet Transmit]\\n -> Frame lost during transmission!\\n -> [Best Effort active]: Packet dropped permanently. Msg delivery failed.` :
+                                `\\n[物理网络传输]\\n -> 话题数据帧在网络中丢失！\\n -> [Best Effort 模式生效]：DDS 放弃网络恢复，数据帧永久丢失。`;
+                        }
+                    } else {
+                        consoleBox.innerText += isEn ?
+                            `\\n[Packet Transmit]\\n -> Packet successfully delivered (0% latency jitter).` :
+                            `\\n[物理网络传输]\\n -> 数据包顺利抵达，无丢包重发，延迟在确定性上限内。`;
+                    }
+                }
+            }, 30);
+        }
+
+        // Initialize matching
+        runQosDiscovery();
+
+        // Sandbox 2: Shared Memory
+        function runShmBenchmark() {
+            const size = parseInt(document.getElementById("payload-size").value);
+            const isEn = true;
+
+            // Compute values
+            let copyTime, copyCpu, shmTime, shmCpu;
+            if (size === 1) {
+                // small payload: shm has minor overhead due to borrow lock api, copy is very fast
+                copyTime = "0.05";
+                copyCpu = "0.8";
+                shmTime = "0.02";
+                shmCpu = "0.1";
+            } else if (size === 1000) {
+                // 1MB camera frame
+                copyTime = "2.80";
+                copyCpu = "18.5";
+                shmTime = "0.02";
+                shmCpu = "0.1";
+            } else {
+                // 100MB point cloud
+                copyTime = "240.50";
+                copyCpu = "88.0";
+                shmTime = "0.03";
+                shmCpu = "0.1";
+            }
+
+            // Update DOM
+            document.getElementById("bench-copy-time").innerText = copyTime + " ms";
+            document.getElementById("bench-copy-cpu").innerText = "CPU: " + copyCpu + "%";
+            document.getElementById("bench-shm-time").innerText = shmTime + " ms";
+            document.getElementById("bench-shm-cpu").innerText = "CPU: " + shmCpu + "%";
+
+            const shmStatus = document.getElementById("shm-status");
+            shmStatus.innerHTML = `Zero-Copy active: Leased chunk allocated at address 0x${{(Math.random()*0xFFFFFF|0).toString(16).toUpperCase()}}`;
+
+            const consoleBox = document.getElementById("shm-console");
+            consoleBox.innerText = isEn ?
+                `[Benchmark Info] Payload Size: ${{size}} KB\\n` +
+                ` -> Traditional Copy: serialization + context copy takes ${{copyTime}} ms with ${{copyCpu}}% CPU execution spike.\\n` +
+                ` -> iceoryx zero-copy: loan API bypasses copies. Time: ${{shmTime}} ms, CPU usage: ${{shmCpu}}% (completely flat).` :
+                `[性能测试报告] 数据载荷: ${{size}} KB\\n` +
+                ` -> 传统 Socket 拷贝: 序列化到 CDR 并通过内核发送，耗时 ${{copyTime}} 毫秒，瞬间消耗 CPU ${{copyCpu}}% (拷贝时间随载荷尺寸线性爆炸)。\\n` +
+                ` -> iceoryx 零拷贝: 发布端与订阅端共享同一块物理内存页，传递耗时固定为 ${{shmTime}} 毫秒，CPU 开销仅 ${{shmCpu}}% (耗时与 CPU 消耗完全呈水平直线)。`;
+        }
+    </script>
+</body>
+</html>

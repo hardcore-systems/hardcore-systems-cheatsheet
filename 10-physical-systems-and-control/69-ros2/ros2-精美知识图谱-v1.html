@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ROS 2 机器人计算图拓扑图谱</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+            font-size: 20px;
+        }
+        #canvas-container {
+            width: 1000px;
+            height: 750px;
+            margin: 0 auto;
+            position: relative;
+            background-color: #1A202C;
+            border: 2px solid #24324F;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .node {
+            position: absolute;
+            width: 160px;
+            height: 48px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            padding: 5px;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            filter: brightness(1.2);
+        }
+        #detail-panel {
+            width: 1000px;
+            margin: 20px auto 0 auto;
+            background-color: rgba(26, 32, 44, 0.85);
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+        }
+        #detail-title {
+            font-size: 16px;
+            font-weight: bold;
+            border-bottom: 2px solid #4B5F7A;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        #detail-body {
+            font-size: 13px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>ROS 2 机器人计算图拓扑图谱</h1>
+    <div id="canvas-container">
+        <div class="node" style="left: 100px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(1)">节点生命周期与Executor调度</div>
+<div class="node" style="left: 240px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(2)">RMW 中间件层抽象</div>
+<div class="node" style="left: 380px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(3)">DDS SDP/SEDP 动态寻址</div>
+<div class="node" style="left: 520px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(4)">DDS QoS 服务质量配置</div>
+<div class="node" style="left: 660px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(5)">同进程指针直传 IPC</div>
+<div class="node" style="left: 800px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(6)">共享内存零拷贝 (iceoryx)</div>
+<div class="node" style="left: 100px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(7)">话题订阅发布与 CDR 序列化</div>
+<div class="node" style="left: 240px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(8)">异步服务请求应答模型</div>
+<div class="node" style="left: 380px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(9)">Action 目标-反馈-结果框架</div>
+<div class="node" style="left: 520px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(10)">Executor 回调互斥调度分组</div>
+<div class="node" style="left: 660px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(11)">参数动态注册与事件回调</div>
+<div class="node" style="left: 800px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(12)">Lifecycle 规范受控节点状态机</div>
+<div class="node" style="left: 100px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(13)">Launch 启动编排与自适应重启</div>
+<div class="node" style="left: 240px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(14)">rosbag2 二进制 MCAP 快速存盘</div>
+<div class="node" style="left: 380px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(15)">客户端 C 底层库 rcl</div>
+<div class="node" style="left: 520px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(16)">RMW 底层映射接口 rwm</div>
+<div class="node" style="left: 660px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(17)">tf2 分布式坐标系树计算与插值</div>
+<div class="node" style="left: 800px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(18)">mlockall 锁定与线程优先级调度</div>
+<div class="node" style="left: 100px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(19)">DDS Security 认证加密权限xml</div>
+<div class="node" style="left: 240px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(20)">RTPS 跨厂商 FastDDS/Cyclone</div>
+<div class="node" style="left: 380px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(21)">动态库加载 Component 容器化</div>
+<div class="node" style="left: 520px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(22)">微秒级时钟同步与 SimTime 支持</div>
+<div class="node" style="left: 660px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(23)">rclcpp 智能指针与 WaitSets 分发</div>
+<div class="node" style="left: 800px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(24)">rclpy 异步事件循环与 GIL 绕过</div>
+<div class="node" style="left: 150px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(25)">Offered/Requested 强弱匹配矩阵</div>
+<div class="node" style="left: 320px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(26)">系统 Updater 汇报与 rqt 图诊断</div>
+<div class="node" style="left: 490px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(27)">micro-ROS 极致瘦客户端 XRCE</div>
+<div class="node" style="left: 660px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(28)">物理引擎控制反馈与 Gazebo 桥接</div>
+
+    </div>
+    <div id="detail-panel">
+        <div id="detail-title">点击上面的卡片节点，获取硬核技术细节参数</div>
+        <div id="detail-body"></div>
+    </div>
+
+    <script>
+        const cards = [
+            { id: 1, title: 'Node Lifecycle', zh: '节点生命周期与Executor调度', color: '#4B5F7A' },
+        { id: 2, title: 'RMW Abstraction', zh: 'RMW 中间件层抽象', color: '#4B5F7A' },
+        { id: 3, title: 'DDS Dynamic Discovery', zh: 'DDS SDP/SEDP 动态寻址', color: '#4B5F7A' },
+        { id: 4, title: 'DDS QoS Policies', zh: 'DDS QoS 服务质量配置', color: '#4B5F7A' },
+        { id: 5, title: 'Intra-Process Comm', zh: '同进程指针直传 IPC', color: '#4B5F7A' },
+        { id: 6, title: 'Zero-Copy Shm', zh: '共享内存零拷贝 (iceoryx)', color: '#4B5F7A' },
+        { id: 7, title: 'Topics & CDR', zh: '话题订阅发布与 CDR 序列化', color: '#6B8272' },
+        { id: 8, title: 'Async Services', zh: '异步服务请求应答模型', color: '#6B8272' },
+        { id: 9, title: 'Action Framework', zh: 'Action 目标-反馈-结果框架', color: '#6B8272' },
+        { id: 10, title: 'Executor groups', zh: 'Executor 回调互斥调度分组', color: '#6B8272' },
+        { id: 11, title: 'Dynamic Params', zh: '参数动态注册与事件回调', color: '#6B8272' },
+        { id: 12, title: 'Managed Nodes', zh: 'Lifecycle 规范受控节点状态机', color: '#6B8272' },
+        { id: 13, title: 'Launch System', zh: 'Launch 启动编排与自适应重启', color: '#9C6666' },
+        { id: 14, title: 'MCAP Recording', zh: 'rosbag2 二进制 MCAP 快速存盘', color: '#9C6666' },
+        { id: 15, title: 'rcl C Library', zh: '客户端 C 底层库 rcl', color: '#9C6666' },
+        { id: 16, title: 'rmw C API', zh: 'RMW 底层映射接口 rwm', color: '#9C6666' },
+        { id: 17, title: 'tf2 Transforms', zh: 'tf2 分布式坐标系树计算与插值', color: '#9C6666' },
+        { id: 18, title: 'Real-time Priority', zh: 'mlockall 锁定与线程优先级调度', color: '#9C6666' },
+        { id: 19, title: 'Secure DDS', zh: 'DDS Security 认证加密权限xml', color: '#7A7A7A' },
+        { id: 20, title: 'Vendor Interop', zh: 'RTPS 跨厂商 FastDDS/Cyclone', color: '#7A7A7A' },
+        { id: 21, title: 'Components Loader', zh: '动态库加载 Component 容器化', color: '#7A7A7A' },
+        { id: 22, title: 'Time Sync', zh: '微秒级时钟同步与 SimTime 支持', color: '#7A7A7A' },
+        { id: 23, title: 'rclcpp C++', zh: 'rclcpp 智能指针与 WaitSets 分发', color: '#7A7A7A' },
+        { id: 24, title: 'rclpy Python', zh: 'rclpy 异步事件循环与 GIL 绕过', color: '#7A7A7A' },
+        { id: 25, title: 'QoS Matching rules', zh: 'Offered/Requested 强弱匹配矩阵', color: '#9A825A' },
+        { id: 26, title: 'Diagnostics updating', zh: '系统 Updater 汇报与 rqt 图诊断', color: '#9A825A' },
+        { id: 27, title: 'micro-ROS Client', zh: 'micro-ROS 极致瘦客户端 XRCE', color: '#9A825A' },
+        { id: 28, title: 'Gazebo Simulation', zh: '物理引擎控制反馈与 Gazebo 桥接', color: '#9A825A' }
+        ];
+
+        const detailsZh = {
+            1: "<strong>节点与Executor:</strong> 最小独立执行单元。节点（Node）在 rclcpp 中对应 `rclcpp::Node` 句柄，它通过 Executor 关联系统的并发运行线程。多个节点可以通过 Component Container 部署在同一物理进程中。",
+            2: "<strong>RMW 抽象层:</strong> ROS Middleware Interface (RMW) 屏蔽了 FastDDS, CycloneDDS 等不同厂商 DDS 的实现差异，对上层提供统一的发布、订阅、等待事件 C 语言接口。",
+            3: "<strong>DDS 动态发现 SPDP/SEDP:</strong> 底层依靠 Simple Participant Discovery Protocol 进行网络多播对等探测，一旦感知新节点加入，即刻触发 SEDP 交换话题与 QoS 类型描述完成握手连通。",
+            4: "<strong>DDS QoS 策略控制:</strong> 包括 Reliability（可靠度）、Durability（持久性）、History（历史队列深度）、Lifespan（数据寿命）等多维参数，完美适应从有损无线 WiFi 传输到硬实时总线控制等多元场景。",
+            5: "<strong>同进程 IPC 指针直传:</strong> 同进程内的两个 Component 节点话题传递时，开启进程内通信会在 `publish` 时直接投递 C++ 的 `unique_ptr`，实现零拷贝、零序列化的极速分发。",
+            6: "<strong>共享内存零拷贝 (iceoryx):</strong> 跨进程通信的大数据场景下，rclcpp 利用 `borrow_loaned_message` 从 iceoryx 共享内存区获取固定尺寸内存块。写入并发送后，订阅端直接读取物理偏移量指针，避免数据跨用户/内核态的内存拷贝。",
+            7: "<strong>话题与 CDR 序列化:</strong> 采用 OMG 规定的 CDR (Common Data Representation) 紧凑二进制编码，将 ROS IDL 消息解构为特定对齐位宽的数据流进行物理传输，压缩传输体积。",
+            8: "<strong>异步服务:</strong> Request-Response 一对一同步/异步双向通信机制。底层将其解耦为两路配对的话题，由客户端发送 Request，Executor 监听 Response 消息并在收到后恢复关联的 Future 回调。",
+            9: "<strong>Action 动作模型:</strong> 适合机器人长周期任务，内部整合 Goal/Cancel/Result 服务以及 Feedback/Status 两个话题流，支持执行进度动态回传与运行期客户端主动强行中断。",
+            10: "<strong>Executor 回调分组:</strong> 支持 SingleThreadedExecutor 与 MultiThreadedExecutor，通过 Callback Group（MutuallyExclusive / Reentrant）约束调度线程在处理具体话题/服务时的并发互斥属性。",
+            11: "<strong>动态参数与事件:</strong> 运行时参数配置中心。动态修改参数会触发设置校验钩子，并通过 `/parameter_events` 全局话题向外广播变动，支持系统自适应行为重塑。",
+            12: "<strong>Lifecycle 受控节点:</strong> 针对工业及安全级机器人，规范化节点生存期转换。严格在 Unconfigured -> Inactive -> Active -> Finalized 状态机转换下接收/转发网络报文。",
+            13: "<strong>Launch 启动编排:</strong> 机器人多节点资源管理器。通过 Python Launch 脚本编排节点依赖、参数传递、物理环境变量及节点崩溃联动重启应急机制。",
+            14: "<strong>MCAP 快速存盘:</strong> 离线录制机制。rosbag2 的新版追加文件格式 MCAP，优化了写入效率并能自包含消息 Schema，在大吞吐传感器落盘场景下性能大幅压倒传统 SQLite。",
+            15: "<strong>rcl 底层库:</strong> 统一底层 C 语言库实现，封装图元管理、系统定时器、时钟源等待分配逻辑，为上层 rclcpp 与 rclpy 提供完全一致的核心行为桥接。",
+            16: "<strong>rmw 接口 C 库:</strong> 将 RMW C API 的声明映射至具体 DDS 特征句柄。通过运行时动态装载底层插件库，提供数据通道生命周期的建立与管理。",
+            17: "<strong>tf2 位姿树计算:</strong> 集中/分布式坐标树变换引擎。`tf2_ros::Buffer` 在内存中持有可配置时间长度的关节位置历史滑窗，解算相对运动时通过时间戳插值算出精确位姿。",
+            18: "<strong>实时优先级 mlockall:</strong> 为避免延迟抖动，控制节点在初始化时调用 `mlockall` 锁定物理页面于 RAM 规避 Swap，并利用 Linux 实时优先级调入核心 Executor 为 SCHED_FIFO 调度。",
+            19: "<strong>DDS Security 安全加密:</strong> 基于 DDS 规范的安全子系统，实现基于 CA 的强节点身份认证（Authentication）、XML 策略控制的话题读写控制（Access Control）及 AES-GCM 有线加密。",
+            20: "<strong>DDS 厂商互操作:</strong> RTPS（Real-time Publish-Subscribe）作为传输有线协议标准，允许 CycloneDDS 实例节点直接与 FastDDS 实例节点跨局域网传输并成功解析 CDR 消息流。",
+            21: "<strong>Component 装载机制:</strong> 机器人节点编译为 .so 共享链接库，Container 主进程通过 `class_loader` 运行时动态加载，实现同一空间内的高效指针共享与调度优化。",
+            22: "<strong>时间与 SimTime 机制:</strong> 支持系统时间、稳态时钟及仿真时钟。在 `use_sim_time` 开启时自动切断系统物理时钟，转为监听仿真器发出的 `/clock` 节拍维持步调同步。",
+            23: "<strong>rclcpp 客户端库:</strong> C++14/17 强类型机器人开发包。基于智能指针实现消息声明周期管理，利用 WaitSets 直接阻塞在 epoll 管道以提供极致的回调分发性能。",
+            24: "<strong>rclpy Python 客户端库:</strong> 提供 Python 异步包装，支持 asyncio 模型以 `await` 异步控制服务和 Action，在高层决策算法与原型设计中被高频调用。",
+            25: "<strong>QoS 强弱匹配矩阵:</strong> 严格遵守 Offered >= Requested 兼容匹配原则（如发布端 Offer Reliable，订阅端 Request Reliable 即匹配成功；若发布端只 Offer BestEffort 则建连失败）。",
+            26: "<strong>系统诊断更新:</strong> 机器人诊断控制组件。节点嵌入 Diagnostic Updater 并周期性汇报传感器健康状态，使用 `rqt_graph` 实时可视化在线节点互联关系树以供诊断分析。",
+            27: "<strong>micro-ROS 瘦接口:</strong> 针对微控制器（MCU）受限环境，运行 Micro XRCE-DDS 客户端，以几 KB 的 RAM 消耗通过串口或 SPI 与代理 Agent 通信，打通了 MCU 与上位机网络。",
+            28: "<strong>Gazebo 仿真集成:</strong> 通过物理仿真引擎插件（如控制轮式移动差速驱动等），将虚拟世界的仿真相机/IMU 数据流打包为 ROS 2 标准话题发出，并在闭环下接收控制指令驱动模型。"
+        };
+
+        const detailsEn = {
+            1: "<strong>Node & Executor:</strong> The basic logical compute unit. An rclcpp Node wraps system tasks, connecting to executors like `SingleThreadedExecutor` or `MultiThreadedExecutor` to execute message loop callbacks.",
+            2: "<strong>RMW Abstraction:</strong> ROS Middleware Interface (RMW) abstracts FastDDS, CycloneDDS, and other DDS bindings under unified C APIs, separating communication implementation from上层 libraries.",
+            3: "<strong>DDS Dynamic Discovery:</strong> Discards directory servers, using RTPS SPDP multicast packets to find peers, then SEDP endpoints metadata negotiations to pair subscribers and publishers dynamically.",
+            4: "<strong>DDS QoS Policies:</strong> Features customizable Reliability (Reliable/BestEffort), Durability (TransientLocal/Volatile), and History configuration policies to optimize wireless networks or local loops.",
+            5: "<strong>Intra-Process Pointer Sharing:</strong> Components running in a single container skip network stacks and serialization entirely, passing messages as `std::unique_ptr` to eliminate overhead.",
+            6: "<strong>Zero-Copy Shared Memory:</strong> Uses iceoryx shared memory segments. Publishers write directly to leased memory sections (`borrow_loaned_message()`), sending offsets so subscribers read without kernel copying.",
+            7: "<strong>Topics & CDR Serialization:</strong> Defines data pipelines via topics, serializing data models into OMG CDR (Common Data Representation) alignment frames for compact transfers.",
+            8: "<strong>Asynchronous Services:</strong> Client-server request-response pattern mapped over request and response topics. Executives catch response events and resolve corresponding client futures.",
+            9: "<strong>Action Framework:</strong> Tracks long-running goals (e.g., navigation actions) via goal, cancel, and result services with feedback and state topics to cancel operations mid-execution.",
+            10: "<strong>Executor Grouping:</strong> Manages callback executions inside executors. Assigns callbacks to groups (MutuallyExclusive / Reentrant) to regulate parallel threads and prevent race conditions.",
+            11: "<strong>Dynamic Parameters:</strong> Runtime parameter store. Register setters trigger verification callbacks and emit events to `/parameter_events` for real-time monitoring.",
+            12: "<strong>Managed Nodes:</strong> Standardizes state transitions for safe operations, enforcing structured Unconfigured -> Inactive -> Active -> Finalized workflows.",
+            13: "<strong>Launch System:</strong> Process manager parsing Python configurations to orchestrate multi-node parameters, environments, and custom crash dependencies.",
+            14: "<strong>MCAP Recording:</strong> Captures high-frequency camera and cloud streams to disk using MCAP format, bypassing SQLite throughput bottlenecks.",
+            15: "<strong>rcl Core:</strong> Common implementation layer written in C, providing unified clocks, event wait sets, and parameter utilities for rclcpp and rclpy.",
+            16: "<strong>rmw C API:</strong> C bindings loading vendor RMW dynamic libraries at runtime, mapping ROS endpoints to real DDS actors.",
+            17: "<strong>tf2 Coordinate Tree:</strong> Coordinates transform buffer tracking robot frames. Retains 10-second history buffers to interpolate relative transform vectors.",
+            18: "<strong>Real-Time mlockall:</strong> Prevents system latency spikes by calling `mlockall` to lock heap memory in RAM, allocating SCHED_FIFO scheduling priorities.",
+            19: "<strong>Secure DDS:</strong> Secures the robot graph with X.509 certificates (Authentication), XML permissions (Access Control), and AES-GCM (Cryptography).",
+            20: "<strong>DDS Interoperability:</strong> Ensures CycloneDDS and FastDDS nodes communicate transparently over the wire since both adhere to OMG RTPS standards.",
+            21: "<strong>Component Loader:</strong> Dynamically loads components (.so) into a shared container, maximizing intra-process zero-copy performance.",
+            22: "<strong>Time Sync:</strong> Supports system, steady, and sim time. Diverts steady clocks to simulator `/clock` broadcast topics when running virtual physics engines.",
+            23: "<strong>rclcpp Client Library:</strong> High-performance C++ library leveraging smart pointers for data lifetime and WaitSets for epoll loop execution.",
+            24: "<strong>rclpy Python Library:</strong> Python bindings exposing asyncio API endpoints, letting developers wait for actions and services inside Python event loops.",
+            25: "<strong>QoS Compatibility:</strong> Enforces Offered >= Requested rules (e.g. offered Reliable matches requested BestEffort, but offered BestEffort drops reliable requests).",
+            26: "<strong>Diagnostics Updates:</strong> Updates status metrics using Diagnostic Updaters and maps overall network connectivity topologies via `rqt_graph` tools.",
+            27: "<strong>micro-ROS Client:</strong> Fits resource-limited microcontrollers via Micro XRCE-DDS clients, sending raw CDR streams using a few KB of RAM.",
+            28: "<strong>Gazebo Simulation:</strong> Integrates virtual sensor simulation plugins with core control loops, receiving `/cmd_vel` to drive simulated joints."
+        };
+
+        function showCardDetail(id) {
+            const card = cards.find(c => c.id === id);
+            const isEn = false;
+            document.getElementById('detail-title').innerText = isEn ? `Card ${id}: ${card.title}` : `卡片 ${id}: ${card.zh}`;
+            document.getElementById('detail-body').innerHTML = isEn ? detailsEn[id] : detailsZh[id];
+        }
+    </script>
+</body>
+</html>

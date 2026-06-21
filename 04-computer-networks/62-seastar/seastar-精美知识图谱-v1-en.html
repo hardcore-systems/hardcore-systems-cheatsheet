@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Seastar Architecture Map</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+            font-size: 24px;
+        }
+        #canvas-container {
+            width: 1100px;
+            height: 600px;
+            margin: 0 auto;
+            position: relative;
+            background-color: #1A202C;
+            border: 2px solid #24324F;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .node {
+            position: absolute;
+            width: 130px;
+            height: 50px;
+            border-radius: 4px;
+            color: white;
+            font-size: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4px;
+            cursor: pointer;
+            box-sizing: border-box;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.2s ease;
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        #tooltip {
+            width: 1100px;
+            margin: 15px auto;
+            padding: 15px;
+            background-color: #2D3748;
+            border-left: 5px solid #4B5F7A;
+            border-radius: 4px;
+            min-height: 80px;
+        }
+        .colorM1 { background-color: #4B5F7A; }
+        .colorM2 { background-color: #6B8272; }
+        .colorM3 { background-color: #9C6666; }
+        .colorM4 { background-color: #7A7A7A; }
+        .colorM5 { background-color: #9A825A; }
+        .colorM6 { background-color: #755B77; }
+    </style>
+</head>
+<body>
+    <h1>Seastar Architecture Map</h1>
+    <div id="canvas-container"></div>
+    <div id="tooltip">
+        <h3>Click a card to inspect Seastar's components</h3>
+    </div>
+
+    <script>
+        const nodes = [
+            { id: 1, group: 'M1', x: 80, y: 80, label: 'Card 1: Shard-per-Core Core', zh: '卡片 1: Shard-per-Core 架构', desc: 'One thread pinned per core. Shares nothing to prevent lock bottlenecks.' },
+            { id: 2, group: 'M1', x: 80, y: 160, label: 'Card 2: CPU Pinning', zh: '卡片 2: CPU 亲和性硬绑定', desc: 'Prevents OS scheduling context switches and cache pollution.' },
+            { id: 3, group: 'M1', x: 80, y: 240, label: 'Card 3: Lock-Free Allocator', zh: '卡片 3: 无锁页内存分配器', desc: 'Each core holds a preallocated partition to assign heap space.' },
+            { id: 4, group: 'M1', x: 80, y: 320, label: 'Card 4: Cooperative Fibers', zh: '卡片 4: 协作式纤程调度', desc: 'Fibers yield control upon waiting. Blocking syscalls are forbidden.' },
+            { id: 5, group: 'M1', x: 80, y: 400, label: 'Card 5: SPSC Ring Buffer', zh: '卡片 5: 跨核无锁环形队列', desc: 'Enables thread-safe cross-core task submissions without dynamic locks.' },
+            
+            { id: 6, group: 'M2', x: 260, y: 80, label: 'Card 6: Future & Promise', zh: '卡片 6: Future 与 Promise 机制', desc: 'Lock-free async containers designed strictly for single-threaded loop executions.' },
+            { id: 7, group: 'M2', x: 260, y: 160, label: 'Card 7: Continuation Chains', zh: '卡片 7: 链式 Continuation 优化', desc: 'Links callbacks using .then() and transfers states via move structures.' },
+            { id: 8, group: 'M2', x: 260, y: 240, label: 'Card 8: C++20 Coroutines', zh: '卡片 8: C++20 协程原生支持', desc: 'Enables co_await futures, compiling async code into logical blocks.' },
+            { id: 9, group: 'M2', x: 260, y: 320, label: 'Card 9: Task Scheduler', zh: '卡片 9: 微秒级任务调度队列', desc: 'Maintains FIFO execution paths inside Reactor loops.' },
+            { id: 10, group: 'M2', x: 260, y: 400, label: 'Card 10: Error Propagation', zh: '卡片 10: 异常传播资源清理', desc: 'Propagates async errors along chains and secures frees via .finally().' },
+
+            { id: 11, group: 'M3', x: 440, y: 80, label: 'Card 11: io_uring & Epoll', zh: '卡片 11: io_uring 极速内核引擎', desc: 'Uses shared rings to bypass syscall transitions, falling back to Epoll.' },
+            { id: 12, group: 'M3', x: 440, y: 160, label: 'Card 12: Zero-Copy Packets', zh: '卡片 12: 零拷贝 Packet 管理', desc: 'Fragmented packets share references to avoid buffer memory copies.' },
+            { id: 13, group: 'M3', x: 440, y: 240, label: 'Card 13: Direct I/O DMA', zh: '卡片 13: O_DIRECT 磁盘 DMA', desc: 'Bypasses kernel page caches to write directly from buffer to drive.' },
+            { id: 14, group: 'M3', x: 440, y: 320, label: 'Card 14: I/O Fair Queue', zh: '卡片 14: 磁盘 I/O 公平队列', desc: 'Applies token bucket rates to protect drive bandwidth across shards.' },
+            { id: 15, group: 'M3', x: 440, y: 400, label: 'Card 15: DPDK Integration', zh: '卡片 15: DPDK 用户态协议栈', desc: 'Bypasses entire OS networking stack to scan packets in user space.' },
+
+            { id: 16, group: 'M4', x: 620, y: 80, label: 'Card 16: Shared Atomics', zh: '卡片 16: 原子无锁共享结构', desc: 'Uses atomic ops for read-mostly values to avoid CPU bus storms.' },
+            { id: 17, group: 'M4', x: 620, y: 160, label: 'Card 17: Read-Copy-Update', zh: '卡片 17: RCU 读写分离机制', desc: 'Copies objects on modification and swaps pointers atomically via CAS.' },
+            { id: 18, group: 'M4', x: 620, y: 240, label: 'Card 18: smp Barriers', zh: '卡片 18: smp invoke_on_all 屏障', desc: 'Broadcasts async tasks to align startup and shutdown steps.' },
+            { id: 19, group: 'M4', x: 620, y: 320, label: 'Card 19: Cache Aligning', zh: '卡片 19: alignas(64) 伪共享对冲', desc: 'Pads variables to 64 bytes to prevent false sharing cache invalidations.' },
+            { id: 20, group: 'M4', x: 620, y: 400, label: 'Card 20: NUMA Locality', zh: '卡片 20: NUMA 架构亲和分配', desc: 'Ensures heap spaces allocate in local CPU socket node banks.' },
+
+            { id: 21, group: 'M5', x: 800, y: 80, label: 'Card 21: Sharded Services', zh: '卡片 21: sharded 模板协同', desc: 'Instantiates services across shards and merges states via MapReduce.' },
+            { id: 22, group: 'M5', x: 800, y: 180, label: 'Card 22: Connection Manager', zh: '卡片 22: 连接速率与水位控制器', desc: 'Rejects or redirects socket queries during extreme CPU load spikes.' },
+            { id: 23, group: 'M5', x: 800, y: 280, label: 'Card 23: Backpressure Flow', zh: '卡片 23: 背压自愈流控限流', desc: 'Throttles client sockets when queues fill up to prevent memory OOM.' },
+            { id: 24, group: 'M5', x: 800, y: 380, label: 'Card 24: HTTP & JSON Parser', zh: '卡片 24: 零拷贝极速 HTTP 解析', desc: 'Parses headers directly inside packet buffers without copies.' },
+
+            { id: 25, group: 'M6', x: 980, y: 80, label: 'Card 25: Stalled Watchdog', zh: '卡片 25: Reactor 挂起看门狗', desc: 'Logs backtraces when user fibers hog CPU cores for over 500us.' },
+            { id: 26, group: 'M6', x: 980, y: 180, label: 'Card 26: Stack Reconstruction', zh: '卡片 26: 异步堆栈回溯诊断', desc: 'Links async context spans in debug compilation to reconstruct calls.' },
+            { id: 27, group: 'M6', x: 980, y: 280, label: 'Card 27: Telemetry Profiling', zh: '卡片 27: 运行期指标遥测监控', desc: 'Prometheus metrics map Reactor cycles, queues, and allocations.' },
+            { id: 28, group: 'M6', x: 980, y: 380, label: 'Card 28: Compiler Flags', zh: '卡片 28: LTO 与 CPU 优化编译', desc: 'Enables Link-Time Optimization and native instructions to maximize speed.' }
+        ];
+
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+
+        nodes.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `node color${n.group}`;
+            div.style.left = `${n.x}px`;
+            div.style.top = `${n.y}px`;
+            div.innerText = n.label;
+            div.onclick = () => {
+                tooltip.innerHTML = `
+                    <h3>${n.label}</h3>
+                    <p><strong>Module:</strong> ${n.group} | <strong>Details:</strong> ${n.desc}</p>
+                `;
+            };
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>

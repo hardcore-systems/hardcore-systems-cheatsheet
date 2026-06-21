@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>TiKV 协处理器下推与 Multi-Raft/Percolator 仿真沙盒</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            background-color: #151D30;
+            color: white;
+            border: 1px solid #24324F;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .btn:hover {
+            background-color: #2D3748;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 280px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .status-row {
+            background-color: #1A202C;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px dashed #4B5F7A;
+            font-size: 11px;
+        }
+        .raft-layout {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .raft-node {
+            flex: 1;
+            background-color: #1E2530;
+            border: 1px solid #4B5F7A;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        .cf-table {
+            width: 100%;
+            font-size: 9px;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+        .cf-table th, .cf-table td {
+            border: 1px solid #24324F;
+            padding: 4px;
+            text-align: center;
+        }
+        .cf-table th { background-color: #151D30; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TiKV 协处理器下推与 Multi-Raft/Percolator 仿真沙盒</h1>
+        <div class="grid">
+            <!-- Sandbox 1: Coprocessor & RocksDB -->
+            <div class="card">
+                <h2>TiKV 协处理器下推与 RocksDB 存储引擎模拟器</h2>
+                <div class="control-group">
+                    <button class="btn" style="background-color:#4B5F7A;" onclick="togglePushdown()">切换协处理器下推 (Pushdown)</button>
+                    <button class="btn" style="background-color:#6B8272;" onclick="writeRocks()">向 RocksDB 写入数据</button>
+                    <button class="btn" style="background-color:#9C6666;" onclick="triggerCompaction()">执行 SST 归并合并 (Compaction)</button>
+                </div>
+                <div class="visualizer">
+                    <div class="status-row" id="pushdown-state">Coprocessor Pushdown: ENABLED (Filter age &gt; 18 runs inside TiKV)</div>
+                    <div class="status-row" id="network-cost" style="color:#9A825A; font-weight:bold;">Network Cost: 5% records sent (Fast, Low Bandwidth)</div>
+                    <div class="status-row" id="rocksdb-mem">RocksDB MemTable (Skiplist): 0/4 keys</div>
+                    <div class="status-row" id="rocksdb-sst">RocksDB SST Layout: L0: 0 files | L1: 0 files | L2: 0 files</div>
+                </div>
+                <div class="console" id="coproc-console">
+                    [Storage Log] Ready. Write records and click Compaction to trigger LSM-tree storage cleanup.
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Multi-Raft & Percolator -->
+            <div class="card">
+                <h2>Multi-Raft 动态分裂与 Percolator 分布式事务状态机</h2>
+                <div class="control-group">
+                    <button class="btn" style="background-color:#7A7A7A;" onclick="splitRegion()">触发 Region 1 物理分裂 (Split)</button>
+                    <button class="btn" style="background-color:#755B77;" onclick="step2PC()">单步执行 Percolator 2PC 事务</button>
+                </div>
+                <div class="visualizer">
+                    <div class="raft-layout" id="raft-layout">
+                        <!-- Rendered by JS -->
+                    </div>
+                    <!-- CF tables for Percolator -->
+                    <div style="margin-top:10px;">
+                        <strong>RocksDB Percolator Column Families (Lock/Write model):</strong>
+                        <table class="cf-table">
+                            <thead>
+                                <tr>
+                                    <th>Key</th>
+                                    <th>Default CF (Data)</th>
+                                    <th>Lock CF (Start TS)</th>
+                                    <th>Write CF (Commit TS)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cf-body">
+                                <!-- Rendered by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="console" id="raft-console">
+                    [Transaction Log] Click 'Run Percolator 2PC' to single-step execution (Prewrite ➜ Commit).
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sandbox 1: Coprocessor & RocksDB
+        let pushdownEnabled = true;
+        let memtableKeys = [];
+        let l0Files = 0;
+        let l1Files = 0;
+        let l2Files = 0;
+        let writeCount = 0;
+
+        function togglePushdown() {
+            pushdownEnabled = !pushdownEnabled;
+            const isEn = false;
+            
+            document.getElementById('pushdown-state').innerHTML = pushdownEnabled ?
+                "Coprocessor Pushdown: ENABLED (Filter age > 18 runs inside TiKV)" :
+                "Coprocessor Pushdown: DISABLED (Filter age > 18 runs on Client)";
+                
+            document.getElementById('network-cost').innerHTML = pushdownEnabled ?
+                "Network Cost: 5% records sent (Fast, Low Bandwidth)" :
+                "Network Cost: 100% records sent (Slow, Heavy Bandwidth load)";
+                
+            document.getElementById('coproc-console').innerHTML = pushdownEnabled ?
+                "[Coprocessor] Pushdown active. Storage nodes parse Plan DAG and vectorize filter locally." :
+                "[Coprocessor] Pushdown disabled. TiKV reads all raw SST rows and streams them to client.";
+        }
+
+        function writeRocks() {
+            writeCount++;
+            memtableKeys.push("k" + writeCount);
+            const isEn = false;
+            const consoleBox = document.getElementById('coproc-console');
+
+            if (memtableKeys.length >= 4) {
+                memtableKeys = [];
+                l0Files++;
+                consoleBox.innerHTML = isEn ?
+                    `[RocksDB] MemTable full. Flushed data as Level 0 SSTable file.` :
+                    `[RocksDB] MemTable 满（已达 4 条记录）。触发 Flush 溢出，向 Level 0 写入一个新的 SSTable 文件。`;
+            } else {
+                consoleBox.innerHTML = isEn ?
+                    `[RocksDB] Key 'k${writeCount}' written to WAL and MemTable (Skiplist).` :
+                    `[RocksDB] 写入请求成功：追加 WAL 并写入内存 MemTable（并发跳表，未锁定）。`;
+            }
+
+            updateRocksVisual();
+        }
+
+        function triggerCompaction() {
+            const isEn = false;
+            const consoleBox = document.getElementById('coproc-console');
+
+            if (l0Files > 0) {
+                l0Files = 0;
+                l1Files += 1;
+                if (l1Files >= 3) {
+                    l1Files = 0;
+                    l2Files += 1;
+                }
+                consoleBox.innerHTML = isEn ?
+                    `[RocksDB] Compaction complete. Level 0 files merged and pushed to Level 1/2.` :
+                    `[RocksDB] 触发后台归并整理（Compaction）。Level 0 文件与 Level 1 归并排序合并，擦除 Tombstones 墓碑并下沉。`;
+            } else {
+                consoleBox.innerHTML = isEn ?
+                    `[RocksDB] No Level 0 files. Compaction skipped.` :
+                    `[RocksDB] 当前无 Level 0 溢出文件，无需 Compaction。`;
+            }
+            updateRocksVisual();
+        }
+
+        function updateRocksVisual() {
+            document.getElementById('rocksdb-mem').innerHTML = `RocksDB MemTable (Skiplist): ${memtableKeys.length}/4 keys [\${memtableKeys.join(', ')}]`;
+            document.getElementById('rocksdb-sst').innerHTML = `RocksDB SST Layout: L0: \${l0Files} files | L1: \${l1Files} files | L2: \${l2Files} files`;
+        }
+
+        // Sandbox 2: Multi-Raft & Percolator
+        let region1Split = false;
+        let p2pcStep = 0; // 0: Idle, 1: Prewrite, 2: Commit
+        let txKeys = [
+            { name: "k_primary", data: "v_primary", lock: "", write: "" },
+            { name: "k_secondary", data: "v_sec", lock: "", write: "" }
+        ];
+
+        function splitRegion() {
+            region1Split = true;
+            const isEn = false;
+            document.getElementById('raft-console').innerHTML = isEn ?
+                `[Multi-Raft] Region 1 split into Region 1a (A-F) and Region 1b (G-M). Updated PD routing tables.` :
+                `[Multi-Raft] Region 1 数据溢出，分裂（Split）为 Region 1a 和 Region 1b。重新分配副本 Leader 并向 PD 汇报最新路由。`;
+            updateRaftVisual();
+        }
+
+        function step2PC() {
+            const isEn = false;
+            const consoleBox = document.getElementById('raft-console');
+
+            if (p2pcStep === 0) {
+                // 1. Prewrite
+                txKeys[0].data = "v_primary_new";
+                txKeys[0].lock = "start_ts=100 (Primary)";
+                
+                txKeys[1].data = "v_sec_new";
+                txKeys[1].lock = "start_ts=100 (指向 k_primary)";
+                
+                consoleBox.innerHTML = isEn ?
+                    `[Percolator 2PC] Step 1: Prewrite. Wrote values to Default CF. Wrote locks to Lock CF. Secondary lock points to Primary key.` :
+                    `[Percolator 2PC] 第一阶段：Prewrite。写入新值至 Default CF；Primary Key 写入 Lock CF (100)；Secondary Key 写入锁并指向 Primary。`;
+                p2pcStep = 1;
+            } else if (p2pcStep === 1) {
+                // 2. Commit Primary
+                txKeys[0].lock = "";
+                txKeys[0].write = "commit_ts=105, start_ts=100";
+                
+                consoleBox.innerHTML = isEn ?
+                    `[Percolator 2PC] Step 2: Commit Primary. Cleared Lock CF on Primary. Wrote commit metadata to Write CF.` :
+                    `[Percolator 2PC] 第二阶段（A）：提交 Primary。清除 Primary Key 的 Lock CF，向 Write CF 写入提交版本（commit_ts=105）。事务标志为成功！`;
+                p2pcStep = 2;
+            } else {
+                // 3. Commit Secondary
+                txKeys[1].lock = "";
+                txKeys[1].write = "commit_ts=105, start_ts=100";
+                
+                consoleBox.innerHTML = isEn ?
+                    `[Percolator 2PC] Step 3: Commit Secondary. Cleared Lock CF on Secondary. Wrote commit metadata to Write CF. Transaction complete.` :
+                    `[Percolator 2PC] 第二阶段（B）：异步清扫 Secondary。清除 Secondary Key 的 Lock CF，并写入 Write CF。全量事务成功闭环！`;
+                p2pcStep = 0;
+            }
+            updatePercolatorVisual();
+        }
+
+        function updateRaftVisual() {
+            const layout = document.getElementById('raft-layout');
+            if (!region1Split) {
+                layout.innerHTML = `
+                    <div class="raft-node">
+                        <strong>Store 1</strong><br>
+                        Region 1 [Leader]<br>
+                        Region 2 [Follower]
+                    </div>
+                    <div class="raft-node">
+                        <strong>Store 2</strong><br>
+                        Region 1 [Follower]<br>
+                        Region 2 [Leader]
+                    </div>
+                    <div class="raft-node">
+                        <strong>Store 3</strong><br>
+                        Region 1 [Follower]<br>
+                        Region 2 [Follower]
+                    </div>
+                `;
+            } else {
+                layout.innerHTML = `
+                    <div class="raft-node">
+                        <strong>Store 1</strong><br>
+                        <span style="color:#6B8272;">Region 1a [Leader]</span><br>
+                        Region 1b [Follower]<br>
+                        Region 2 [Follower]
+                    </div>
+                    <div class="raft-node">
+                        <strong>Store 2</strong><br>
+                        Region 1a [Follower]<br>
+                        <span style="color:#6B8272;">Region 1b [Leader]</span><br>
+                        Region 2 [Leader]
+                    </div>
+                    <div class="raft-node">
+                        <strong>Store 3</strong><br>
+                        Region 1a [Follower]<br>
+                        Region 1b [Follower]<br>
+                        Region 2 [Follower]
+                    </div>
+                `;
+            }
+        }
+
+        function updatePercolatorVisual() {
+            const body = document.getElementById('cf-body');
+            body.innerHTML = '';
+            txKeys.forEach(k => {
+                body.innerHTML += `
+                    <tr>
+                        <td><strong>\${k.name}</strong></td>
+                        <td>\${k.data ? k.data : 'Empty'}</td>
+                        <td>\${k.lock ? k.lock : 'None'}</td>
+                        <td>\${k.write ? k.write : 'None'}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Init
+        updateRocksVisual();
+        updateRaftVisual();
+        updatePercolatorVisual();
+    </script>
+</body>
+</html>

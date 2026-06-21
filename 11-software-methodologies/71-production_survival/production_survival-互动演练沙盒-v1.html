@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>微服务网关熔断舱壁与双写迁移仿真实验室</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #1A202C;
+            color: #E2E8F0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app-header {
+            background-color: #2D3748;
+            padding: 10px 20px;
+            border-bottom: 2px solid #4A5568;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #app-header h1 {
+            margin: 0;
+            font-size: 16px;
+            color: #FFF;
+        }
+        #tab-container {
+            display: flex;
+            background-color: #2D3748;
+            padding: 5px 20px 0 20px;
+            border-bottom: 1px solid #4A5568;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            color: #A0AEC0;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background-color: #1A202C;
+            color: #3182CE;
+            border-bottom: 2px solid #3182CE;
+        }
+        #sandbox-views {
+            flex: 1;
+            position: relative;
+        }
+        .sandbox-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .sandbox-view.active {
+            display: flex;
+        }
+        
+        /* Layout Dials & Display */
+        .left-panel {
+            width: 300px;
+            background-color: #2D3748;
+            border-radius: 6px;
+            padding: 15px;
+            box-sizing: border-box;
+            margin-right: 20px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #4A5568;
+            overflow-y: auto;
+        }
+        .middle-panel {
+            flex: 1;
+            background-color: #2D3748;
+            border-radius: 6px;
+            padding: 15px;
+            box-sizing: border-box;
+            margin-right: 20px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #4A5568;
+            position: relative;
+        }
+        .right-panel {
+            width: 300px;
+            background-color: #2D3748;
+            border-radius: 6px;
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #4A5568;
+        }
+        
+        .panel-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #FFFFFF;
+            border-bottom: 1px solid #4A5568;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Form inputs & toggles */
+        .control-group {
+            margin-bottom: 12px;
+        }
+        .control-label {
+            font-size: 11px;
+            color: #A0AEC0;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .control-input {
+            width: 100%;
+            background-color: #1A202C;
+            border: 1px solid #4A5568;
+            border-radius: 4px;
+            color: #FFF;
+            padding: 6px;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 34px;
+            height: 20px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #4A5568;
+            transition: .4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #3182CE;
+        }
+        input:checked + .slider:before {
+            transform: translateX(14px);
+        }
+        
+        /* Logs & console output */
+        .console-log {
+            flex: 1;
+            background-color: #1A202C;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: Consolas, monospace;
+            font-size: 10px;
+            color: #38A169;
+            overflow-y: auto;
+            border: 1px solid #4A5568;
+        }
+        .console-log .err {
+            color: #E53E3E;
+        }
+        .console-log .warn {
+            color: #DD6B20;
+        }
+        .console-log .info {
+            color: #3182CE;
+        }
+        
+        /* Gateway Viz specifics */
+        .gateway-viz {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border: 1px dashed #4A5568;
+            border-radius: 4px;
+            background-color: #1A202C;
+            padding: 10px;
+        }
+        .viz-node {
+            width: 90px;
+            height: 140px;
+            border: 2px solid #4A5568;
+            border-radius: 6px;
+            background-color: #2D3748;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .viz-node-title {
+            font-size: 10px;
+            font-weight: bold;
+            color: #FFF;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+        .viz-pool {
+            width: 100%;
+            flex: 1;
+            border: 1px solid #4A5568;
+            border-radius: 4px;
+            background-color: #1A202C;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            padding: 4px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .thread-slot {
+            width: 12px;
+            height: 12px;
+            background-color: #4A5568;
+            border-radius: 2px;
+            margin: 2px;
+            transition: background-color 0.2s;
+        }
+        .thread-slot.active-order {
+            background-color: #48BB78;
+        }
+        .thread-slot.active-payment {
+            background-color: #ED8936;
+        }
+        .flying-request {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            pointer-events: none;
+            transition: all 0.6s linear;
+            z-index: 100;
+        }
+        
+        /* Database Viz specifics */
+        .db-viz {
+            flex: 1;
+            display: flex;
+            justify-content: space-around;
+            align-items: stretch;
+            background-color: #1A202C;
+            border-radius: 4px;
+            padding: 10px;
+            border: 1px solid #4A5568;
+        }
+        .db-schema {
+            flex: 1;
+            margin: 5px;
+            border: 1px solid #4A5568;
+            border-radius: 4px;
+            background-color: #2D3748;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+        }
+        .db-schema-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #FFF;
+            border-bottom: 1px solid #4A5568;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .db-table-body {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .db-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: monospace;
+            font-size: 9px;
+            padding: 4px;
+            border-bottom: 1px solid #4A5568;
+        }
+        .db-row.new-row {
+            background-color: rgba(72, 187, 120, 0.15);
+        }
+        .db-row.conflict-row {
+            background-color: rgba(229, 62, 62, 0.15);
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: bold;
+            color: #FFF;
+        }
+        .badge-green { background-color: #48BB78; }
+        .badge-red { background-color: #E53E3E; }
+        .badge-yellow { background-color: #D69E2E; }
+    </style>
+</head>
+<body>
+    <div id="app-header">
+        <h1>微服务网关熔断舱壁与双写迁移仿真实验室</h1>
+        <div><span class="badge badge-green">Production Ready v1</span></div>
+    </div>
+    
+    <div id="tab-container">
+        <button class="tab-btn active" onclick="switchTab('gateway')">1. Gateway Circuit Breaker & Bulkhead</button>
+        <button class="tab-btn" onclick="switchTab('db')">2. Zero-Downtime DB Migration</button>
+    </div>
+    
+    <div id="sandbox-views">
+        <!-- TAB 1: GATEWAY CIRCUIT BREAKER & BULKHEAD -->
+        <div id="view-gateway" class="sandbox-view active">
+            <div class="left-panel">
+                <div class="panel-title">Tuning Panel</div>
+                
+                <div class="toggle-container">
+                    <span class="control-label">Bulkhead Isolation</span>
+                    <label class="switch">
+                        <input type="checkbox" id="bulkhead-toggle" onchange="toggleBulkhead()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="toggle-container">
+                    <span class="control-label">Circuit Breaker</span>
+                    <label class="switch">
+                        <input type="checkbox" id="breaker-toggle" checked onchange="toggleBreaker()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Payment Service Latency (ms)</label>
+                    <input type="range" class="control-input" id="payment-latency" min="50" max="3000" step="50" value="100" onchange="updateLatencyVal()">
+                    <div class="control-label" id="latency-val" style="text-align:right;">100 ms</div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Failure Rate Threshold (%)</label>
+                    <input type="number" class="control-input" id="failure-threshold" value="50">
+                </div>
+
+                <div style="flex:1;"></div>
+                
+                <button onclick="triggerOrderRequest()" style="background-color: #48BB78; border:none; border-radius:4px; color:#FFF; font-weight:bold; padding:8px; cursor:pointer; font-size:11px; margin-bottom:5px;">Trigger Order Request (Safe)</button>
+                <button onclick="triggerPaymentRequest()" style="background-color: #ED8936; border:none; border-radius:4px; color:#FFF; font-weight:bold; padding:8px; cursor:pointer; font-size:11px;">Trigger Payment Request (Risky)</button>
+            </div>
+            
+            <div class="middle-panel">
+                <div class="panel-title">API Gateway Routing Mesh</div>
+                <div class="gateway-viz" id="gateway-viz-area">
+                    <div class="viz-node" id="node-gateway" style="position: absolute; left: 20px; top: 110px; height: 100px;">
+                        <div class="viz-node-title">API Gateway</div>
+                        <div class="control-label" style="font-size: 8px;">Active: <span id="gateway-active-count">0</span></div>
+                    </div>
+                    
+                    <div class="viz-node" id="node-order" style="position: absolute; left: 260px; top: 30px;">
+                        <div class="viz-node-title">Order Service</div>
+                        <div class="viz-pool" id="order-pool"></div>
+                    </div>
+
+                    <div class="viz-node" id="node-payment" style="position: absolute; left: 260px; top: 190px;">
+                        <div class="viz-node-title">Payment Service</div>
+                        <div class="viz-pool" id="payment-pool"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="panel-title">System Metrics & Console</div>
+                <div class="toggle-container">
+                    <span class="control-label">Circuit Breaker State:</span>
+                    <span class="badge badge-green" id="cb-state-badge">CLOSED</span>
+                </div>
+                <div class="toggle-container">
+                    <span class="control-label">System Health:</span>
+                    <span class="badge badge-green" id="system-health-badge">100%</span>
+                </div>
+                <div class="console-log" id="gateway-console"></div>
+            </div>
+        </div>
+        
+        <!-- TAB 2: ZERO-DOWNTIME DB MIGRATION -->
+        <div id="view-db" class="sandbox-view">
+            <div class="left-panel">
+                <div class="panel-title">Migration Phases</div>
+                <button onclick="setMigrationPhase(1)" class="tab-btn active" id="phase-btn-1" style="border:1px solid #4A5568; margin-bottom:5px; text-align:left;">1. Read/Write Legacy (Original)</button>
+                <button onclick="setMigrationPhase(2)" class="tab-btn" id="phase-btn-2" style="border:1px solid #4A5568; margin-bottom:5px; text-align:left;">2. Dual Write (Legacy Primary)</button>
+                <button onclick="runHistoricalSync()" class="tab-btn" id="phase-btn-3" style="border:1px solid #4A5568; margin-bottom:5px; text-align:left; background-color: #2b4c3f;">3. Run Reconciliation & Sync</button>
+                <button onclick="setMigrationPhase(4)" class="tab-btn" id="phase-btn-4" style="border:1px solid #4A5568; margin-bottom:5px; text-align:left;">4. Dual Write (New Primary)</button>
+                <button onclick="setMigrationPhase(5)" class="tab-btn" id="phase-btn-5" style="border:1px solid #4A5568; margin-bottom:5px; text-align:left;">5. Cut-off Legacy DB</button>
+                
+                <div style="flex:1;"></div>
+                <button onclick="simulateDBSave()" style="background-color: #3182CE; border:none; border-radius:4px; color:#FFF; font-weight:bold; padding:8px; cursor:pointer; font-size:11px;">Simulate Concurrent Write</button>
+            </div>
+            
+            <div class="middle-panel">
+                <div class="panel-title">Database Nodes & State</div>
+                <div class="db-viz">
+                    <div class="db-schema" id="db-legacy">
+                        <div class="db-schema-title">Legacy DB (Source)</div>
+                        <div class="db-table-body" id="legacy-table-body">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                    <div class="db-schema" id="db-new">
+                        <div class="db-schema-title">New DB (Target)</div>
+                        <div class="db-table-body" id="new-table-body">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="panel-title">Audit Metrics</div>
+                <div class="toggle-container">
+                    <span class="control-label">Data Parity Index:</span>
+                    <span class="badge badge-red" id="db-parity-badge">0%</span>
+                </div>
+                <div class="toggle-container">
+                    <span class="control-label">Sync status:</span>
+                    <span class="badge badge-yellow" id="db-sync-badge">Out-of-Sync</span>
+                </div>
+                <div class="console-log" id="db-console"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Tab routing
+        function switchTab(tab) {
+            const views = document.querySelectorAll('.sandbox-view');
+            const btns = document.querySelectorAll('#tab-container .tab-btn');
+            
+            views.forEach(v => v.classList.remove('active'));
+            btns.forEach(b => b.classList.remove('active'));
+            
+            if (tab === 'gateway') {
+                document.getElementById('view-gateway').classList.add('active');
+                btns[0].classList.add('active');
+            } else {
+                document.getElementById('view-db').classList.add('active');
+                btns[1].classList.add('active');
+            }
+        }
+
+        // GATEWAY LOGIC
+        let bulkheadOn = false;
+        let breakerOn = true;
+        let paymentLatency = 100;
+        let cbState = 'CLOSED';
+        let failureCount = 0;
+        let requestCount = 0;
+        let orderThreadsUsed = 0;
+        let paymentThreadsUsed = 0;
+        let globalThreadsUsed = 0; // used when bulkhead is OFF
+        
+        const orderPoolMax = 12;
+        const paymentPoolMax = 12;
+        const globalPoolMax = 16; // smaller than both combined, simulating starvation
+        
+        function initPools() {
+            const oPool = document.getElementById('order-pool');
+            const pPool = document.getElementById('payment-pool');
+            oPool.innerHTML = '';
+            pPool.innerHTML = '';
+            for (let i = 0; i < orderPoolMax; i++) {
+                const s = document.createElement('div');
+                s.className = 'thread-slot';
+                s.id = 'o-slot-' + i;
+                oPool.appendChild(s);
+            }
+            for (let i = 0; i < paymentPoolMax; i++) {
+                const s = document.createElement('div');
+                s.className = 'thread-slot';
+                s.id = 'p-slot-' + i;
+                pPool.appendChild(s);
+            }
+        }
+        
+        initPools();
+        
+        function updateLatencyVal() {
+            paymentLatency = parseInt(document.getElementById('payment-latency').value);
+            document.getElementById('latency-val').innerText = paymentLatency + ' ms';
+        }
+        
+        function toggleBulkhead() {
+            bulkheadOn = document.getElementById('bulkhead-toggle').checked;
+            logGateway("Bulkhead toggled: " + (bulkheadOn ? "ON (Isolated pools)" : "OFF (Shared pools)"), 'info');
+        }
+
+        function toggleBreaker() {
+            breakerOn = document.getElementById('breaker-toggle').checked;
+            logGateway("Circuit Breaker toggled: " + (breakerOn ? "ON" : "OFF"), 'info');
+            if (!breakerOn) {
+                setCBState('CLOSED');
+            }
+        }
+
+        function logGateway(msg, type='info') {
+            const c = document.getElementById('gateway-console');
+            const span = document.createElement('div');
+            span.className = type;
+            span.innerText = `[` + new Date().toLocaleTimeString() + `] ` + msg;
+            c.appendChild(span);
+            c.scrollTop = c.scrollHeight;
+        }
+
+        function setCBState(state) {
+            cbState = state;
+            const b = document.getElementById('cb-state-badge');
+            b.innerText = state;
+            b.className = 'badge';
+            if (state === 'CLOSED') b.classList.add('badge-green');
+            else if (state === 'OPEN') b.classList.add('badge-red');
+            else b.classList.add('badge-yellow');
+        }
+        
+        // Flying dots simulation
+        function spawnDot(color, fromId, toId, duration, onComplete) {
+            const area = document.getElementById('gateway-viz-area');
+            const from = document.getElementById(fromId);
+            const to = document.getElementById(toId);
+            if (!from || !to) return;
+            
+            const fromRect = from.getBoundingClientRect();
+            const toRect = to.getBoundingClientRect();
+            const areaRect = area.getBoundingClientRect();
+            
+            const dot = document.createElement('div');
+            dot.className = 'flying-request';
+            dot.style.backgroundColor = color;
+            dot.style.left = (fromRect.left - areaRect.left + fromRect.width/2) + 'px';
+            dot.style.top = (fromRect.top - areaRect.top + fromRect.height/2) + 'px';
+            area.appendChild(dot);
+            
+            // Trigger transition
+            setTimeout(() => {
+                dot.style.left = (toRect.left - areaRect.left + toRect.width/2) + 'px';
+                dot.style.top = (toRect.top - areaRect.top + toRect.height/2) + 'px';
+            }, 20);
+            
+            setTimeout(() => {
+                dot.remove();
+                if (onComplete) onComplete();
+            }, duration);
+        }
+
+        function triggerOrderRequest() {
+            // Check thread availability
+            if (bulkheadOn) {
+                if (orderThreadsUsed >= orderPoolMax) {
+                    logGateway("Rejected: Order thread pool saturated!", 'err');
+                    return;
+                }
+            } else {
+                if (globalThreadsUsed >= globalPoolMax) {
+                    logGateway("Rejected: Shared thread pool saturated (Starved by Payment calls)!", 'err');
+                    updateHealth();
+                    return;
+                }
+            }
+            
+            // Allocate thread
+            allocateThread('order');
+            logGateway("Order Request Sent", 'info');
+            
+            spawnDot('#48BB78', 'node-gateway', 'node-order', 400, () => {
+                setTimeout(() => {
+                    releaseThread('order');
+                    logGateway("Order Request Success (200 OK)", 'info');
+                    updateHealth();
+                }, 150);
+            });
+        }
+
+        function triggerPaymentRequest() {
+            requestCount++;
+            if (breakerOn && cbState === 'OPEN') {
+                logGateway("Circuit Breaker Blocked: Fast-Fail / Fallback Served", 'warn');
+                failureCount++;
+                return;
+            }
+            
+            if (bulkheadOn) {
+                if (paymentThreadsUsed >= paymentPoolMax) {
+                    logGateway("Rejected: Payment thread pool saturated!", 'err');
+                    failureCount++;
+                    updateCB();
+                    return;
+                }
+            } else {
+                if (globalThreadsUsed >= globalPoolMax) {
+                    logGateway("Rejected: Shared thread pool saturated!", 'err');
+                    failureCount++;
+                    updateCB();
+                    return;
+                }
+            }
+            
+            allocateThread('payment');
+            logGateway("Payment Request Sent (Latency: " + paymentLatency + "ms)", 'info');
+            
+            spawnDot('#ED8936', 'node-gateway', 'node-payment', 400, () => {
+                setTimeout(() => {
+                    releaseThread('payment');
+                    if (paymentLatency > 1500) {
+                        logGateway("Payment Request Timeout (504 Gateway Timeout)", 'err');
+                        failureCount++;
+                    } else {
+                        logGateway("Payment Request Success (200 OK)", 'info');
+                    }
+                    updateCB();
+                    updateHealth();
+                }, paymentLatency);
+            });
+        }
+
+        function allocateThread(type) {
+            if (bulkheadOn) {
+                if (type === 'order') {
+                    const slot = document.getElementById('o-slot-' + orderThreadsUsed);
+                    if (slot) slot.classList.add('active-order');
+                    orderThreadsUsed++;
+                } else {
+                    const slot = document.getElementById('p-slot-' + paymentThreadsUsed);
+                    if (slot) slot.classList.add('active-payment');
+                    paymentThreadsUsed++;
+                }
+            } else {
+                // Shared pools
+                if (type === 'order') {
+                    const slot = document.getElementById('o-slot-' + globalThreadsUsed);
+                    if (slot) slot.classList.add('active-order');
+                } else {
+                    const slot = document.getElementById('p-slot-' + globalThreadsUsed);
+                    if (slot) slot.classList.add('active-payment');
+                }
+                globalThreadsUsed++;
+            }
+        }
+
+        function releaseThread(type) {
+            if (bulkheadOn) {
+                if (type === 'order') {
+                    orderThreadsUsed = Math.max(0, orderThreadsUsed - 1);
+                    const slot = document.getElementById('o-slot-' + orderThreadsUsed);
+                    if (slot) slot.classList.remove('active-order');
+                } else {
+                    paymentThreadsUsed = Math.max(0, paymentThreadsUsed - 1);
+                    const slot = document.getElementById('p-slot-' + paymentThreadsUsed);
+                    if (slot) slot.classList.remove('active-payment');
+                }
+            } else {
+                globalThreadsUsed = Math.max(0, globalThreadsUsed - 1);
+                // Clear both pools visual representation up to global count
+                const oSlot = document.getElementById('o-slot-' + globalThreadsUsed);
+                const pSlot = document.getElementById('p-slot-' + globalThreadsUsed);
+                if (oSlot) oSlot.classList.remove('active-order');
+                if (pSlot) pSlot.classList.remove('active-payment');
+            }
+        }
+
+        function updateCB() {
+            if (!breakerOn) return;
+            const threshold = parseInt(document.getElementById('failure-threshold').value);
+            if (requestCount >= 4) {
+                const rate = (failureCount / requestCount) * 100;
+                if (cbState === 'CLOSED' && rate >= threshold) {
+                    setCBState('OPEN');
+                    logGateway("Failure Rate is " + rate.toFixed(1) + "%! Tripping Circuit Breaker to OPEN!", 'err');
+                    // auto reset timer after 6 seconds
+                    setTimeout(() => {
+                        if (breakerOn && cbState === 'OPEN') {
+                            setCBState('HALF_OPEN');
+                            logGateway("Attempting recovery: Shifting to HALF-OPEN", 'warn');
+                            requestCount = 0;
+                            failureCount = 0;
+                        }
+                    }, 6000);
+                } else if (cbState === 'HALF_OPEN') {
+                    if (rate < threshold) {
+                        setCBState('CLOSED');
+                        logGateway("Recovery successful! Shifting to CLOSED", 'info');
+                    } else {
+                        setCBState('OPEN');
+                        logGateway("Probing failed! Re-opening circuit", 'err');
+                    }
+                }
+            }
+        }
+
+        function updateHealth() {
+            const h = document.getElementById('system-health-badge');
+            let health = 100;
+            if (!bulkheadOn && globalThreadsUsed >= globalPoolMax) {
+                health = 10;
+            } else if (paymentThreadsUsed >= paymentPoolMax) {
+                health = 60;
+            }
+            h.innerText = health + '%';
+            h.className = 'badge';
+            if (health >= 80) h.classList.add('badge-green');
+            else if (health >= 50) h.classList.add('badge-yellow');
+            else h.classList.add('badge-red');
+        }
+
+        // DATABASE MIGRATION LOGIC
+        let migrationPhase = 1;
+        let legacyDb = [
+            {id: 101, name: "Alice", email: "alice@gmail.com", last_modified: "12:00:00"},
+            {id: 102, name: "Bob", email: "bob@gmail.com", last_modified: "12:05:00"},
+            {id: 103, name: "Charlie", email: "charlie@gmail.com", last_modified: "12:10:00"},
+        ];
+        let newDb = [];
+        
+        function renderDBs() {
+            const lTable = document.getElementById('legacy-table-body');
+            const nTable = document.getElementById('new-table-body');
+            lTable.innerHTML = '';
+            nTable.innerHTML = '';
+            
+            legacyDb.forEach(r => {
+                const div = document.createElement('div');
+                div.className = 'db-row';
+                div.innerHTML = `<span>#` + r.id + ` ` + r.name + `</span><span>` + r.last_modified + `</span>`;
+                lTable.appendChild(div);
+            });
+            
+            newDb.forEach(r => {
+                const div = document.createElement('div');
+                div.className = 'db-row new-row';
+                div.innerHTML = `<span>#` + r.id + ` ` + r.name + `</span><span>` + r.last_modified + `</span>`;
+                nTable.appendChild(div);
+            });
+            
+            updateParity();
+        }
+        
+        renderDBs();
+        
+        function setMigrationPhase(phase) {
+            migrationPhase = phase;
+            for (let i = 1; i <= 5; i++) {
+                const btn = document.getElementById('phase-btn-' + i);
+                if (btn) btn.classList.remove('active');
+            }
+            document.getElementById('phase-btn-' + phase).classList.add('active');
+            logDB(`Switched to Phase ` + phase, 'info');
+        }
+        
+        function logDB(msg, type='info') {
+            const c = document.getElementById('db-console');
+            const span = document.createElement('div');
+            span.className = type;
+            span.innerText = `[` + new Date().toLocaleTimeString() + `] ` + msg;
+            c.appendChild(span);
+            c.scrollTop = c.scrollHeight;
+        }
+        
+        function simulateDBSave() {
+            const id = 104 + Math.floor(Math.random() * 100);
+            const r = {id: id, name: "User_" + id, email: `user_` + id + `@corp.com`, last_modified: new Date().toLocaleTimeString()};
+            
+            if (migrationPhase === 1) {
+                legacyDb.push(r);
+                logDB(`Write committed only to Legacy DB: row #` + id, 'info');
+            } else if (migrationPhase === 2 || migrationPhase === 4) {
+                legacyDb.push(r);
+                newDb.push(r);
+                logDB(`Dual Write active: row #` + id + ` committed to both databases`, 'info');
+            } else if (migrationPhase === 5) {
+                newDb.push(r);
+                logDB(`Write committed only to New DB: row #` + id + ` (Legacy Cut-off)`, 'info');
+            }
+            
+            renderDBs();
+        }
+        
+        function runHistoricalSync() {
+            logDB("Historical Sync triggered: copying missing records...", 'warn');
+            legacyDb.forEach(r => {
+                if (!newDb.some(n => n.id === r.id)) {
+                    newDb.push(Object.assign({}, r, {last_modified: new Date().toLocaleTimeString() + " (Sync)"}));
+                }
+            });
+            setTimeout(() => {
+                logDB("Historical Sync complete. Parity verified.", 'info');
+                renderDBs();
+            }, 800);
+        }
+        
+        function updateParity() {
+            const badge = document.getElementById('db-parity-badge');
+            const syncBadge = document.getElementById('db-sync-badge');
+            
+            let matches = 0;
+            legacyDb.forEach(l => {
+                if (newDb.some(n => n.id === l.id)) matches++;
+            });
+            
+            let parity = 0;
+            if (legacyDb.length > 0) {
+                parity = Math.round((matches / legacyDb.length) * 100);
+            }
+            
+            badge.innerText = parity + '%';
+            badge.className = 'badge';
+            if (parity === 100) {
+                badge.classList.add('badge-green');
+                syncBadge.innerText = 'Synchronized';
+                syncBadge.className = 'badge badge-green';
+            } else if (parity >= 50) {
+                badge.classList.add('badge-yellow');
+                syncBadge.innerText = 'Syncing...';
+                syncBadge.className = 'badge badge-yellow';
+            } else {
+                badge.classList.add('badge-red');
+                syncBadge.innerText = 'Out-of-Sync';
+                syncBadge.className = 'badge badge-red';
+            }
+        }
+    </script>
+</body>
+</html>

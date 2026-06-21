@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Wasmtime VM Architecture Map</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #4B5F7A;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        #canvas-container {
+            width: 90%;
+            height: 600px;
+            border: 2px solid #24324F;
+            border-radius: 8px;
+            background-color: #1A202C;
+            position: relative;
+            overflow: hidden;
+        }
+        .node {
+            position: absolute;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(255,255,255,0.1);
+        }
+        #tooltip {
+            width: 80%;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #2D3748;
+            border-left: 5px solid #4B5F7A;
+            border-radius: 4px;
+            min-height: 80px;
+        }
+        .colorM1 { background-color: #4B5F7A; }
+        .colorM2 { background-color: #6B8272; }
+        .colorM3 { background-color: #9C6666; }
+        .colorM4 { background-color: #7A7A7A; }
+        .colorM5 { background-color: #9A825A; }
+        .colorM6 { background-color: #755B77; }
+    </style>
+</head>
+<body>
+    <h1>Wasmtime VM Architecture Map</h1>
+    <div id="canvas-container"></div>
+    <div id="tooltip">
+        <h3>Click a card to inspect Wasmtime's internal components</h3>
+    </div>
+
+    <script>
+        const nodes = [
+            { id: 1, group: 'M1', x: 80, y: 80, label: 'Card 1: Engine & Config', zh: '卡片 1: Engine 与 Config 配置', desc: 'Immutable configuration context shared among threads.' },
+            { id: 2, group: 'M1', x: 80, y: 160, label: 'Card 2: Store Space', zh: '卡片 2: Store 状态空间管理', desc: 'Isolates instance state, limits and garbage collection roots.' },
+            { id: 3, group: 'M1', x: 80, y: 240, label: 'Card 3: Module Compile', zh: '卡片 3: Module 静态编译', desc: 'Validates WebAssembly bytecode and compiles to ELF natively.' },
+            { id: 4, group: 'M1', x: 80, y: 320, label: 'Card 4: Linker Routing', zh: '卡片 4: Linker 导入路由', desc: 'Maps module requirements to host functions and exports.' },
+            { id: 5, group: 'M1', x: 80, y: 400, label: 'Card 5: Instance Lifecycle', zh: '卡片 5: Instance 实例化生命周期', desc: 'Allocates memory slots, copies data and runs start function.' },
+            { id: 6, group: 'M1', x: 80, y: 480, label: 'Card 6: Trampoline', zh: '卡片 6: Host-to-Guest 蹦床', desc: 'Converts calling ABI conventions between Host and Guest.' },
+            
+            { id: 7, group: 'M2', x: 260, y: 80, label: 'Card 7: Cranelift SSA CLIF', zh: '卡片 7: Cranelift SSA IR', desc: 'SSA representation using blocks and parameters instead of phi nodes.' },
+            { id: 8, group: 'M2', x: 260, y: 160, label: 'Card 8: Regalloc2 Allocator', zh: '卡片 8: Regalloc2 寄存器分配', desc: 'State-of-the-art SSA register mapping with spill code minimizes.' },
+            { id: 9, group: 'M2', x: 260, y: 240, label: 'Card 9: Translation Loop', zh: '卡片 9: Wasm 即时翻译循环', desc: 'Fast single-pass compilation simulating virtual stack operands.' },
+            { id: 10, group: 'M2', x: 260, y: 320, label: 'Card 10: Compiler Opts', zh: '卡片 10: Cranelift 编译优化', desc: 'GVN, constant folding, dead-code elimination optimizations.' },
+            { id: 11, group: 'M2', x: 260, y: 400, label: 'Card 11: Dynamic Trampoline', zh: '卡片 11: 动态蹦床生成', desc: 'Creates execution adapters dynamically for un-typed closures.' },
+            { id: 12, group: 'M2', x: 260, y: 480, label: 'Card 12: JIT Serialization', zh: '卡片 12: JIT 产物反序列化', desc: 'Serializes memory compiled code into ELF files for reuse.' },
+
+            { id: 13, group: 'M3', x: 440, y: 80, label: 'Card 13: Linear Memory', zh: '卡片 13: Wasm 线性内存映射', desc: 'Maps virtual memory page mappings utilizing anonymous mmap.' },
+            { id: 14, group: 'M3', x: 440, y: 160, label: 'Card 14: Guard Pages', zh: '卡片 14: Guard Pages 虚拟防线', desc: 'Appends 2GB of protected address space to block page overflows.' },
+            { id: 15, group: 'M3', x: 440, y: 240, label: 'Card 15: Page Fault Trap', zh: '卡片 15: Page Fault 信号拦截', desc: 'Captures SIGSEGV signals and translates them into Wasm Traps.' },
+            { id: 16, group: 'M3', x: 440, y: 320, label: 'Card 16: memory.grow', zh: '卡片 16: memory.grow 扩容', desc: 'Commits physical pages dynamically inside static virtual zones.' },
+            { id: 17, group: 'M3', x: 440, y: 400, label: 'Card 17: Sandbox OOM', zh: '卡片 17: 沙箱 OOM 硬件控制', desc: 'Limits heap expansion using resource limiters and checks.' },
+            { id: 18, group: 'M3', x: 440, y: 480, label: 'Card 18: VM Pools', zh: '卡片 18: 虚拟内存池化复用', desc: 'Pre-allocates slots for multitenant performance without syscalls.' },
+            { id: 19, group: 'M3', x: 440, y: 540, label: 'Card 19: Multi-Memory', zh: '卡片 19: 多线性内存支持', desc: 'Isolates and connects separate memory contexts in one guest.' },
+
+            { id: 20, group: 'M4', x: 620, y: 80, label: 'Card 20: WASI Preview 1', zh: '卡片 20: WASI Preview 1 规范', desc: 'Maps classic file descriptors to host operating system inputs.' },
+            { id: 21, group: 'M4', x: 620, y: 180, label: 'Card 21: Component Model', zh: '卡片 21: WASI Preview 2/3 组件', desc: 'High-level WIT interfaces and Canonical ABI bindings.' },
+            { id: 22, group: 'M4', x: 620, y: 280, label: 'Card 22: WIT Language', zh: '卡片 22: WIT 接口语言桥接', desc: 'Converts strings and records into pointer/len representation.' },
+            { id: 23, group: 'M4', x: 620, y: 380, label: 'Card 23: Async Streams', zh: '卡片 23: WASI 异步资源通道', desc: 'Coordinates async await streams without thread blocks.' },
+            { id: 24, group: 'M4', x: 620, y: 480, label: 'Card 24: VFS Sandbox', zh: '卡片 24: 虚拟文件系统隔离', desc: 'Resolves path parameters under jail bounds to block escapes.' },
+
+            { id: 25, group: 'M5', x: 800, y: 80, label: 'Card 25: Signal Router', zh: '卡片 25: Signal 陷阱路由', desc: 'Thread-local state filters segregate Wasm traps from panics.' },
+            { id: 26, group: 'M5', x: 800, y: 200, label: 'Card 26: Stack Backtrace', zh: '卡片 26: Backtrace 栈回溯', desc: 'Rebuilds Wasm source locations from JIT IPs using DWARF.' },
+            { id: 27, group: 'M5', x: 800, y: 320, label: 'Card 27: Fuel & Epoch', zh: '卡片 27: Fuel 与 Epoch 强占', desc: 'Halts infinite loops via counter injections or epoch threads.' },
+            { id: 28, group: 'M5', x: 800, y: 440, label: 'Card 28: call_indirect Check', zh: '卡片 28: call_indirect 校验', desc: 'Enforces type signature hash match checks prior to jumps.' }
+        ];
+
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+
+        nodes.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `node color${n.group}`;
+            div.style.left = `${n.x}px`;
+            div.style.top = `${n.y}px`;
+            div.innerText = n.label;
+            div.onclick = () => {
+                tooltip.innerHTML = `
+                    <h3>\${n.label}</h3>
+                    <p><strong>Module:</strong> \${n.group} | <strong>Details:</strong> \${n.desc}</p>
+                `;
+            };
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>

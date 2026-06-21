@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>bpftrace JIT 编译与探针 Map 聚合双仿真沙盒</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        select, .btn {
+            background-color: #151D30;
+            color: white;
+            border: 1px solid #24324F;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn {
+            background-color: #9C6666;
+            font-weight: bold;
+            border: none;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 280px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .step-row {
+            background-color: #1A202C;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px dashed #4B5F7A;
+            font-size: 11px;
+        }
+        .map-bar-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 5px;
+        }
+        .bar-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+        }
+        .bar-label {
+            width: 80px;
+            text-align: right;
+            font-weight: bold;
+        }
+        .bar-fill {
+            height: 20px;
+            background-color: #9A825A;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 10px;
+            min-width: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>bpftrace JIT 编译与探针 Map 聚合双仿真沙盒</h1>
+        <div class="grid">
+            <!-- Sandbox 1: JIT -->
+            <div class="card">
+                <h2>bpftrace 脚本 JIT 编译流水线</h2>
+                <div class="control-group">
+                    <select id="script-select">
+                        <option value="sys_read">tracepoint:syscalls:sys_enter_read { @[comm] = count(); }</option>
+                        <option value="vfs_write">kprobe:vfs_write { @[pid] = sum(arg2); }</option>
+                        <option value="sys_open">tracepoint:syscalls:sys_enter_openat { @[args->filename] = count(); }</option>
+                    </select>
+                    <button class="btn" onclick="compileScript()">一键 JIT 编译脚本</button>
+                </div>
+                <div class="visualizer" id="compiler-visualizer">
+                    <div class="step-row" id="ast-box">AST Node Structure: (Waiting...)</div>
+                    <div class="step-row" id="llvm-ir-box">LLVM IR (SSA): (Waiting...)</div>
+                    <div class="step-row" id="bytecode-box" style="color:#9A825A;">eBPF Bytecode Assembly: (Waiting...)</div>
+                    <div class="step-row" id="attached-box" style="font-weight:bold; color:#6B8272;">Attached Hook Details: (Waiting...)</div>
+                </div>
+                <div class="console" id="compiler-console">
+                    [编译器控制台] 准备就绪。选择一个 one-liner 脚本，点击编译。
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Kernel Aggregator -->
+            <div class="card">
+                <h2>eBPF Maps 内核态聚合监视器</h2>
+                <div class="control-group">
+                    <select id="event-select">
+                        <option value="bash">Process 'bash' (PID: 2801)</option>
+                        <option value="nginx">Process 'nginx' (PID: 3410)</option>
+                        <option value="mysql">Process 'mysql' (PID: 4120)</option>
+                    </select>
+                    <button class="btn" style="background-color:#755B77;" onclick="triggerEvent()">模拟触发探针事件</button>
+                </div>
+                <div class="visualizer">
+                    <div class="map-bar-layout">
+                        <div class="bar-container">
+                            <div class="bar-label">bash (2801)</div>
+                            <div class="bar-fill" id="bar-bash" style="width: 20px;">0</div>
+                        </div>
+                        <div class="bar-container">
+                            <div class="bar-label">nginx (3410)</div>
+                            <div class="bar-fill" id="bar-nginx" style="width: 20px;">0</div>
+                        </div>
+                        <div class="bar-container">
+                            <div class="bar-label">mysql (4120)</div>
+                            <div class="bar-fill" id="bar-mysql" style="width: 20px;">0</div>
+                        </div>
+                    </div>
+                    <div class="step-row" id="kernel-action-box" style="margin-top: 15px;">Kernel Action: eBPF code triggered. Atomically updating Map array.</div>
+                </div>
+                <div class="console" id="agg-console">
+                    [内核监视器] 准备就绪。模拟系统事件以观察 eBPF Maps 的内核态原子更新。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const scriptData = {
+            sys_read: {
+                ast: "Program\n └── Probe (tracepoint:syscalls:sys_enter_read)\n      └── MapStatement (@[comm])\n           └── Call (count())",
+                ir: "define i64 @probe_sys_enter_read(i8* %ctx) { \n  %comm = call i8* @llvm.bpftrace.get.comm()\n  %map_val = call i8* @bpf_map_lookup_elem(i32 0, i8* %comm)\n  %new_val = add i64 %map_val, 1\n  call void @bpf_map_update_elem(i32 0, i8* %comm, i64 %new_val)\n  ret i64 0\n}",
+                bytecode: "0: r1 = ctx;\n1: call bpf_get_current_comm;\n2: r2 = map_fd(0);\n3: call bpf_map_lookup_elem;\n4: if r0 == 0 goto 6;\n5: lock xadd *(u64 *)(r0 + 0) += 1;\n6: exit;",
+                attach: "Hook: Tracepoint 'syscalls/sys_enter_read' attached (ioctl fd: 12)",
+                log: "[JIT] Parser resolved DSL successfully.\n[JIT] Semantic analysis completed. Types aligned.\n[JIT] Compiled bytecode successfully loaded into kernel namespace."
+            },
+            vfs_write: {
+                ast: "Program\n └── Probe (kprobe:vfs_write)\n      └── MapStatement (@[pid])\n           └── Call (sum(arg2))",
+                ir: "define i64 @probe_vfs_write(i8* %ctx) { \n  %pid = call i32 @llvm.bpftrace.get.pid()\n  %arg2 = call i64 @llvm.bpftrace.get.register(8)  ; arg2 is rdi/rdx offset\n  %map_val = call i8* @bpf_map_lookup_elem(i32 0, i32 %pid)\n  %new_val = add i64 %map_val, %arg2\n  call void @bpf_map_update_elem(i32 0, i32 %pid, i64 %new_val)\n  ret i64 0\n}",
+                bytecode: "0: r1 = ctx;\n1: r2 = *(u64 *)(r1 + 112);               ; Load registers context\n2: r3 = map_fd(0);\n3: call bpf_map_lookup_elem;\n4: if r0 == 0 goto 6;\n5: lock xadd *(u64 *)(r0 + 0) += r2;\n6: exit;",
+                attach: "Hook: Kprobe 'vfs_write' attached (dynamic ftrace patch completed)",
+                log: "[JIT] Parsed kprobe signature.\n[JIT] LLVM IR successfully mapped register offsets (arg2).\n[JIT] eBPF Verifier passed static loop bounds checks."
+            },
+            sys_open: {
+                ast: "Program\n └── Probe (tracepoint:syscalls:sys_enter_openat)\n      └── MapStatement (@[args->filename])\n           └── Call (count())",
+                ir: "define i64 @probe_sys_enter_openat(i8* %ctx) { \n  %filename_ptr = call i8* @llvm.bpftrace.read.tracepoint.offset(i8* %ctx, i32 16)\n  %map_val = call i8* @bpf_map_lookup_elem(i32 0, i8* %filename_ptr)\n  %new_val = add i64 %map_val, 1\n  call void @bpf_map_update_elem(i32 0, i8* %filename_ptr, i64 %new_val)\n  ret i64 0\n}",
+                bytecode: "0: r1 = ctx;\n1: r2 = *(u64 *)(r1 + 16);               ; Read filename pointer offset\n2: r3 = map_fd(0);\n3: call bpf_map_lookup_elem;\n4: if r0 == 0 goto 6;\n5: lock xadd *(u64 *)(r0 + 0) += 1;\n6: exit;",
+                attach: "Hook: Tracepoint 'syscalls/sys_enter_openat' attached (offset 16 verified)",
+                log: "[JIT] Parsed static tracepoint format metadata.\n[JIT] Offset 16 successfully resolved from debugfs format files.\n[JIT] Bytecode verification passed."
+            }
+        };
+
+        function compileScript() {
+            const val = document.getElementById('script-select').value;
+            const data = scriptData[val];
+            const isEn = false;
+            
+            document.getElementById('ast-box').innerHTML = "<strong>AST Tree:</strong><br><pre style='margin:0; font-size:10px;'>" + data.ast + "</pre>";
+            document.getElementById('llvm-ir-box').innerHTML = "<strong>LLVM IR:</strong><br><pre style='margin:0; font-size:9px;'>" + data.ir + "</pre>";
+            document.getElementById('bytecode-box').innerHTML = "<strong>eBPF Assembly:</strong><br><pre style='margin:0; font-size:10px;'>" + data.bytecode + "</pre>";
+            document.getElementById('attached-box').innerText = data.attach;
+
+            document.getElementById('compiler-console').innerText = data.log;
+        }
+
+        // Sandbox 2: Kernel Aggregator
+        const mapData = { bash: 0, nginx: 0, mysql: 0 };
+
+        function triggerEvent() {
+            const val = document.getElementById('event-select').value;
+            const isEn = false;
+            
+            mapData[val] += Math.floor(Math.random() * 5) + 1;
+            
+            // Update UI bars
+            updateBar('bash', mapData.bash);
+            updateBar('nginx', mapData.nginx);
+            updateBar('mysql', mapData.mysql);
+
+            document.getElementById('kernel-action-box').innerHTML = isEn ?
+                `<strong>Kernel Event:</strong> [${val}] triggered. BPF code executed. Atomic xadd applied to eBPF Map.` :
+                `<strong>内核事件:</strong> 进程 [${val}] 触发系统调用。eBPF 字节码执行，利用 lock xadd 汇编指令原子累加内核 Map。`;
+
+            document.getElementById('agg-console').innerText = isEn ?
+                `[eBPF Map Monitor] Current aggregated values updated successfully without locks.\n[User space] Periodic poll retrieved latest maps and scaled.` :
+                `[eBPF Map 监控] 数据完成内核态无锁累加。\n[用户态守护进程] 异步轮询获取当前全局 Map，直方图渲染完毕。`;
+        }
+
+        function updateBar(id, val) {
+            const bar = document.getElementById('bar-' + id);
+            bar.innerText = val;
+            const width = Math.min(val * 15 + 20, 350);
+            bar.style.width = width + 'px';
+        }
+    </script>
+</body>
+</html>

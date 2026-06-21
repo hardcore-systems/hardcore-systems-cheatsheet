@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>rustc 借用检查与多态分派仿真沙盒</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        select, .btn {
+            background-color: #151D30;
+            color: white;
+            border: 1px solid #24324F;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn {
+            background-color: #9C6666;
+            font-weight: bold;
+            border: none;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 280px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .step-row {
+            background-color: #1A202C;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px dashed #4B5F7A;
+            font-size: 11px;
+        }
+        .layout-diagram {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            justify-content: space-around;
+        }
+        .layout-box {
+            flex: 1;
+            background-color: #1A202C;
+            border: 1px solid #4B5F7A;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 11px;
+        }
+        .box-title {
+            font-weight: bold;
+            color: #9A825A;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .box-item {
+            background-color: #151D30;
+            padding: 4px;
+            margin: 4px 0;
+            border-radius: 2px;
+            border-left: 3px solid #6B8272;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>rustc 借用检查与多态分派仿真沙盒</h1>
+        <div class="grid">
+            <!-- Sandbox 1: NLL Borrow Checker -->
+            <div class="card">
+                <h2>rustc NLL 借用检查与生命周期冲突模拟器</h2>
+                <div class="control-group">
+                    <select id="code-select">
+                        <option value="ok_read">安全示例：允许多个只读共享</option>
+                        <option value="err_write">错误示例：只读共享时尝试修改 (Write-Read Conflict)</option>
+                        <option value="err_dangling">错误示例：引用寿命超出所有者 (Dangling Pointer)</option>
+                    </select>
+                    <button class="btn" onclick="checkBorrow()">一键静态借用检查</button>
+                </div>
+                <div class="visualizer" id="borrow-visualizer">
+                    <div class="step-row" id="source-code-box">Source Code: (Select a program above)</div>
+                    <div class="step-row" id="cfg-nodes-box">CFG Basic Blocks & Variables Liveness: (Waiting...)</div>
+                    <div class="step-row" id="nll-solver-box">NLL Region Inference System: (Waiting...)</div>
+                    <div class="step-row" id="borrowck-res-box" style="font-weight:bold;">Borrow Checker Verdict: (Waiting...)</div>
+                </div>
+                <div class="console" id="borrow-console">
+                    [诊断信息控制台] 准备就绪。触发静态借用检查以查看错误及 suggestions。
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Monomorphization vs Trait Object -->
+            <div class="card">
+                <h2>rustc 泛型单态化与虚表分派分析器</h2>
+                <div class="control-group">
+                    <select id="dispatch-select">
+                        <option value="static">静态分派：泛型单态化 (foo<T>)</option>
+                        <option value="dynamic">动态分派：特征对象 (&dyn Trait)</option>
+                    </select>
+                    <button class="btn" style="background-color:#755B77;" onclick="compareDispatch()">对比编译内存布局</button>
+                </div>
+                <div class="visualizer">
+                    <div class="layout-diagram" id="layout-diagram-box">
+                        <div class="layout-box">
+                            <div class="box-title">Compiled Machine Code</div>
+                            <div class="box-item" id="layout-code-1">Select option to see layout</div>
+                            <div class="box-item" id="layout-code-2">...</div>
+                        </div>
+                        <div class="layout-box">
+                            <div class="box-title">Memory Allocation (Stack/Heap)</div>
+                            <div class="box-item" id="layout-mem-1">Select option to see allocation</div>
+                            <div class="box-item" id="layout-mem-2">...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="console" id="dispatch-console">
+                    [虚表解析器] 准备就绪。选择一种分派策略以比较编译产物与内存结构。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const borrowPrograms = {
+            ok_read: {
+                code: "let mut x = 10;\nlet r1 = &x;\nlet r2 = &x;\nprintln!(\"{}, {}\", r1, r2);",
+                cfg: "BB0: x = 10, r1 = &x (active), r2 = &x (active)\nBB1: print(r1, r2), end life r1/r2",
+                regions: "r1 region = {BB0[L2] -> BB1[L1]}\nr2 region = {BB0[L3] -> BB1[L1]}\nx is read-only borrowed",
+                res: "VERDICT: OK (Compilation successful)",
+                style: "color: #6B8272;",
+                log: "[rustc] borrowck passed. Shared references (r1, r2) do not conflict. No exclusive mut active."
+            },
+            err_write: {
+                code: "let mut x = 10;\nlet r1 = &x;\nx = 20;            // ERROR: Mutation\nprintln!(\"{}\", r1);",
+                cfg: "BB0: x = 10, r1 = &x (active)\nBB1: x = 20 (WRITE conflict with active read-borrow r1)\nBB2: print(r1), end life r1",
+                regions: "r1 region = {BB0[L2] -> BB2[L1]}\nConflict at BB1: write x while r1 active",
+                res: "VERDICT: ERROR [E0506]: cannot assign to `x` because it is borrowed",
+                style: "color: #9C6666;",
+                log: "error[E0506]: cannot assign to `x` because it is borrowed\n --> src/main.rs:3:1\n  |\n2 | let r1 = &x;\n  |          -- borrow of `x` occurs here\n3 | x = 20;\n  | ^^^^^^ assignment to borrowed `x` occurs here\n4 | println!(\"{}\", r1);\n  |                  -- borrow later used here"
+            },
+            err_dangling: {
+                code: "let r;\n{\n    let x = 10;\n    r = &x;        // ERROR: x drops first\n}\nprintln!(\"{}\", r);",
+                cfg: "BB0: r = undefined\nBB1: x = 10, r = &x (active)\nBB2: drop(x) (Outlives Check Fail: x drops while r active)\nBB3: print(r), end life r",
+                regions: "r region = {BB1[L3] -> BB3[L1]}\nx owner scope = {BB1 -> BB2}\nr outlives its owner scope",
+                res: "VERDICT: ERROR [E0597]: `x` does not live long enough",
+                style: "color: #9C6666;",
+                log: "error[E0597]: `x` does not live long enough\n --> src/main.rs:4:9\n  |\n4 |     r = &x;\n  |         ^^ borrowed value does not live long enough\n5 | }\n  | - `x` dropped here while still borrowed\n6 | println!(\"{}\", r);\n  |                  - borrow later used here"
+            }
+        };
+
+        function checkBorrow() {
+            const val = document.getElementById('code-select').value;
+            const data = borrowPrograms[val];
+            
+            document.getElementById('source-code-box').innerHTML = "<strong>Source Code:</strong><br><pre style='margin:0;'>" + data.code + "</pre>";
+            document.getElementById('cfg-nodes-box').innerHTML = "<strong>CFG Liveness:</strong><br>" + data.cfg;
+            document.getElementById('nll-solver-box').innerHTML = "<strong>NLL Solved Lifetimes:</strong><br>" + data.regions;
+            
+            const resBox = document.getElementById('borrowck-res-box');
+            resBox.innerHTML = data.res;
+            resBox.style = data.style;
+
+            document.getElementById('borrow-console').innerText = data.log;
+        }
+
+        function compareDispatch() {
+            const val = document.getElementById('dispatch-select').value;
+            const isEn = false;
+            const code1 = document.getElementById('layout-code-1');
+            const code2 = document.getElementById('layout-code-2');
+            const mem1 = document.getElementById('layout-mem-1');
+            const mem2 = document.getElementById('layout-mem-2');
+            const consoleBox = document.getElementById('dispatch-console');
+
+            if (val === 'static') {
+                code1.innerText = "fn foo_i32(x: i32) Ellipsis";
+                code2.innerText = "fn foo_string(x: String) Ellipsis";
+                mem1.innerText = "Direct Call: CALL foo_i32";
+                mem2.innerText = "Stack size: 8 bytes (Inlined)";
+                consoleBox.innerText = isEn ?
+                    `[Static Dispatch] Monomorphization: rustc duplicated two physical copies of foo() at compile time. Zero-runtime cost, direct branching enabled.` :
+                    `[静态分派] 泛型单态化：编译器在编译期复制出 foo_i32 和 foo_string 两份物理机器码。无任何虚表开销，执行速度极快，支持内联优化。`;
+            } else {
+                code1.innerText = "dyn Trait VTable Layout:\n[0]: Drop Glue (Destructor)\n[1]: Alignment Size (8 bytes)\n[2]: fn foo() pointer";
+                code2.innerText = "Fat Pointer struct:\n*data_ptr -> Heap Struct\n*vtable_ptr -> .rodata VTable";
+                mem1.innerText = "Heap storage for struct";
+                mem2.innerText = "Stack fat pointer: 16 bytes";
+                consoleBox.innerText = isEn ?
+                    `[Dynamic Dispatch] Trait Objects: Fat pointers copy vtable references. Dynamic call resolves address offset [2] dynamically at runtime.` :
+                    `[动态分派] 特征对象：栈分配 16 字节胖指针（含数据与虚表地址）。运行期读取虚表第 [2] 项物理偏移，实施间接跳转分派。`;
+            }
+        }
+    </script>
+</body>
+</html>

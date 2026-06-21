@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Seastar Shard-per-Core 与异步链式调度沙盒</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            background-color: #151D30;
+            color: white;
+            border: 1px solid #24324F;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            background-color: #2D3748;
+            border-color: #4B5F7A;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 250px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid #24324F;
+        }
+        .status-badge {
+            background-color: #1A202C;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px dashed #4B5F7A;
+            font-size: 11px;
+        }
+        .shards-layout {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .shard-node {
+            flex: 1;
+            background-color: #1E2530;
+            border: 2px solid #4B5F7A;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            transition: border-color 0.3s ease;
+        }
+        .shard-active {
+            border-color: #6B8272 !important;
+            box-shadow: 0 0 10px rgba(107, 130, 114, 0.5);
+        }
+        .spsc-arrow {
+            color: #9A825A;
+            font-weight: bold;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .chain-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .chain-node {
+            background-color: #1E2530;
+            border: 1px solid #24324F;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+        .chain-active {
+            background-color: #4B5F7A;
+            border-color: #E2E8F0;
+        }
+        .chain-completed {
+            background-color: #6B8272;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Seastar Shard-per-Core 与异步链式调度沙盒</h1>
+        <div class="grid">
+            <!-- Sandbox 1: Shard-per-Core Pinning -->
+            <div class="card">
+                <h2>Shard-per-Core 亲和绑定与跨核 SPSC 消息队列模拟</h2>
+                <div class="control-group">
+                    <button class="btn" style="background-color:#4B5F7A;" onclick="addTaskCore0()">在 Core 0 线程中启动任务</button>
+                    <button class="btn" style="background-color:#9A825A;" onclick="sendCrossCoreMsg()">发起跨核 SPSC 消息 (Core 0 ➜ Core 2)</button>
+                </div>
+                <div class="visualizer" id="shard-vis">
+                    <div class="status-badge" id="lock-state">Lock contention: 0% | Dynamic locks acquired: 0</div>
+                    <div class="shards-layout">
+                        <div class="shard-node" id="shard-0">
+                            <strong>Core 0</strong><br>
+                            <span id="shard-0-tasks">Tasks: 0</span>
+                        </div>
+                        <div class="shard-node" id="shard-1">
+                            <strong>Core 1</strong><br>
+                            <span id="shard-1-tasks">Tasks: 0</span>
+                        </div>
+                        <div class="shard-node" id="shard-2">
+                            <strong>Core 2</strong><br>
+                            <span id="shard-2-tasks">Tasks: 0</span>
+                        </div>
+                        <div class="shard-node" id="shard-3">
+                            <strong>Core 3</strong><br>
+                            <span id="shard-3-tasks">Tasks: 0</span>
+                        </div>
+                    </div>
+                    <div class="spsc-arrow" id="spsc-direction" style="display:none; text-align:center;">
+                        Core 0 SPSC Queue ───► Core 2 Queue (CAS message transfer)
+                    </div>
+                </div>
+                <div class="console" id="shard-console">
+                    [Shard Console] System running. Spin event loops are running local memory allocations.
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Future/Promise Chain -->
+            <div class="card">
+                <h2>异步非阻塞 Future/Promise 流水线模拟</h2>
+                <div class="control-group">
+                    <button class="btn" style="background-color:#6B8272;" onclick="sendPacket()">发送网络数据包</button>
+                    <button class="btn" style="background-color:#755B77;" onclick="stepChain()">单步运行执行异步链</button>
+                    <button class="btn" style="background-color:#7A7A7A;" onclick="resetSvc()">重置沙盒模拟</button>
+                </div>
+                <div class="visualizer" id="chain-vis">
+                    <div class="status-badge" id="reactor-state">Reactor state: Idle (Thread non-blocked)</div>
+                    <div class="chain-layout" id="chain-container">
+                        <div class="chain-node" id="node-0">1. TCP Socket Read (io_uring poll)</div>
+                        <div class="chain-node" id="node-1">2. HTTP Header Parse (zero-copy buffer slice)</div>
+                        <div class="chain-node" id="node-2">3. Service Query (local NUMA cache query)</div>
+                        <div class="chain-node" id="node-3">4. JSON Formatting (AVX-512 compile copy)</div>
+                        <div class="chain-node" id="node-4">5. TCP Socket Write (io_uring submission)</div>
+                    </div>
+                </div>
+                <div class="console" id="chain-console">
+                    [Future Console] Click Send Packet to trigger the async pipeline.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const isEn = false;
+
+        // Localized Console Messages
+        const msgSpawn0 = isEn ? "[Core 0] Spawning local task. Running on pinned thread. Locks acquired: 0." : "[Core 0] 启动本地任务。硬绑定线程运行中，无锁获得：0。";
+        const msgCrossStart = isEn ? "[SPSC] Core 0 pushing task message to egress SPSC queue..." : "[跨核队列] Core 0 向 egress SPSC 环形队列投入异步任务消息...";
+        const msgCrossEnd = isEn ? "[Core 2] Polled SPSC queue. Executing task. No cross-core locks invoked." : "[Core 2] 轮询 SPSC 队列成功，执行该任务，整个跨核调度零冲突。";
+        
+        const msgPktArrival = isEn ? "[Future] Packet arrived! io_uring read promise initialized. Future 1 pending..." : "[Future] 网络包到达！io_uring 读 Promise 初始化。Future 1 挂起中...";
+        const msgStep = (step, title) => isEn ? `[Future] Promise resolved for: ${title}. Completing future ${step}...` : `[Future] Promise 解决成功: ${title}。推进 Future ${step}...`;
+        const msgChainEnd = isEn ? "[Future] Pipeline execution completed. io_uring write submitted. Event loop free." : "[Future] 异步流水线全部完成。io_uring 发送队列已提交，Reactor 恢复空闲。";
+
+        // Sandbox 1 Logic
+        let core0Tasks = 0;
+        let core2Tasks = 0;
+        let activeCore = -1;
+
+        function addTaskCore0() {
+            const consoleBox = document.getElementById('shard-console');
+            core0Tasks++;
+            document.getElementById('shard-0-tasks').innerText = `Tasks: ${core0Tasks}`;
+            
+            // Highlight Core 0
+            clearActiveShards();
+            document.getElementById('shard-0').classList.add('shard-active');
+            
+            consoleBox.innerHTML += "\n" + msgSpawn0;
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        function sendCrossCoreMsg() {
+            const consoleBox = document.getElementById('shard-console');
+            document.getElementById('spsc-direction').style.display = 'block';
+            consoleBox.innerHTML += "\n" + msgCrossStart;
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+            
+            setTimeout(() => {
+                core2Tasks++;
+                document.getElementById('shard-2-tasks').innerText = `Tasks: ${core2Tasks}`;
+                clearActiveShards();
+                document.getElementById('shard-2').classList.add('shard-active');
+                consoleBox.innerHTML += "\n" + msgCrossEnd;
+                consoleBox.scrollTop = consoleBox.scrollHeight;
+            }, 600);
+        }
+
+        function clearActiveShards() {
+            for (let i = 0; i <= 3; i++) {
+                document.getElementById('shard-' + i).classList.remove('shard-active');
+            }
+        }
+
+        // Sandbox 2 Logic
+        let activeStep = -1;
+        let pktInFlight = false;
+        const stepTitles = [
+            "TCP Socket Read",
+            "HTTP Header Parse",
+            "Service Query",
+            "JSON Formatting",
+            "TCP Socket Write"
+        ];
+
+        function sendPacket() {
+            const consoleBox = document.getElementById('chain-console');
+            if (pktInFlight) return;
+            pktInFlight = true;
+            activeStep = 0;
+            
+            // reset nodes
+            for (let i = 0; i < 5; i++) {
+                document.getElementById('node-' + i).className = 'chain-node';
+            }
+            
+            document.getElementById('node-0').classList.add('chain-active');
+            document.getElementById('reactor-state').innerText = isEn ? "Reactor state: Processing (Non-blocked)" : "Reactor 状态: 计算中 (非阻塞)";
+            consoleBox.innerHTML = msgPktArrival;
+        }
+
+        function stepChain() {
+            const consoleBox = document.getElementById('chain-console');
+            if (!pktInFlight) return;
+            if (activeStep >= 4) {
+                document.getElementById('node-4').className = 'chain-node chain-completed';
+                consoleBox.innerHTML += "\n" + msgChainEnd;
+                consoleBox.scrollTop = consoleBox.scrollHeight;
+                document.getElementById('reactor-state').innerText = isEn ? "Reactor state: Idle (Thread non-blocked)" : "Reactor 状态: 空闲 (线程非阻塞)";
+                pktInFlight = false;
+                return;
+            }
+            
+            // Complete current node
+            document.getElementById('node-' + activeStep).className = 'chain-node chain-completed';
+            
+            // Advance
+            activeStep++;
+            document.getElementById('node-' + activeStep).classList.add('chain-active');
+            
+            consoleBox.innerHTML += "\n" + msgStep(activeStep, stepTitles[activeStep]);
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        function resetSvc() {
+            core0Tasks = 0;
+            core2Tasks = 0;
+            activeStep = -1;
+            pktInFlight = false;
+            
+            document.getElementById('shard-0-tasks').innerText = "Tasks: 0";
+            document.getElementById('shard-2-tasks').innerText = "Tasks: 0";
+            document.getElementById('spsc-direction').style.display = 'none';
+            clearActiveShards();
+            
+            for (let i = 0; i < 5; i++) {
+                document.getElementById('node-' + i).className = 'chain-node';
+            }
+            
+            document.getElementById('reactor-state').innerText = isEn ? "Reactor state: Idle" : "Reactor 状态: 空闲";
+            document.getElementById('shard-console').innerHTML = isEn ? "[Shard Console] Reset completed." : "[Shard 控制台] 模拟器重置成功。";
+            document.getElementById('chain-console').innerHTML = isEn ? "[Future Console] Reset completed." : "[Future 控制台] 模拟器重置成功。";
+        }
+    </script>
+</body>
+</html>

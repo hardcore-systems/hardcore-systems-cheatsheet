@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CPU Flame Graph & MySQL Index / Deadlock Simulation Lab</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #1A202C;
+            color: #E2E8F0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app-header {
+            background-color: #2D3748;
+            padding: 10px 20px;
+            border-bottom: 2px solid #4A5568;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #app-header h1 {
+            margin: 0;
+            font-size: 16px;
+            color: #FFF;
+        }
+        #tab-container {
+            display: flex;
+            background-color: #2D3748;
+            padding: 5px 20px 0 20px;
+            border-bottom: 1px solid #4A5568;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            color: #A0AEC0;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background-color: #1A202C;
+            color: #3182CE;
+            border-bottom: 2px solid #3182CE;
+        }
+        #sandbox-views {
+            flex: 1;
+            position: relative;
+        }
+        .sandbox-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .sandbox-view.active {
+            display: flex;
+        }
+        
+        /* Layout Panels */
+        .left-panel {
+            width: 300px;
+            background-color: #2D3748;
+            border-radius: 6px;
+            padding: 15px;
+            box-sizing: border-box;
+            margin-right: 20px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #4A5568;
+            overflow-y: auto;
+        }
+        .middle-panel {
+            flex: 1;
+            background-color: #2D3748;
+            border-radius: 6px;
+            padding: 15px;
+            box-sizing: border-box;
+            margin-right: 20px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #4A5568;
+            position: relative;
+        }
+        .right-panel {
+            width: 300px;
+            background-color: #2D3748;
+            border-radius: 6px;
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #4A5568;
+        }
+        
+        .panel-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #FFFFFF;
+            border-bottom: 1px solid #4A5568;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Form elements */
+        .control-group {
+            margin-bottom: 12px;
+        }
+        .control-label {
+            font-size: 11px;
+            color: #A0AEC0;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .control-input {
+            width: 100%;
+            background-color: #1A202C;
+            border: 1px solid #4A5568;
+            border-radius: 4px;
+            color: #FFF;
+            padding: 6px;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: bold;
+            color: #FFF;
+        }
+        .badge-green { background-color: #48BB78; }
+        .badge-red { background-color: #E53E3E; }
+        .badge-yellow { background-color: #D69E2E; }
+        
+        .console-log {
+            flex: 1;
+            background-color: #1A202C;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: Consolas, monospace;
+            font-size: 10px;
+            color: #48BB78;
+            overflow-y: auto;
+            border: 1px solid #4A5568;
+        }
+        .console-log .err { color: #E53E3E; }
+        .console-log .warn { color: #DD6B20; }
+        .console-log .info { color: #3182CE; }
+        
+        /* Flame Graph Visualizer */
+        .flame-graph-container {
+            flex: 1;
+            background-color: #1A202C;
+            border-radius: 4px;
+            border: 1px solid #4A5568;
+            display: flex;
+            flex-direction: column-reverse;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        .flame-row {
+            display: flex;
+            width: 100%;
+            height: 24px;
+            margin-bottom: 2px;
+        }
+        .flame-block {
+            height: 100%;
+            border-radius: 2px;
+            margin-right: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            color: #FFF;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            transition: width 0.3s ease;
+        }
+        
+        /* MySQL B+Tree Visualizer */
+        .mysql-viz-area {
+            flex: 1;
+            background-color: #1A202C;
+            border-radius: 4px;
+            border: 1px solid #4A5568;
+            position: relative;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .tree-level {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+        .tree-node {
+            width: 70px;
+            height: 35px;
+            border: 2px solid #4A5568;
+            border-radius: 4px;
+            background-color: #2D3748;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            margin: 0 15px;
+            position: relative;
+            z-index: 10;
+        }
+        .tree-node.active {
+            border-color: #3182CE;
+            box-shadow: 0 0 10px #3182CE;
+        }
+        .tree-node-title {
+            font-weight: bold;
+            color: #FFF;
+        }
+        .tree-node-keys {
+            font-size: 8px;
+            color: #A0AEC0;
+        }
+        
+        /* Transaction Locking visualizer */
+        .tx-block-area {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+        .tx-card {
+            width: 120px;
+            border: 1px solid #4A5568;
+            border-radius: 4px;
+            background-color: #2D3748;
+            padding: 8px;
+            font-size: 10px;
+        }
+        .tx-card-title {
+            font-weight: bold;
+            color: #FFF;
+            border-bottom: 1px dashed #4A5568;
+            padding-bottom: 3px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-header">
+        <h1>CPU Flame Graph & MySQL Index / Deadlock Simulation Lab</h1>
+        <div><span class="badge badge-green">Tuning Active</span></div>
+    </div>
+    
+    <div id="tab-container">
+        <button class="tab-btn active" onclick="switchTab('flame')">1. CPU Flame Graph & Thread Pool Profiler</button>
+        <button class="tab-btn" onclick="switchTab('mysql')">2. MySQL Index & Lock Deadlock Simulator</button>
+    </div>
+    
+    <div id="sandbox-views">
+        <!-- TAB 1: CPU FLAME GRAPH -->
+        <div id="view-flame" class="sandbox-view active">
+            <div class="left-panel">
+                <div class="panel-title">Tuning Panel</div>
+                <div class="control-group">
+                    <label class="control-label">Thread Pool Size</label>
+                    <input type="range" class="control-input" id="thread-pool-size" min="1" max="64" value="4" onchange="updatePoolVal()">
+                    <div class="control-label" id="pool-val" style="text-align:right;">4 Threads (CPU Cores: 8)</div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Work Queue Capacity</label>
+                    <input type="range" class="control-input" id="queue-cap" min="5" max="300" step="5" value="50" onchange="updateQueueVal()">
+                    <div class="control-label" id="queue-val" style="text-align:right;">50 Tasks</div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Workload Mix (CPU vs IO)</label>
+                    <input type="range" class="control-input" id="workload-mix" min="0" max="100" value="50" onchange="updateMixVal()">
+                    <div class="control-label" id="mix-val" style="text-align:right;">50% CPU-bound, 50% IO-bound</div>
+                </div>
+
+                <div style="flex:1;"></div>
+                <button onclick="deployTuning()" style="background-color: #3182CE; border:none; border-radius:4px; color:#FFF; font-weight:bold; padding:8px; cursor:pointer; font-size:11px; margin-bottom:5px;">Deploy Settings</button>
+                <button onclick="runProfiler()" style="background-color: #E53E3E; border:none; border-radius:4px; color:#FFF; font-weight:bold; padding:8px; cursor:pointer; font-size:11px;">Start Sampling (Flame Graph)</button>
+            </div>
+            
+            <div class="middle-panel">
+                <div class="panel-title">Active CPU Call Stack Flame Graph</div>
+                <div class="flame-graph-container" id="flame-container">
+                    <!-- Dynamic Flame Rows here -->
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="panel-title">Metrics Dashboard</div>
+                <div class="toggle-container">
+                    <span class="control-label">Context Switches /sec:</span>
+                    <span class="badge badge-green" id="switch-metric">120 cs</span>
+                </div>
+                <div class="toggle-container">
+                    <span class="control-label">Avg Latency:</span>
+                    <span class="badge badge-green" id="latency-metric">15 ms</span>
+                </div>
+                <div class="toggle-container">
+                    <span class="control-label">CPU Wasted (Contention):</span>
+                    <span class="badge badge-green" id="waste-metric">0%</span>
+                </div>
+                <div class="console-log" id="flame-console"></div>
+            </div>
+        </div>
+        
+        <!-- TAB 2: MYSQL INDEX & LOCKS -->
+        <div id="view-mysql" class="sandbox-view">
+            <div class="left-panel">
+                <div class="panel-title">Index Options</div>
+                <button onclick="toggleIndex(true)" class="tab-btn active" id="idx-on-btn" style="border:1px solid #4A5568; margin-bottom:5px; text-align:left;">Create Secondary Index on user_id</button>
+                <button onclick="toggleIndex(false)" class="tab-btn" id="idx-off-btn" style="border:1px solid #4A5568; margin-bottom:12px; text-align:left;">Drop Secondary Index (Table Scan)</button>
+                
+                <div class="control-group">
+                    <label class="control-label">Select Query type</label>
+                    <select class="control-input" id="query-select">
+                        <option value="pk">SELECT * FROM users WHERE id = 5 (Primary Key)</option>
+                        <option value="sec">SELECT * FROM users WHERE user_id = 10 (Secondary Index)</option>
+                        <option value="scan">SELECT * FROM users WHERE email = 'foo@bar.com' (Unindexed Column)</option>
+                    </select>
+                </div>
+                <button onclick="runSQLQuery()" style="background-color: #3182CE; border:none; border-radius:4px; color:#FFF; font-weight:bold; padding:8px; cursor:pointer; font-size:11px; margin-bottom:15px;">Execute Query</button>
+                
+                <div class="panel-title">Deadlock Simulator</div>
+                <button onclick="deadlockStep(1)" class="tab-btn" id="deadlock-btn-1" style="border:1px solid #4A5568; margin-bottom:5px; text-align:left;">Step 1: Tx A lock Row 1, Tx B lock Row 2</button>
+                <button onclick="deadlockStep(2)" class="tab-btn" id="deadlock-btn-2" style="border:1px solid #4A5568; margin-bottom:5px; text-align:left;">Step 2: Tx A requests Row 2 lock</button>
+                <button onclick="deadlockStep(3)" class="tab-btn" id="deadlock-btn-3" style="border:1px solid #4A5568; margin-bottom:5px; text-align:left;">Step 3: Tx B requests Row 1 lock</button>
+            </div>
+            
+            <div class="middle-panel">
+                <div class="panel-title">B+Tree Index Path Visualizer</div>
+                <div class="mysql-viz-area" id="mysql-viz">
+                    <div class="tree-level" id="level-root">
+                        <div class="tree-node" id="node-root">
+                            <span class="tree-node-title">Root Page</span>
+                            <span class="tree-node-keys">Keys: [5, 10]</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tree-level" id="level-leaf">
+                        <div class="tree-node" id="node-leaf-1">
+                            <span class="tree-node-title">Leaf Page 1</span>
+                            <span class="tree-node-keys">IDs: [1, 4]</span>
+                        </div>
+                        <div class="tree-node" id="node-leaf-2">
+                            <span class="tree-node-title">Leaf Page 2</span>
+                            <span class="tree-node-keys">IDs: [5, 9]</span>
+                        </div>
+                        <div class="tree-node" id="node-leaf-3">
+                            <span class="tree-node-title">Leaf Page 3</span>
+                            <span class="tree-node-keys">IDs: [10, 15]</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tx-block-area">
+                        <div class="tx-card" id="tx-card-a">
+                            <div class="tx-card-title">Transaction A</div>
+                            <div id="tx-a-status" style="font-size: 8px; color: #A0AEC0;">Idle</div>
+                        </div>
+                        <div class="tx-card" id="tx-card-b">
+                            <div class="tx-card-title">Transaction B</div>
+                            <div id="tx-b-status" style="font-size: 8px; color: #A0AEC0;">Idle</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="panel-title">IO & Locks Status</div>
+                <div class="toggle-container">
+                    <span class="control-label">Physical IO Reads:</span>
+                    <span class="badge badge-green" id="io-metric">0 IOs</span>
+                </div>
+                <div class="toggle-container">
+                    <span class="control-label">Deadlock Graph:</span>
+                    <span class="badge badge-green" id="deadlock-badge">No cycle</span>
+                </div>
+                <div class="console-log" id="mysql-console"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function switchTab(tab) {
+            const views = document.querySelectorAll('.sandbox-view');
+            const btns = document.querySelectorAll('#tab-container .tab-btn');
+            
+            views.forEach(v => v.classList.remove('active'));
+            btns.forEach(b => b.classList.remove('active'));
+            
+            if (tab === 'flame') {
+                document.getElementById('view-flame').classList.add('active');
+                btns[0].classList.add('active');
+            } else {
+                document.getElementById('view-mysql').classList.add('active');
+                btns[1].classList.add('active');
+            }
+        }
+
+        // FLAME GRAPH & THREAD POOL LOGIC
+        let threads = 4;
+        let queueCap = 50;
+        let mix = 50; // CPU vs IO
+        
+        function updatePoolVal() {
+            threads = parseInt(document.getElementById('thread-pool-size').value);
+            document.getElementById('pool-val').innerText = threads + ' Threads (CPU Cores: 8)';
+        }
+
+        function updateQueueVal() {
+            queueCap = parseInt(document.getElementById('queue-cap').value);
+            document.getElementById('queue-val').innerText = queueCap + ' Tasks';
+        }
+
+        function updateMixVal() {
+            mix = parseInt(document.getElementById('workload-mix').value);
+            document.getElementById('mix-val').innerText = mix + '% CPU-bound, ' + (100 - mix) + '% IO-bound';
+        }
+
+        function logFlame(msg, type='info') {
+            const c = document.getElementById('flame-console');
+            const span = document.createElement('div');
+            span.className = type;
+            span.innerText = `[` + new Date().toLocaleTimeString() + `] ` + msg;
+            c.appendChild(span);
+            c.scrollTop = c.scrollHeight;
+        }
+
+        function deployTuning() {
+            logFlame(`Deployed config: ThreadPoolSize=${threads}, QueueCapacity=${queueCap}, MixRatio=${mix}%`, 'info');
+            
+            // Calc mock metrics
+            const cs = Math.round(threads * 35 + (threads > 8 ? (threads - 8) * 80 : 0));
+            const latency = Math.round(15 + (threads > 12 ? (threads - 12) * 5 : 0) + (mix > 70 ? 25 : 0));
+            let waste = 0;
+            if (threads > 8) {
+                waste = Math.round(((threads - 8) / 56) * 60); // Context switch waste percentage
+            }
+            
+            // Update badges
+            document.getElementById('switch-metric').innerText = cs + ' cs/s';
+            document.getElementById('latency-metric').innerText = latency + ' ms';
+            document.getElementById('waste-metric').innerText = waste + '%';
+            
+            // Adjust metrics colors
+            adjustBadge('switch-metric', cs, 400, 1000);
+            adjustBadge('latency-metric', latency, 40, 100);
+            adjustBadge('waste-metric', waste, 15, 40);
+        }
+
+        function adjustBadge(id, val, warnLimit, errLimit) {
+            const b = document.getElementById(id);
+            b.className = 'badge';
+            if (val >= errLimit) b.classList.add('badge-red');
+            else if (val >= warnLimit) b.classList.add('badge-yellow');
+            else b.classList.add('badge-green');
+        }
+
+        function runProfiler() {
+            logFlame("Started stack profiling (100 samples/sec)...", 'warn');
+            deployTuning();
+            
+            const cont = document.getElementById('flame-container');
+            cont.innerHTML = '';
+            
+            // Compute width based on threads and context waste
+            let waste = 0;
+            if (threads > 8) {
+                waste = Math.round(((threads - 8) / 56) * 50); // Wasted width
+            }
+            
+            const cpuWidth = Math.round((mix / 100) * (100 - waste));
+            const ioWidth = Math.round(((100 - mix) / 100) * (100 - waste));
+            
+            // Draw Flame layers
+            const row1 = document.createElement('div');
+            row1.className = 'flame-row';
+            row1.innerHTML = `<div class="flame-block" style="width: 100%; background-color: #c94a29;">all (100%)</div>`;
+            cont.appendChild(row1);
+
+            const row2 = document.createElement('div');
+            row2.className = 'flame-row';
+            row2.innerHTML = `
+                <div class="flame-block" style="width: ${cpuWidth}%; background-color: #d87c35;">CPU_Bound_Task (${cpuWidth}%)</div>
+                <div class="flame-block" style="width: ${ioWidth}%; background-color: #d1b827;">IO_Bound_Wait (${ioWidth}%)</div>
+                ${waste > 0 ? `<div class="flame-block" style="width: ${waste}%; background-color: #d82e2e;">Context_Switch_Waste (${waste}%)</div>` : ''}
+            `;
+            cont.appendChild(row2);
+
+            const row3 = document.createElement('div');
+            row3.className = 'flame-row';
+            row3.innerHTML = `
+                ${cpuWidth > 0 ? `<div class="flame-block" style="width: ${Math.round(cpuWidth * 0.7)}%; background-color: #e5904d;">Json_Parsing</div>` : ''}
+                ${cpuWidth > 0 ? `<div class="flame-block" style="width: ${Math.round(cpuWidth * 0.3)}%; background-color: #ea9f65;">Auth_Hash</div>` : ''}
+                ${ioWidth > 0 ? `<div class="flame-block" style="width: ${ioWidth}%; background-color: #ded162;">DB_Socket_Wait</div>` : ''}
+                ${waste > 0 ? `<div class="flame-block" style="width: ${waste}%; background-color: #e65252;">kernel_sched</div>` : ''}
+            `;
+            cont.appendChild(row3);
+            
+            logFlame("Profiling complete. Flame graph updated.", 'info');
+        }
+        
+        deployTuning();
+
+        // MYSQL INDEX & LOCKS LOGIC
+        let hasIndex = true;
+        
+        function toggleIndex(state) {
+            hasIndex = state;
+            document.getElementById('idx-on-btn').className = 'tab-btn' + (state ? ' active' : '');
+            document.getElementById('idx-off-btn').className = 'tab-btn' + (!state ? ' active' : '');
+            logSQL(`Index status: Secondary Index on user_id ` + (state ? 'CREATED' : 'DROPPED'), 'info');
+        }
+        
+        function logSQL(msg, type='info') {
+            const c = document.getElementById('mysql-console');
+            const span = document.createElement('div');
+            span.className = type;
+            span.innerText = `[` + new Date().toLocaleTimeString() + `] ` + msg;
+            c.appendChild(span);
+            c.scrollTop = c.scrollHeight;
+        }
+        
+        function clearNodes() {
+            document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('active'));
+        }
+        
+        function runSQLQuery() {
+            clearNodes();
+            const q = document.getElementById('query-select').value;
+            const ioBadge = document.getElementById('io-metric');
+            
+            if (q === 'pk') {
+                logSQL("Executing: SELECT * FROM users WHERE id = 5;", 'info');
+                document.getElementById('node-root').classList.add('active');
+                setTimeout(() => {
+                    document.getElementById('node-leaf-2').classList.add('active');
+                    ioBadge.innerText = '2 IOs';
+                    ioBadge.className = 'badge badge-green';
+                    logSQL("Clustered Index Root Page ➜ Leaf Page 2 (Row found directly). Total: 2 IOs", 'info');
+                }, 400);
+            } else if (q === 'sec') {
+                logSQL("Executing: SELECT * FROM users WHERE user_id = 10;", 'info');
+                document.getElementById('node-root').classList.add('active');
+                if (hasIndex) {
+                    setTimeout(() => {
+                        document.getElementById('node-leaf-3').classList.add('active');
+                        logSQL("Secondary Index Root Page ➜ Secondary Leaf Page 3 (ID: 10). Fetching PK id = 9.", 'info');
+                        // Retraverse Clustered Index (回表)
+                        setTimeout(() => {
+                            document.getElementById('node-leaf-2').classList.add('active');
+                            ioBadge.innerText = '4 IOs';
+                            ioBadge.className = 'badge badge-yellow';
+                            logSQL("Bookmark Lookup: Clustered Index Leaf Page 2 (PK id = 9). Total: 4 IOs", 'warn');
+                        }, 500);
+                    }, 400);
+                } else {
+                    // Full Table Scan
+                    setTimeout(() => {
+                        document.getElementById('node-leaf-1').classList.add('active');
+                        document.getElementById('node-leaf-2').classList.add('active');
+                        document.getElementById('node-leaf-3').classList.add('active');
+                        ioBadge.innerText = '12 IOs';
+                        ioBadge.className = 'badge badge-red';
+                        logSQL("No index available! Triggered Full Table Scan. Reading all pages. Total: 12 IOs", 'err');
+                    }, 400);
+                }
+            } else {
+                logSQL("Executing: SELECT * FROM users WHERE email = 'foo@bar.com';", 'info');
+                document.getElementById('node-root').classList.add('active');
+                setTimeout(() => {
+                    document.getElementById('node-leaf-1').classList.add('active');
+                    document.getElementById('node-leaf-2').classList.add('active');
+                    document.getElementById('node-leaf-3').classList.add('active');
+                    ioBadge.innerText = '12 IOs';
+                    ioBadge.className = 'badge badge-red';
+                    logSQL("Unindexed column lookup triggered Full Table Scan! Reading all leaf pages. Total: 12 IOs", 'err');
+                }, 400);
+            }
+        }
+        
+        // Deadlock simulation steps
+        function deadlockStep(step) {
+            const statusA = document.getElementById('tx-a-status');
+            const statusB = document.getElementById('tx-b-status');
+            const dlBadge = document.getElementById('deadlock-badge');
+            
+            for (let i = 1; i <= 3; i++) {
+                document.getElementById('deadlock-btn-' + i).classList.remove('active');
+            }
+            document.getElementById('deadlock-btn-' + step).classList.add('active');
+            
+            if (step === 1) {
+                statusA.innerHTML = `<span class="badge badge-yellow">HOLDING Lock Row 1</span>`;
+                statusB.innerHTML = `<span class="badge badge-yellow">HOLDING Lock Row 2</span>`;
+                dlBadge.innerText = 'No cycle';
+                dlBadge.className = 'badge badge-green';
+                logSQL("Transaction A locked Row 1 (X). Transaction B locked Row 2 (X).", 'info');
+            } else if (step === 2) {
+                statusA.innerHTML = `<span class="badge badge-yellow">HOLDING Lock Row 1</span><br><span class="badge badge-red">WAITING Row 2 Lock</span>`;
+                logSQL("Transaction A requested Exclusive Lock on Row 2. Blocked by Tx B.", 'warn');
+            } else if (step === 3) {
+                statusB.innerHTML = `<span class="badge badge-yellow">HOLDING Lock Row 2</span><br><span class="badge badge-red">WAITING Row 1 Lock</span>`;
+                dlBadge.innerText = 'DEADLOCK!';
+                dlBadge.className = 'badge badge-red';
+                logSQL("Transaction B requested Exclusive Lock on Row 1. Circular dependency detected!", 'err');
+                
+                setTimeout(() => {
+                    logSQL("InnoDB Deadlock Detector: Tripped! Rolling back Transaction B.", 'err');
+                    statusB.innerHTML = `<span class="badge badge-red">ROLLED BACK</span>`;
+                    statusA.innerHTML = `<span class="badge badge-green">COMMIT SUCCESS</span>`;
+                    dlBadge.innerText = 'Resolved';
+                    dlBadge.className = 'badge badge-green';
+                    logSQL("Transaction B rolled back. S/X locks released. Transaction A committed successfully.", 'info');
+                }, 1000);
+            }
+        }
+    </script>
+</body>
+</html>

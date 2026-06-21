@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Wasmtime JIT 编译流水线与硬件页保护边界沙盒</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        select, input, .btn {
+            background-color: #151D30;
+            color: white;
+            border: 1px solid #24324F;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn {
+            background-color: #9C6666;
+            font-weight: bold;
+            border: none;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 280px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .step-row {
+            background-color: #1A202C;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px dashed #4B5F7A;
+            font-size: 11px;
+        }
+        .mem-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .mem-bar {
+            height: 25px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            opacity: 0.85;
+            transition: all 0.2s ease;
+        }
+        .mem-bar:hover {
+            opacity: 1;
+            transform: scale(1.01);
+        }
+        .bar-heap { background-color: #6B8272; }
+        .bar-uncommitted { background-color: #4B5F7A; }
+        .bar-guard { background-color: #9C6666; }
+        .bar-invalid { background-color: #7A7A7A; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Wasmtime JIT 编译流水线与硬件页保护边界沙盒</h1>
+        <div class="grid">
+            <!-- Sandbox 1: JIT & SSA -->
+            <div class="card">
+                <h2>Wasmtime JIT 编译流水线与 SSA 寄存器分配器</h2>
+                <div class="control-group">
+                    <select id="func-select">
+                        <option value="add">加法函数 fn add(a, b)</option>
+                        <option value="loop">循环乘法 fn loop(count)</option>
+                        <option value="branch">条件分支 fn max(a, b)</option>
+                    </select>
+                    <button class="btn" onclick="compileJIT()">一键 JIT 编译选定函数</button>
+                </div>
+                <div class="visualizer" id="jit-visualizer">
+                    <div class="step-row" id="ssa-code-box">SSA IR (CLIF): (Waiting...)</div>
+                    <div class="step-row" id="liveness-box">Liveness Intervals: (Waiting...)</div>
+                    <div class="step-row" id="regalloc-box">Regalloc2 Physical Registers Map: (Waiting...)</div>
+                    <div class="step-row" id="asm-box" style="color:#9A825A; font-weight:bold;">Machine Code: (Waiting...)</div>
+                </div>
+                <div class="console" id="jit-console">
+                    [JIT 编译器日志] 准备就绪。选择一个函数，点击编译查看 Regalloc2 分配与机器码输出。
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Virtual Memory Sandbox -->
+            <div class="card">
+                <h2>Wasmtime 虚拟内存沙箱与硬件页保护边界检查器</h2>
+                <div class="control-group">
+                    <input type="text" id="addr-input" placeholder="输入十六进制地址 (例如 0x5000)" value="0x5000">
+                    <button class="btn" style="background-color:#755B77;" onclick="accessMemory()">访问内存虚拟地址</button>
+                </div>
+                <div class="visualizer">
+                    <div class="mem-layout">
+                        <div class="mem-bar bar-heap" onclick="setAddr('0x5000')">Linear Memory Heap (Valid Wasm RAM): 0x0000_0000 - 0x0010_0000 (1MB)</div>
+                        <div class="mem-bar bar-uncommitted" onclick="setAddr('0x800000')">Reserved Space (Uncommitted): 0x0010_0000 - 0x1_0000_0000 (4GB)</div>
+                        <div class="mem-bar bar-guard" onclick="setAddr('0x120000000')">Guard Pages (No Read/Write): 0x1_0000_0000 - 0x1_8000_0000 (2GB)</div>
+                        <div class="mem-bar bar-invalid" onclick="setAddr('0x200000000')">Invalid Address Space: &gt; 0x1_8000_0000</div>
+                    </div>
+                    <div class="step-row" id="mmap-resolve-box" style="margin-top:10px;">Address Offset Resolution: Base + Offset = Physical Address</div>
+                </div>
+                <div class="console" id="mem-console">
+                    [内存监视器] 输入十六进制地址，或直接点击上方内存段来模拟地址访问。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sandbox 1: JIT Compilation
+        const functionsData = {
+            add: {
+                clif: [
+                    "v0 = local.get 0  ; Param a",
+                    "v1 = local.get 1  ; Param b",
+                    "v2 = iadd v0, v1  ; SSA addition",
+                    "return v2"
+                ],
+                liveness: "v0: [0, 2], v1: [1, 2], v2: [2, 3]",
+                regalloc: "v0 -> %rdi, v1 -> %rsi, v2 -> %rax (No Spills)",
+                asm: "mov  %rax, %rdi\nadd  %rax, %rsi\nret"
+            },
+            loop: {
+                clif: [
+                    "block0(v0: i32):",
+                    "v1 = iconst.i32 0",
+                    "br_if v0, block1(v1), block2",
+                    "block1(v2: i32):",
+                    "v3 = imul v2, v2",
+                    "return v3",
+                    "block2: return v1"
+                ],
+                liveness: "v0: [0, 2], v1: [1, 6], v2: [3, 5], v3: [5, 6]",
+                regalloc: "v0 -> %rdi, v1 -> %rax, v2 -> %rcx, v3 -> %rax (Spill avoided via block parameter passing)",
+                asm: "test %edi, %edi\njz   .block2\nmov  %eax, %edi\nimul %eax, %eax\nret\n.block2:\nxor  %eax, %eax\nret"
+            },
+            branch: {
+                clif: [
+                    "v0 = local.get 0",
+                    "v1 = local.get 1",
+                    "v2 = icmp gt v0, v1",
+                    "br_if v2, block1, block2",
+                    "block1: return v0",
+                    "block2: return v1"
+                ],
+                liveness: "v0: [0, 4], v1: [1, 5], v2: [2, 3]",
+                regalloc: "v0 -> %rdi, v1 -> %rsi, v2 -> %rcx (No Spills)",
+                asm: "cmp  %edi, %esi\njg   .block1\nmov  %eax, %esi\nret\n.block1:\nmov  %eax, %edi\nret"
+            }
+        };
+
+        function compileJIT() {
+            const val = document.getElementById('func-select').value;
+            const data = functionsData[val];
+            const isEn = false;
+            
+            document.getElementById('ssa-code-box').innerHTML = "<strong>SSA CLIF IR:</strong><br>" + data.clif.join("<br>");
+            document.getElementById('liveness-box').innerHTML = "<strong>Liveness:</strong> " + data.liveness;
+            document.getElementById('regalloc-box').innerHTML = "<strong>Regalloc2 Map:</strong> " + data.regalloc;
+            document.getElementById('asm-box').innerHTML = "<strong>Compiled Assembly (x86-64):</strong><br><pre style='margin:0;'>" + data.asm + "</pre>";
+
+            const consoleBox = document.getElementById('jit-console');
+            consoleBox.innerHTML = isEn ? 
+                `[JIT] WebAssembly bytecode loaded.\n[JIT] Cranelift successfully compiled to SSA CLIF.\n[JIT] Regalloc2 successfully mapped physical registers.\n[JIT] Dynamic machine code generated successfully.` :
+                `[JIT] WebAssembly 字节码加载成功。\n[JIT] Cranelift 成功完成 SSA CLIF 翻译。\n[JIT] Regalloc2 成功为变量分配寄存器（无栈溢出）。\n[JIT] 物理机器码装载进入可执行内存页。`;
+        }
+
+        // Sandbox 2: Virtual Memory Sandbox
+        function setAddr(addrStr) {
+            document.getElementById('addr-input').value = addrStr;
+            accessMemory();
+        }
+
+        function accessMemory() {
+            const addrStr = document.getElementById('addr-input').value;
+            const addr = parseInt(addrStr, 16);
+            const isEn = false;
+            const consoleBox = document.getElementById('mem-console');
+            const resolveBox = document.getElementById('mmap-resolve-box');
+
+            if (isNaN(addr)) {
+                consoleBox.innerHTML = isEn ? "[Error] Invalid Hex address input." : "[错误] 无效的十六进制地址输入。";
+                return;
+            }
+
+            const basePtr = 0x7fff10000000;
+            const physicalAddr = basePtr + addr;
+            resolveBox.innerHTML = `<strong>Address Resolution:</strong> Base (0x7fff10000000) + Offset (0x${addr.toString(16)}) = Physical Addr (0x${physicalAddr.toString(16)})`;
+
+            // Access bounds checks
+            if (addr < 0x100000) {
+                // Inside Valid Heap
+                consoleBox.innerHTML = isEn ?
+                    `[Memory] Accessing Address: 0x${addr.toString(16)}\n -> SUCCESS. Read/Write inside committed Wasm Heap physical page.` :
+                    `[内存访问] 目标地址: 0x${addr.toString(16)}\n -> 成功。指针落在已提交的 Wasm 线性内存物理页，硬件直接放行读写。`;
+            } else if (addr < 0x100000000) {
+                // Inside 4GB reserved space but out of current heap
+                consoleBox.innerHTML = isEn ?
+                    `[Memory] Accessing Address: 0x${addr.toString(16)}\n -> Page Fault! Accessing uncommitted reserved address space.\n -> CPU raises Hardware Interrupt.\n -> Wasmtime Signal Handler intercepts SIGSEGV, resolves IP, and returns: "Wasm Trap: Out of bounds memory access".` :
+                    `[内存访问] 目标地址: 0x${addr.toString(16)}\n -> 触发硬件页错误 (Page Fault)！\n -> 访问了未提交的 4GB 静态保留虚拟地址区间。\n -> CPU 抛出硬件中断并被 Wasmtime 预注册的 Signal Handler 拦截。\n -> 解析当前指令 IP 并安全退出，返回错误: "Wasm Trap: Out of bounds memory access" (宿主进程未崩溃)。`;
+            } else if (addr < 0x180000000) {
+                // Inside Guard Pages
+                consoleBox.innerHTML = isEn ?
+                    `[Memory] Accessing Address: 0x${addr.toString(16)}\n -> Hardware Protection Guard Triggered!\n -> Access falls within the 2GB unmapped Guard Pages zone.\n -> OS triggers SIGSEGV (Linux) / Access Violation (Windows).\n -> Wasmtime signal handler intercepts, unwinds stack, and returns "Wasm Trap: Out of bounds memory access".` :
+                    `[内存访问] 目标地址: 0x${addr.toString(16)}\n -> 触发硬件保护区 (Guard Pages) 阻断！\n -> 指针落在末端 2GB 的保护页范围内。\n -> 内核抛出物理 SIGSEGV (段错误) 信号。\n -> Wasmtime 拦截信号，解析调用栈，安全软化为 "Wasm Trap: Out of bounds memory access" 异常。`;
+            } else {
+                // Completely Out of sandbox range
+                consoleBox.innerHTML = isEn ?
+                    `[Memory] Accessing Address: 0x${addr.toString(16)}\n -> Critical Danger! Address exceeds 6GB bounds.\n -> Triggers software compiler bounds checks or host crash.` :
+                    `[内存访问] 目标地址: 0x${addr.toString(16)}\n -> 越界严重！地址超出 6GB（4GB+2GB）沙箱设计上限。\n -> 触发编译器插入的强行软件边界检查，阻断访问。`;
+            }
+        }
+    </script>
+</body>
+</html>
