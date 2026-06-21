@@ -22,7 +22,7 @@
 {
   "@context": "https://schema.org",
   "@type": "ItemList",
-  "numberOfItems": 24,
+  "numberOfItems": 11,
   "itemListElement": [
     {
       "@type": "ListItem",
@@ -42,45 +42,6 @@
       "position": 2,
       "item": {
         "@type": "TechArticle",
-        "name": "ClickHouse - 高性能分析型列式数据库",
-        "alternativeHeadline": "ClickHouse - High-Performance Columnar Analytical DBMS",
-        "description": "针对大规模 OLAP 分析场景，将相同列的数据连续存储于物理磁盘，通过块级数据稀疏索引与 Lz4/Zstd 极速压缩，配合 CPU 向量化寄存器指令集，实现千亿级数据秒级聚合的分析系统。",
-        "headline": "高性能分析型列式数据库",
-        "keywords": "clickhouse, system engineering, architecture, cheatsheet, interactive sandbox, 数据库内幕与存储引擎",
-        "url": "https://hardcore-systems.com/clickhouse/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "item": {
-        "@type": "TechArticle",
-        "name": "PostgreSQL - 企业级关系型数据库内核",
-        "alternativeHeadline": "PostgreSQL - Enterprise Relational Database Kernel",
-        "description": "基于多进程安全并发模型，采用独特的页内元组物理多版本控制 (MVCC)，辅以共享内存 Buffer Pool 和双写缓冲区，构建高扩展、强健的关系型通用数据库管理系统。",
-        "headline": "企业级关系型数据库内核",
-        "keywords": "postgres, system engineering, architecture, cheatsheet, interactive sandbox, 数据库内幕与存储引擎",
-        "url": "https://hardcore-systems.com/postgres/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 4,
-      "item": {
-        "@type": "TechArticle",
-        "name": "Redis - 极速单线程内存数据结构服务",
-        "alternativeHeadline": "Redis - In-Memory Data Structure Store & Net IO Model",
-        "description": "将丰富的通用数据结构存储于高速易失性内存中，采用单线程 Reactor 非阻塞多路复用驱动网络，辅以 AOF 追加与 RDB 快照持久化，实现极致吞吐的多数据类型缓存与调度系统。",
-        "headline": "极速单线程内存数据结构服务",
-        "keywords": "redis, system engineering, architecture, cheatsheet, interactive sandbox, 数据库内幕与存储引擎",
-        "url": "https://hardcore-systems.com/redis/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 5,
-      "item": {
-        "@type": "TechArticle",
         "name": "RocksDB - 嵌入式 LSM-Tree 存储引擎",
         "alternativeHeadline": "RocksDB - High-Performance Embedded LSM-Tree Key-Value Store",
         "description": "为了在非易失性随机读写受限的存储介质上实现极速写入吞吐，通过内存缓冲顺序追加写（MemTable/WAL）与后台分层归并合并（Compaction），提供基于快照隔离（Snapshot）的高性能并发读写状态机。",
@@ -91,20 +52,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 6,
-      "item": {
-        "@type": "TechArticle",
-        "name": "Linux Insides - Linux 内核引导与段页式内存管理",
-        "alternativeHeadline": "Linux Insides - Linux Kernel Booting & Memory Management Internals",
-        "description": "展示 Linux 内核如何从主板固件的物理实模式起步，逐步配置 CPU 全局描述符表（GDT）与多级页表，完成内存段页式转换，建立进程地址空间及中断响应系统的自举过程。",
-        "headline": "Linux 内核引导与段页式内存管理",
-        "keywords": "linux_insides, system engineering, architecture, cheatsheet, interactive sandbox, 操作系统与 Linux 内核",
-        "url": "https://hardcore-systems.com/linux_insides/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 7,
+      "position": 3,
       "item": {
         "@type": "TechArticle",
         "name": "xv6-riscv - 教案级 Unix-Like 操作系统内核",
@@ -117,20 +65,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 8,
-      "item": {
-        "@type": "TechArticle",
-        "name": "DPDK - 用户态数据包极速处理框架",
-        "alternativeHeadline": "DPDK - Data Plane Development Kit",
-        "description": "为了打破 Linux 内核网络协议栈的性能中断与拷贝黑洞，采用用户态网卡驱动与 PMD 循环轮询机制，利用大页内存和无锁并发缓冲，最大化网络数据平面吞吐与包处理速率。",
-        "headline": "用户态数据包极速处理框架",
-        "keywords": "dpdk, system engineering, architecture, cheatsheet, interactive sandbox, 计算机网络与高性能 IO",
-        "url": "https://hardcore-systems.com/dpdk/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 9,
+      "position": 4,
       "item": {
         "@type": "TechArticle",
         "name": "Tokio - Rust 异步事件驱动 I/O 运行时",
@@ -143,46 +78,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 10,
-      "item": {
-        "@type": "TechArticle",
-        "name": "Computer Networking: A Top-Down Approach - 自顶向下计算机网络体系结构",
-        "alternativeHeadline": "Top-Down Networking - Computer Networking: A Top-Down Approach",
-        "description": "从用户视角的应用层协议逐步解构到物理比特传输，着重阐明 TCP 状态机如何克服底层物理信道不可靠性实现端到端字节流可靠传递，以及路由器分布式路由算路的因特网体系结构。",
-        "headline": "自顶向下计算机网络体系结构",
-        "keywords": "top_down_networking, system engineering, architecture, cheatsheet, interactive sandbox, 计算机网络与高性能 IO",
-        "url": "https://hardcore-systems.com/top_down_networking/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 11,
-      "item": {
-        "@type": "TechArticle",
-        "name": "Awesome Scalability - 高扩展性架构演进设计",
-        "alternativeHeadline": "Awesome Scalability - High-Scalability Architecture Patterns",
-        "description": "系统性收集与归纳大规模互联网巨头（如 Google, Netflix）在高扩展性、高可用性、可维护性等维度上的核心软件设计模式与实际架构落地准则。",
-        "headline": "高扩展性架构演进设计",
-        "keywords": "awesome_scalability, system engineering, architecture, cheatsheet, interactive sandbox, 系统设计与高扩展架构",
-        "url": "https://hardcore-systems.com/awesome_scalability/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 12,
-      "item": {
-        "@type": "TechArticle",
-        "name": "Dapr - 分布式应用运行时 Sidecar 架构",
-        "alternativeHeadline": "Dapr - Distributed Application Runtime Sidecar Architecture",
-        "description": "采用 Sidecar (边车) 进程独立运行模型，将底层复杂的分布式服务治理 (重试、路由、状态一致性) 封装为统一的 gRPC/HTTP API 接口，实现分布式应用开发的多语言与多云平台解耦。",
-        "headline": "分布式应用运行时 Sidecar 架构",
-        "keywords": "dapr, system engineering, architecture, cheatsheet, interactive sandbox, 系统设计与高扩展架构",
-        "url": "https://hardcore-systems.com/dapr/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 13,
+      "position": 5,
       "item": {
         "@type": "TechArticle",
         "name": "DevOps Firefighting - SRE 生产应急救火手册",
@@ -195,7 +91,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 14,
+      "position": 6,
       "item": {
         "@type": "TechArticle",
         "name": "Google SRE Book - Google 站点可靠性工程实践",
@@ -208,7 +104,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 15,
+      "position": 7,
       "item": {
         "@type": "TechArticle",
         "name": "System Design Primer - 系统设计入门与架构基石",
@@ -221,20 +117,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 16,
-      "item": {
-        "@type": "TechArticle",
-        "name": "LLVM Compiler Infrastructure - LLVM 编译器架构与中间表示",
-        "alternativeHeadline": "LLVM Compiler Infrastructure - LLVM Compiler Architecture & Intermediate Representation",
-        "description": "通过定义与平台无关的高水准中间表示 (LLVM IR)，采用模块化的前端-中端(优化)-后端三段式设计，使得多种高级语言可以共享相同的编译优化和多硬件平台代码生成服务。",
-        "headline": "LLVM 编译器架构与中间表示",
-        "keywords": "llvm, system engineering, architecture, cheatsheet, interactive sandbox, 编译器、虚拟机与语言运行时",
-        "url": "https://hardcore-systems.com/llvm/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 17,
+      "position": 8,
       "item": {
         "@type": "TechArticle",
         "name": "V8 JavaScript Engine - 高性能 JavaScript 虚拟机内幕",
@@ -247,33 +130,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 18,
-      "item": {
-        "@type": "TechArticle",
-        "name": "CUDA Programming - GPGPU 异构计算与 GPU 算子编写",
-        "alternativeHeadline": "CUDA Programming - Heterogeneous Parallel Computing with CUDA",
-        "description": "在 GPGPU 大规模 SIMT 并行物理架构下，通过将多核线程并行计算与高速片上 SRAM 共享缓存（Shared Memory）相结合，并利用全局内存的合并对齐读写，最大化浮点运算吞吐与带宽瓶颈效能。",
-        "headline": "GPGPU 异构计算与 GPU 算子编写",
-        "keywords": "cuda_programming, system engineering, architecture, cheatsheet, interactive sandbox, 计算机体系结构与芯片设计",
-        "url": "https://hardcore-systems.com/cuda_programming/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 19,
-      "item": {
-        "@type": "TechArticle",
-        "name": "Intel SGX - 硬件级机密计算与安全隔离飞地",
-        "alternativeHeadline": "Intel SGX - Intel SGX Hardware Enclaves & Shielded Execution",
-        "description": "通过在 CPU 硬件层引入不可信 OS 物理隔离的机密计算飞地 (Enclave)，在内存中对飞地页进行物理加密 (MEE)，即使操作系统内核遭破，也能为核心代码和数据提供硬件级的隔离保护与证明。",
-        "headline": "硬件级机密计算与安全隔离飞地",
-        "keywords": "intel_sgx, system engineering, architecture, cheatsheet, interactive sandbox, 现代密码学与硬件安全隔离",
-        "url": "https://hardcore-systems.com/intel_sgx/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 20,
+      "position": 9,
       "item": {
         "@type": "TechArticle",
         "name": "Coding Interview University - 计算机底层工程基石知识点",
@@ -286,7 +143,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 21,
+      "position": 10,
       "item": {
         "@type": "TechArticle",
         "name": "Developer Roadmap - 资深全栈系统工程师技能路径",
@@ -299,33 +156,7 @@
     },
     {
       "@type": "ListItem",
-      "position": 22,
-      "item": {
-        "@type": "TechArticle",
-        "name": "Java Design Patterns - Java 经典设计模式与并发架构",
-        "alternativeHeadline": "Java Design Patterns - Java High-Concurrency & Enterprise Design Patterns",
-        "description": "将经典的面向对象软件设计模式与 Java 高并发运行时机制结合，提供在内存安全与垃圾回收机制限界下的强内聚、低耦合的可复用架构落地蓝图。",
-        "headline": "Java 经典设计模式与并发架构",
-        "keywords": "java_design_patterns, system engineering, architecture, cheatsheet, interactive sandbox, 现代软件开发方法论与高级模式",
-        "url": "https://hardcore-systems.com/java_design_patterns/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 23,
-      "item": {
-        "@type": "TechArticle",
-        "name": "Production Survival & Refactoring - 业务工程学与微服务防雪崩重构",
-        "alternativeHeadline": "Production Survival & Refactoring - Production Survival & Microservice Refactoring Guide",
-        "description": "以日常生产防爆死、重构不挂为导向，提炼业务重构升级步法与级联故障熔断降级闭环，帮助业务工程师构建在大并发流量侵袭下“优雅降级”的韧性架构体系。",
-        "headline": "业务工程学与微服务防雪崩重构",
-        "keywords": "production_survival, system engineering, architecture, cheatsheet, interactive sandbox, 现代软件开发方法论与高级模式",
-        "url": "https://hardcore-systems.com/production_survival/"
-      }
-    },
-    {
-      "@type": "ListItem",
-      "position": 24,
+      "position": 11,
       "item": {
         "@type": "TechArticle",
         "name": "Rust Advanced Borrow Patterns - Rust 高级借用模式与类型状态设计",
@@ -1375,57 +1206,6 @@
     "l0_essence_en": "Maintains a highly consistent replicated state machine across distributed nodes using Raft, coupled with MVCC and BoltDB to provide service discovery."
   },
   {
-    "name": "clickhouse",
-    "classification_id": "02",
-    "classification_cn": "数据库内幕与存储引擎",
-    "classification_en": "Database Internals & Storage Engines",
-    "path": "02-database-internals/26-clickhouse",
-    "is_published": true,
-    "title_cn": "ClickHouse",
-    "title_en": "ClickHouse",
-    "subtitle_cn": "高性能分析型列式数据库",
-    "subtitle_en": "High-Performance Columnar Analytical DBMS",
-    "github_url": "https://github.com/ClickHouse/ClickHouse",
-    "focus_cn": "专注于 MergeTree 列式存储结构、稀疏索引与列压缩算法、向量化执行引擎 (SIMD)、分布式并行查询 (SMP)、以及基于 Paxos 协议的副本同步机制",
-    "focus_en": "Focuses on MergeTree columnar storage format, sparse primary indexes, vectorized query execution (SIMD), and distributed query processing.",
-    "l0_essence_cn": "针对大规模 OLAP 分析场景，将相同列的数据连续存储于物理磁盘，通过块级数据稀疏索引与 Lz4/Zstd 极速压缩，配合 CPU 向量化寄存器指令集，实现千亿级数据秒级聚合的分析系统。",
-    "l0_essence_en": "A fast open-source column-oriented DBMS for online analytical processing (OLAP) utilizing SIMD vectorization and parallel execution."
-  },
-  {
-    "name": "postgres",
-    "classification_id": "02",
-    "classification_cn": "数据库内幕与存储引擎",
-    "classification_en": "Database Internals & Storage Engines",
-    "path": "02-database-internals/25-postgres",
-    "is_published": true,
-    "title_cn": "PostgreSQL",
-    "title_en": "PostgreSQL",
-    "subtitle_cn": "企业级关系型数据库内核",
-    "subtitle_en": "Enterprise Relational Database Kernel",
-    "github_url": "https://github.com/postgres/postgres",
-    "focus_cn": "专注于多进程并发架构 (Postmaster)、基于 MVCC 的多版本控制与元组隐藏列、WAL（预写日志）持久化与 ARIES 崩溃自愈、基于 B-Tree 索引的并发锁定机制、以及查询分析/重写与遗传算法优化器",
-    "focus_en": "Focuses on multi-process concurrency (Postmaster), MVCC tuple visibility flags, WAL & ARIES recovery, B-Tree index locking, and Cost-based Query Optimizer.",
-    "l0_essence_cn": "基于多进程安全并发模型，采用独特的页内元组物理多版本控制 (MVCC)，辅以共享内存 Buffer Pool 和双写缓冲区，构建高扩展、强健的关系型通用数据库管理系统。",
-    "l0_essence_en": "An advanced enterprise-class open source relational database utilizing a process-per-connection model and robust MVCC mechanics."
-  },
-  {
-    "name": "redis",
-    "classification_id": "02",
-    "classification_cn": "数据库内幕与存储引擎",
-    "classification_en": "Database Internals & Storage Engines",
-    "path": "02-database-internals/24-redis",
-    "is_published": true,
-    "title_cn": "Redis",
-    "title_en": "Redis",
-    "subtitle_cn": "极速单线程内存数据结构服务",
-    "subtitle_en": "In-Memory Data Structure Store & Net IO Model",
-    "github_url": "https://github.com/redis/redis",
-    "focus_cn": "专注于 Redis 单线程 Reactor 网络 I/O 复用、SDS 动态字符串与压缩列表底层结构、RDB 快照与 AOF 追加持久化、哨兵机制 (Sentinel) 与主从同步、以及 Redis Cluster 槽位分片路由",
-    "focus_en": "Focuses on Redis single-threaded Reactor IO multiplexing, SDS & ziplist memory representations, RDB/AOF persistence, Sentinel HA, and Cluster hash slots.",
-    "l0_essence_cn": "将丰富的通用数据结构存储于高速易失性内存中，采用单线程 Reactor 非阻塞多路复用驱动网络，辅以 AOF 追加与 RDB 快照持久化，实现极致吞吐的多数据类型缓存与调度系统。",
-    "l0_essence_en": "An in-memory key-value data structure store running on a single-threaded event loop (Reactor pattern) with high throughput and low-latency access."
-  },
-  {
     "name": "rocksdb",
     "classification_id": "02",
     "classification_cn": "数据库内幕与存储引擎",
@@ -1460,23 +1240,6 @@
     "l0_essence_en": "Safely runs JIT-compiled bytecode inside a kernel-level sandboxed VM at specific probes to achieve zero-overhead observability."
   },
   {
-    "name": "linux_insides",
-    "classification_id": "03",
-    "classification_cn": "操作系统与 Linux 内核",
-    "classification_en": "OS & Linux Kernel Internals",
-    "path": "03-operating-systems/28-linux_insides",
-    "is_published": true,
-    "title_cn": "Linux Insides",
-    "title_en": "Linux Insides",
-    "subtitle_cn": "Linux 内核引导与段页式内存管理",
-    "subtitle_en": "Linux Kernel Booting & Memory Management Internals",
-    "github_url": "https://github.com/0xAX/linux-insides",
-    "focus_cn": "专注于实模式与保护模式的 CPU 状态转换、内核引导自举流程、段寄存器与页表初始化、Linux 虚拟内存映射与内核页故障 (Page Fault) 异常处理流程",
-    "focus_en": "Focuses on BIOS-to-Kernel assembly boots, Real/Protected/Long mode transitions, MMU page table creation, and Kernel Page Fault exception paths.",
-    "l0_essence_cn": "展示 Linux 内核如何从主板固件的物理实模式起步，逐步配置 CPU 全局描述符表（GDT）与多级页表，完成内存段页式转换，建立进程地址空间及中断响应系统的自举过程。",
-    "l0_essence_en": "An in-depth guide through the initial boot steps and virtual memory setups of the Linux x86_64 kernel, from assembly to C scheduling."
-  },
-  {
     "name": "xv6_riscv",
     "classification_id": "03",
     "classification_cn": "操作系统与 Linux 内核",
@@ -1494,23 +1257,6 @@
     "l0_essence_en": "A simple Unix v6 clone re-implemented for RISC-V processors, serving as a clean codebase to learn OS scheduling, traps, and memory page isolation."
   },
   {
-    "name": "dpdk",
-    "classification_id": "04",
-    "classification_cn": "计算机网络与高性能 IO",
-    "classification_en": "Computer Networking & High-Performance IO",
-    "path": "04-computer-networks/31-dpdk",
-    "is_published": true,
-    "title_cn": "DPDK",
-    "title_en": "DPDK",
-    "subtitle_cn": "用户态数据包极速处理框架",
-    "subtitle_en": "Data Plane Development Kit",
-    "github_url": "https://github.com/DPDK/dpdk",
-    "focus_cn": "专注于 UIO/VFIO 用户态网卡驱动绕过内核、PMD (Poll Mode Driver) 无中断轮询模式、大页内存 (Hugepages) 减少 TLB 抖动、无锁环形缓冲区 (Ring Buffer) 并发交互、以及 NUMA 架构下 CPU 亲和性绑定",
-    "focus_en": "Focuses on VFIO user-space PCIe drivers, Poll Mode Drivers (PMD), Hugepages allocation, lockless ring buffers, and NUMA-aware core binding.",
-    "l0_essence_cn": "为了打破 Linux 内核网络协议栈的性能中断与拷贝黑洞，采用用户态网卡驱动与 PMD 循环轮询机制，利用大页内存和无锁并发缓冲，最大化网络数据平面吞吐与包处理速率。",
-    "l0_essence_en": "Bypasses the OS kernel networking stack by placing hardware NIC ring controls in user-space, running continuous poll-mode iterations."
-  },
-  {
     "name": "tokio",
     "classification_id": "04",
     "classification_cn": "计算机网络与高性能 IO",
@@ -1526,57 +1272,6 @@
     "focus_en": "Focuses on Future poll mechanics, Work-Stealing scheduler loops, Mio epoll integration, cooperative scheduling budget, and runtime timers.",
     "l0_essence_cn": "在 Rust 的 Future 反应器模式之上，基于工作窃取（Work-Stealing）的多线程调度队列，配合非阻塞多路复用（Mio/epoll），构建高吞吐、零开销抽象的现代异步并发网络运行时。",
     "l0_essence_en": "The premier event-driven platform for writing asynchronous applications in Rust, featuring a high-performance work-stealing scheduler."
-  },
-  {
-    "name": "top_down_networking",
-    "classification_id": "04",
-    "classification_cn": "计算机网络与高性能 IO",
-    "classification_en": "Computer Networking & High-Performance IO",
-    "path": "04-computer-networks/30-top_down_networking",
-    "is_published": true,
-    "title_cn": "Computer Networking: A Top-Down Approach",
-    "title_en": "Top-Down Networking",
-    "subtitle_cn": "自顶向下计算机网络体系结构",
-    "subtitle_en": "Computer Networking: A Top-Down Approach",
-    "github_url": "https://github.com/kurose-ross/computer-networking-supplementary",
-    "focus_cn": "专注于应用层 DNS/HTTP、传输层 TCP 可靠数据传输 (rdt) 与拥塞控制 (TCP Reno/BBR)、网络层 IP 编址与 OSPF 路由协议、链路层 CSMA/CD 与交换机转发机制",
-    "focus_en": "Focuses on TCP reliable transfer states, TCP Reno/BBR congestion loops, IP routing protocols (OSPF/BGP), and MAC-layer CSMA/CD logic.",
-    "l0_essence_cn": "从用户视角的应用层协议逐步解构到物理比特传输，着重阐明 TCP 状态机如何克服底层物理信道不可靠性实现端到端字节流可靠传递，以及路由器分布式路由算路的因特网体系结构。",
-    "l0_essence_en": "The classic structural breakdown of the TCP/IP stack from application layer down to link layer, focusing on reliable transport and routing."
-  },
-  {
-    "name": "awesome_scalability",
-    "classification_id": "05",
-    "classification_cn": "系统设计与高扩展架构",
-    "classification_en": "System Design & High-Scalability Architecture",
-    "path": "05-system-design/35-awesome_scalability",
-    "is_published": true,
-    "title_cn": "Awesome Scalability",
-    "title_en": "Awesome Scalability",
-    "subtitle_cn": "高扩展性架构演进设计",
-    "subtitle_en": "High-Scalability Architecture Patterns",
-    "github_url": "https://github.com/binhnguyennus/awesome-scalability",
-    "focus_cn": "专注于无状态计算节点扩展、分布式锁设计模式、多级缓存实战设计、高并发数据库选型策略、以及消息总线解耦模式",
-    "focus_en": "Focuses on stateless application scaling, distributed locking patterns, multi-level caching, high-concurrency storage, and messaging queues.",
-    "l0_essence_cn": "系统性收集与归纳大规模互联网巨头（如 Google, Netflix）在高扩展性、高可用性、可维护性等维度上的核心软件设计模式与实际架构落地准则。",
-    "l0_essence_en": "An organized list of design patterns, articles, and case studies detailing how modern software platforms scale to millions of concurrent users."
-  },
-  {
-    "name": "dapr",
-    "classification_id": "05",
-    "classification_cn": "系统设计与高扩展架构",
-    "classification_en": "System Design & High-Scalability Architecture",
-    "path": "05-system-design/64-dapr",
-    "is_published": true,
-    "title_cn": "Dapr",
-    "title_en": "Dapr",
-    "subtitle_cn": "分布式应用运行时 Sidecar 架构",
-    "subtitle_en": "Distributed Application Runtime Sidecar Architecture",
-    "github_url": "https://github.com/dapr/dapr",
-    "focus_cn": "专注于 Sidecar 模式物理隔离网络交互、服务调用 (Service Invocation) 状态路由、发布订阅 (Pub/Sub) 多组件接入、状态管理模型以及 actors 虚拟actor高并发状态管理",
-    "focus_en": "Focuses on Sidecar process isolation, service-to-service gRPC routing, pub/sub adapters, state store abstraction, and Virtual Actors design.",
-    "l0_essence_cn": "采用 Sidecar (边车) 进程独立运行模型，将底层复杂的分布式服务治理 (重试、路由、状态一致性) 封装为统一的 gRPC/HTTP API 接口，实现分布式应用开发的多语言与多云平台解耦。",
-    "l0_essence_en": "A portable, serverless, and event-driven runtime that simplifies cloud-native microservice development using the Sidecar pattern."
   },
   {
     "name": "devops_firefighting",
@@ -1630,23 +1325,6 @@
     "l0_essence_en": "A structured guide and learning pathway for building web-scale, fault-tolerant, and high-availability software architectures."
   },
   {
-    "name": "llvm",
-    "classification_id": "06",
-    "classification_cn": "编译器、虚拟机与语言运行时",
-    "classification_en": "Compilers, VMs & Language Runtimes",
-    "path": "06-compilers-and-runtimes/43-llvm",
-    "is_published": true,
-    "title_cn": "LLVM Compiler Infrastructure",
-    "title_en": "LLVM Compiler Infrastructure",
-    "subtitle_cn": "LLVM 编译器架构与中间表示",
-    "subtitle_en": "LLVM Compiler Architecture & Intermediate Representation",
-    "github_url": "https://github.com/llvm/llvm-project",
-    "focus_cn": "专注于 LLVM IR (中间表示) 静态单赋值 (SSA) 形式、Pass 优化管理器与常用优化 Pass 实现、代码生成器 (CodeGen) 目标平台指令转换、以及 LLVM 模块化后端架构设计",
-    "focus_en": "Focuses on LLVM IR static single assignment (SSA), compiler passes pipelines, target-independent CodeGen, and target architecture emission.",
-    "l0_essence_cn": "通过定义与平台无关的高水准中间表示 (LLVM IR)，采用模块化的前端-中端(优化)-后端三段式设计，使得多种高级语言可以共享相同的编译优化和多硬件平台代码生成服务。",
-    "l0_essence_en": "A modular compiler library toolkit that translates high-level code into strongly-typed SSA-based intermediate representations (IR)."
-  },
-  {
     "name": "v8",
     "classification_id": "06",
     "classification_cn": "编译器、虚拟机与语言运行时",
@@ -1662,40 +1340,6 @@
     "focus_en": "Focuses on Hidden Classes (Maps), Inline Caches (IC), Ignition interpreter, TurboFan JIT optimizations, deopt pipelines, and Cheney GC.",
     "l0_essence_cn": "将高度动态、弱类型的 JavaScript 源码，通过 JIT 编译器在内存中动态翻译为高效的 x86/ARM 机器码，基于隐藏类消除动态寻址，构建极致性能的现代语言运行沙箱。",
     "l0_essence_en": "Google's open-source JavaScript and WebAssembly engine, showing how raw JS is JIT-compiled into native assembly."
-  },
-  {
-    "name": "cuda_programming",
-    "classification_id": "08",
-    "classification_cn": "计算机体系结构与芯片设计",
-    "classification_en": "Computer Architecture & Chip Design",
-    "path": "08-computer-architecture/47-cuda_programming",
-    "is_published": true,
-    "title_cn": "CUDA Programming",
-    "title_en": "CUDA Programming",
-    "subtitle_cn": "GPGPU 异构计算与 GPU 算子编写",
-    "subtitle_en": "Heterogeneous Parallel Computing with CUDA",
-    "github_url": "https://github.com/NVIDIA/cuda-samples",
-    "focus_cn": "专注于 GPU 硬件 SM (流式多处理器) 调度模型、网格 (Grid)-线程块 (Block)-线程 (Thread) 的三维逻辑寻址、共享内存 (Shared Memory) 与全局内存合并访问优化、核函数 (Kernel) 同步与协作壁垒、以及矩阵乘法算子编写",
-    "focus_en": "Focuses on GPU SM architecture, Grid-Block-Thread mapping, coalesced memory access, Shared Memory cache bank conflicts, and Matrix multiplication tiling.",
-    "l0_essence_cn": "在 GPGPU 大规模 SIMT 并行物理架构下，通过将多核线程并行计算与高速片上 SRAM 共享缓存（Shared Memory）相结合，并利用全局内存的合并对齐读写，最大化浮点运算吞吐与带宽瓶颈效能。",
-    "l0_essence_en": "A developer's guide to utilizing NVIDIA GPUs for massively parallel computations, writing kernel matrices, and reducing thread divergences."
-  },
-  {
-    "name": "intel_sgx",
-    "classification_id": "09",
-    "classification_cn": "现代密码学与硬件安全隔离",
-    "classification_en": "Modern Cryptography & Hardware Enclaves",
-    "path": "09-cryptography-and-security/49-intel_sgx",
-    "is_published": true,
-    "title_cn": "Intel SGX",
-    "title_en": "Intel SGX",
-    "subtitle_cn": "硬件级机密计算与安全隔离飞地",
-    "subtitle_en": "Intel SGX Hardware Enclaves & Shielded Execution",
-    "github_url": "https://github.com/intel/linux-sgx",
-    "focus_cn": "专注于 Enclave 飞地内存物理隔离机制 (EPC)、硬件页面访问控制表 (PRM)、内核上下文特权级进入与退出 (ECALL/OCALL)、以及远程证明 (Remote Attestation) 签名握手与校验机制",
-    "focus_en": "Focuses on Enclave Page Cache (EPC), page tables restriction, ECALL/OCALL transitions context, and Remote Attestation signatures.",
-    "l0_essence_cn": "通过在 CPU 硬件层引入不可信 OS 物理隔离的机密计算飞地 (Enclave)，在内存中对飞地页进行物理加密 (MEE)，即使操作系统内核遭破，也能为核心代码和数据提供硬件级的隔离保护与证明。",
-    "l0_essence_en": "An architectural extension for Intel CPUs that creates highly isolated memory partitions (Enclaves) to defend data in untrusted environments."
   },
   {
     "name": "coding_interview_university",
@@ -1730,40 +1374,6 @@
     "focus_en": "Focuses on computer science essentials, network optimization skills, operating system system-calls, security, and cloud architectures.",
     "l0_essence_cn": "为系统工程师规划一套系统科学的成长阶梯，帮助其从基础编码起步，穿过网络协议栈与操作系统内核的黑盒，成长为具备解决大型高吞吐系统故障的综合技术带头人。",
     "l0_essence_en": "A visually-guided roadmap of senior engineering domains, tracing paths across systems backend programming, compilers, and DevOps."
-  },
-  {
-    "name": "java_design_patterns",
-    "classification_id": "11",
-    "classification_cn": "现代软件开发方法论与高级模式",
-    "classification_en": "Software Engineering & Advanced Patterns",
-    "path": "11-software-methodologies/53-java_design_patterns",
-    "is_published": true,
-    "title_cn": "Java Design Patterns",
-    "title_en": "Java Design Patterns",
-    "subtitle_cn": "Java 经典设计模式与并发架构",
-    "subtitle_en": "Java High-Concurrency & Enterprise Design Patterns",
-    "github_url": "https://github.com/iluwatar/java-design-patterns",
-    "focus_cn": "专注于创建型/结构型/行为型经典模式、反应器模式 (Reactor) 与异步 I/O、双重校验锁 (DCL) 线程安全模式、以及企业服务模式",
-    "focus_en": "Focuses on GoF design patterns, asynchronous Reactor patterns, Double-Checked Locking concurrency, and enterprise integration patterns.",
-    "l0_essence_cn": "将经典的面向对象软件设计模式与 Java 高并发运行时机制结合，提供在内存安全与垃圾回收机制限界下的强内聚、低耦合的可复用架构落地蓝图。",
-    "l0_essence_en": "A comprehensive directory of software design patterns implemented in Java, mapping object-oriented designs to high-performance runtimes."
-  },
-  {
-    "name": "production_survival",
-    "classification_id": "11",
-    "classification_cn": "现代软件开发方法论与高级模式",
-    "classification_en": "Software Engineering & Advanced Patterns",
-    "path": "11-software-methodologies/71-production_survival",
-    "is_published": true,
-    "title_cn": "Production Survival & Refactoring",
-    "title_en": "Production Survival & Refactoring",
-    "subtitle_cn": "业务工程学与微服务防雪崩重构",
-    "subtitle_en": "Production Survival & Microservice Refactoring Guide",
-    "github_url": "https://github.com/Netflix/Hystrix",
-    "focus_cn": "专注于单体系统零闪断微服务拆分（双写、逆向网关、灰度分流）、分布式事务（TCC / Saga）强一致落地、以及多级熔断限流控制与防腐隔离层设计",
-    "focus_en": "Focuses on zero-downtime microservice splitting, TCC/Saga distributed transactions, multi-level rate limiters, and Anticorruption Layers.",
-    "l0_essence_cn": "以日常生产防爆死、重构不挂为导向，提炼业务重构升级步法与级联故障熔断降级闭环，帮助业务工程师构建在大并发流量侵袭下“优雅降级”的韧性架构体系。",
-    "l0_essence_en": "A collection of architectural safety designs mapping dual-writing state migrations, ACL layers, and cascading failure blockages."
   },
   {
     "name": "rust_patterns",
