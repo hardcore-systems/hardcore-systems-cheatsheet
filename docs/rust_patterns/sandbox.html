@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Rust Typestate & Self-Referential Pinning Sandbox</title>
+    <title>Rust Typestate 编译期状态转移与自引用固定双仿真沙盒</title>
     <style>
         body {
             background-color: #121824;
@@ -189,21 +189,21 @@
 </head>
 <body>
     <div class="container">
-        <h1>Rust Typestate & Self-Referential Pinning Sandbox</h1>
+        <h1>Rust Typestate 编译期状态转移与自引用固定双仿真沙盒</h1>
         <div class="grid">
             <!-- Sandbox 1: Typestate -->
             <div class="card">
-                <h2>Typestate State Machine Compiler Simulator</h2>
+                <h2>Typestate 状态机编译期约束仿真</h2>
                 <div class="control-group">
                     <div class="row">
-                        <strong>Safety Mode:</strong>
+                        <strong>安全保障机制选择:</strong>
                         <select id="typestate-mode" onchange="resetTypestate()">
                             <option value="enabled">Typestate Pattern (Compile-time Checked)</option>
                             <option value="disabled">Runtime Checked State Pattern</option>
                         </select>
                     </div>
                     <div class="row">
-                        <strong>State Operations:</strong>
+                        <strong>状态机方法操作:</strong>
                         <button class="btn" onclick="triggerOp('connect')">connect()</button>
                         <button class="btn" onclick="triggerOp('handshake')">complete_handshake()</button>
                         <button class="btn" onclick="triggerOp('send')">send()</button>
@@ -226,7 +226,7 @@
                     </div>
                 </div>
                 <div class="console" id="typestate-console">
-                    [Console] Connections status initialized to Closed state.
+                    [控制台] 连接状态成功初始化为 Closed 状态。
                 </div>
             </div>
 
@@ -271,7 +271,7 @@
                     </div>
                 </div>
                 <div class="console" id="pin-console">
-                    [Console] Unpinned struct allocated on stack at Address 0x1000.
+                    [控制台] 尚未钉住的自引用结构体已分配在栈地址 0x1000 处。
                 </div>
             </div>
         </div>
@@ -284,9 +284,9 @@
         function resetTypestate() {
             activeState = "closed";
             updateTypestateUi();
-            const isEn = true;
+            const isEn = false;
             document.getElementById("typestate-status").innerHTML = `<strong>Compilation Status:</strong> OK`;
-            document.getElementById("typestate-console").innerText = "[Console] Reset. Initial state Connection<Closed>.";
+            document.getElementById("typestate-console").innerText = isEn ? "[Console] Reset. Initial state Connection<Closed>." : "[控制台] 已重置。初始状态为 Connection<Closed>。";
         }
 
         function updateTypestateUi() {
@@ -306,7 +306,7 @@
 
         function triggerOp(op) {
             const mode = document.getElementById("typestate-mode").value;
-            const isEn = true;
+            const isEn = false;
             const consoleBox = document.getElementById("typestate-console");
             const statusBox = document.getElementById("typestate-status");
 
@@ -316,36 +316,52 @@
                     if (activeState === "closed") {
                         activeState = "connecting";
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK</span>`;
-                        consoleBox.innerText = `[Compiler Check] OK\\n -> Method .connect() consumed Connection<Closed> and returned Connection<Connecting> successfully.`;
+                        consoleBox.innerText = isEn ?
+                            `[Compiler Check] OK\\n -> Method .connect() consumed Connection<Closed> and returned Connection<Connecting> successfully.` :
+                            `[编译检查] 通过\\n -> connect() 方法强力消费了 Connection<Closed>，安全派生并返回了 Connection<Connecting>。`;
                     } else {
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#FF4D4D;">Compile Error!</span>`;
-                        consoleBox.innerText = `error[E0599]: no method named 'connect' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.`;
+                        consoleBox.innerText = isEn ?
+                            `error[E0599]: no method named 'connect' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.` :
+                            `编译器报错[E0599]: 在当前状态 Connection<${{activeState.toUpperCase()}}> 下未定义 connect() 方法！编译失败阻断。`;
                     }
                 } else if (op === "handshake") {
                     if (activeState === "connecting") {
                         activeState = "connected";
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK</span>`;
-                        consoleBox.innerText = `[Compiler Check] OK\\n -> Method .complete_handshake() consumed Connection<Connecting> and returned Connection<Connected>.`;
+                        consoleBox.innerText = isEn ?
+                            `[Compiler Check] OK\\n -> Method .complete_handshake() consumed Connection<Connecting> and returned Connection<Connected>.` :
+                            `[编译检查] 通过\\n -> complete_handshake() 消费了 Connection<Connecting>，安全返回 Connection<Connected>。`;
                     } else {
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#FF4D4D;">Compile Error!</span>`;
-                        consoleBox.innerText = `error[E0599]: no method named 'complete_handshake' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.`;
+                        consoleBox.innerText = isEn ?
+                            `error[E0599]: no method named 'complete_handshake' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.` :
+                            `编译器报错[E0599]: 无法在此状态 Connection<${{activeState.toUpperCase()}}> 下调用 complete_handshake()！编译静态拦截。`;
                     }
                 } else if (op === "send") {
                     if (activeState === "connected") {
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK</span>`;
-                        consoleBox.innerText = `[Compiler Check] OK\\n -> Method .send() called on Connection<Connected>. Data successfully sent over active socket.`;
+                        consoleBox.innerText = isEn ?
+                            `[Compiler Check] OK\\n -> Method .send() called on Connection<Connected>. Data successfully sent over active socket.` :
+                            `[编译检查] 通过\\n -> send() 方法在 Connection<Connected> 激活状态下被调用，数据帧安全发往套接字物理通道。`;
                     } else {
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#FF4D4D;">Compile Error!</span>`;
-                        consoleBox.innerText = `error[E0599]: no method named 'send' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.`;
+                        consoleBox.innerText = isEn ?
+                            `error[E0599]: no method named 'send' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.` :
+                            `核心编译器拦截报错[E0599]: 没有在状态 Connection<${{activeState.toUpperCase()}}> 上定义 send()！非法数据发送在编译阶段已被拦截。`;
                     }
                 } else if (op === "disconnect") {
                     if (activeState === "connected") {
                         activeState = "closed";
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK</span>`;
-                        consoleBox.innerText = `[Compiler Check] OK\\n -> Method .disconnect() consumed Connection<Connected> and returned Connection<Closed>.`;
+                        consoleBox.innerText = isEn ?
+                            `[Compiler Check] OK\\n -> Method .disconnect() consumed Connection<Connected> and returned Connection<Closed>.` :
+                            `[编译检查] 通过\\n -> disconnect() 消费 Connection<Connected> 回退并返回了初始 Connection<Closed>。`;
                     } else {
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#FF4D4D;">Compile Error!</span>`;
-                        consoleBox.innerText = `error[E0599]: no method named 'disconnect' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.`;
+                        consoleBox.innerText = isEn ?
+                            `error[E0599]: no method named 'disconnect' found for struct 'Connection<${{activeState.toUpperCase()}}>' in the current scope.` :
+                            `编译器报错[E0599]: 无法在未连接状态 Connection<${{activeState.toUpperCase()}}> 下触发 disconnect() 方法！编译失败。`;
                     }
                 }
             } else {
@@ -354,36 +370,44 @@
                     if (activeState === "closed") {
                         activeState = "connecting";
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK (Runtime Clean)</span>`;
-                        consoleBox.innerText = `[Runtime OK] State shifted to Connecting.`;
+                        consoleBox.innerText = isEn ? `[Runtime OK] State shifted to Connecting.` : `[运行状态] 状态转移至 Connecting。`;
                     } else {
                         statusBox.innerHTML = `<strong>Runtime PANIC!</strong>`;
-                        consoleBox.innerText = `thread 'main' panicked at 'Invalid connection call in state: ${{activeState}}', src/main.rs:18:9`;
+                        consoleBox.innerText = isEn ?
+                            `thread 'main' panicked at 'Invalid connection call in state: ${{activeState}}', src/main.rs:18:9` :
+                            `线程 'main' 抛出 Panic 恐慌: '非法 connect() 调用，当前状态为: ${{activeState}}', src/main.rs:18:9`;
                     }
                 } else if (op === "handshake") {
                     if (activeState === "connecting") {
                         activeState = "connected";
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK (Runtime Clean)</span>`;
-                        consoleBox.innerText = `[Runtime OK] Handshake completed. State is now Connected.`;
+                        consoleBox.innerText = isEn ? `[Runtime OK] Handshake completed. State is now Connected.` : `[运行状态] 握手完毕，状态转换为 Connected。`;
                     } else {
                         statusBox.innerHTML = `<strong>Runtime PANIC!</strong>`;
-                        consoleBox.innerText = `thread 'main' panicked at 'Invalid handshake call in state: ${{activeState}}', src/main.rs:24:9`;
+                        consoleBox.innerText = isEn ?
+                            `thread 'main' panicked at 'Invalid handshake call in state: ${{activeState}}', src/main.rs:24:9` :
+                            `线程 'main' 抛出 Panic 恐慌: '无法在 ${{activeState}} 状态下进行 complete_handshake()!', src/main.rs:24:9`;
                     }
                 } else if (op === "send") {
                     if (activeState === "connected") {
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK (Runtime Clean)</span>`;
-                        consoleBox.innerText = `[Runtime OK] Data sent.`;
+                        consoleBox.innerText = isEn ? `[Runtime OK] Data sent.` : `[运行状态] 数据发送成功。`;
                     } else {
                         statusBox.innerHTML = `<strong>Runtime PANIC!</strong>`;
-                        consoleBox.innerText = `thread 'main' panicked at 'Attempted to send over a closed/connecting connection!', src/main.rs:30:9`;
+                        consoleBox.innerText = isEn ?
+                            `thread 'main' panicked at 'Attempted to send over a closed/connecting connection!', src/main.rs:30:9` :
+                            `致命异常！线程 'main' 抛出 Panic: '试图在非 Connected（${{activeState}}）连接上发送数据！程序崩溃下线。', src/main.rs:30:9`;
                     }
                 } else if (op === "disconnect") {
                     if (activeState === "connected") {
                         activeState = "closed";
                         statusBox.innerHTML = `<strong>Compilation Status:</strong> <span style="color:#39D353;">OK (Runtime Clean)</span>`;
-                        consoleBox.innerText = `[Runtime OK] Disconnected.`;
+                        consoleBox.innerText = isEn ? `[Runtime OK] Disconnected.` : `[运行状态] 已断开连接。`;
                     } else {
                         statusBox.innerHTML = `<strong>Runtime PANIC!</strong>`;
-                        consoleBox.innerText = `thread 'main' panicked at 'Not connected!', src/main.rs:36:9`;
+                        consoleBox.innerText = isEn ?
+                            `thread 'main' panicked at 'Not connected!', src/main.rs:36:9` :
+                            `线程 'main' 抛出 Panic: '尚未连接，无法执行 disconnect()!', src/main.rs:36:9`;
                     }
                 }
             }
@@ -394,7 +418,7 @@
         let isPinned = false;
 
         function runMemorySim(action) {
-            const isEn = true;
+            const isEn = false;
             const consoleBox = document.getElementById("pin-console");
             const statusBox = document.getElementById("pin-status");
 
@@ -409,10 +433,15 @@
                 document.getElementById("stack-ptr-val").style.color = "#FF4D4D";
                 
                 statusBox.innerHTML = `<strong>Memory Status:</strong> <span style="color:#FF4D4D;">Undefined Behavior (UB)!</span>`;
-                consoleBox.innerText = `[Memory Move Event]\\n` +
+                consoleBox.innerText = isEn ?
+                    `[Memory Move Event]\\n` +
                     ` -> Struct moved from 0x1000 to 0x1020.\\n` +
                     ` -> ERROR: The internal pointer 'ptr' still points to 0x1000 (dangling pointer).\\n` +
-                    ` -> Dereferencing this pointer now accesses unallocated/dirty stack memory, triggering Undefined Behavior!`;
+                    ` -> Dereferencing this pointer now accesses unallocated/dirty stack memory, triggering Undefined Behavior!` :
+                    `[内存移动事件]\\n` +
+                    ` -> 结构体发生 Move，物理地址由 0x1000 被拷贝移动到了 0x1020 处。\\n` +
+                    ` -> 侧漏警告: 结构体内的自引用指针 'ptr' 仍固执地指向原地址 0x1000 (悬空野指针)！\\n` +
+                    ` -> 异常结果: 尝试解引用读取该指针将访问已被注销的栈位置，引发 Undefined Behavior（未定义行为）内存破坏崩溃！`;
             } else if (action === 'pin_heap') {
                 isPinned = true;
                 // Pin struct on the heap at 0x8000
@@ -425,10 +454,15 @@
                 document.getElementById("stack-ptr-val").style.color = "#39D353";
                 
                 statusBox.innerHTML = `<strong>Memory Status:</strong> <span style="color:#39D353;">Safe (Heap Pinned)</span>`;
-                consoleBox.innerText = `[Memory Pin Event]\\n` +
+                consoleBox.innerText = isEn ?
+                    `[Memory Pin Event]\\n` +
                     ` -> Struct pinned on the heap at Address 0x8000 via Box::pin.\\n` +
                     ` -> The Pin wrapper guarantees the heap block will not move in memory.\\n` +
-                    ` -> Moving the Pin smart pointer on the stack does not shift the underlying data. Safe and stable.`;
+                    ` -> Moving the Pin smart pointer on the stack does not shift the underlying data. Safe and stable.` :
+                    `[内存固定事件]\\n` +
+                    ` -> 通过 Box::pin 将自引用结构体分配并固定在堆内存地址 0x8000 处。\\n` +
+                    ` -> Pinning 强力保证该堆段物理页面在生命期内绝对不会在内存发生移动。\\n` +
+                    ` -> 即使栈上的 Pin 智能指针自身如何移动，堆上实际数据的自引用指针 0x8000 依然百分百对齐，彻底免疫悬空指针错误。`;
             }
         }
     </script>

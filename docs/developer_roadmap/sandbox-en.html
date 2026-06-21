@@ -169,8 +169,7 @@
         let activeReplicas = 1;
         function updateQps() {
             const qps = document.getElementById('qps-rate').value;
-            document.getElementById('lbl-qps').innerText = "True" === "True" ? 
-                `Incoming Requests (QPS): ${qps}` : `网络流入流量 (QPS): ${qps}`;
+            document.getElementById('lbl-qps').innerText = `Incoming Requests (QPS): ${qps}`;
         }
 
         function runHPA() {

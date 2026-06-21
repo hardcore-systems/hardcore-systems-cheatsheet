@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>DevOps & SRE Firefighting Map</title>
+    <title>云原生与 SRE 生产救火手册图谱</title>
     <style>
         body {
             margin: 0;
@@ -111,16 +111,16 @@
 </head>
 <body>
     <div id="header">
-        <h1>DevOps & SRE Firefighting Map</h1>
+        <h1>云原生与 SRE 生产救火手册图谱</h1>
         <p>Drag to pan. Left click on a card to see dependencies. Double click cards to see system details.</p>
     </div>
     
     <div id="legend">
-        <div class="legend-item"><div class="legend-color" style="background: #4B5F7A;"></div>M1: Container Runtime</div>
-        <div class="legend-item"><div class="legend-color" style="background: #6B8272;"></div>M2: Networking & DNS</div>
-        <div class="legend-item"><div class="legend-color" style="background: #9C6666;"></div>M3: IaC & Cloud Storage</div>
-        <div class="legend-item"><div class="legend-color" style="background: #7A7A7A;"></div>M4: Observability</div>
-        <div class="legend-item"><div class="legend-color" style="background: #9A825A;"></div>M5: Incident Recovery</div>
+        <div class="legend-item"><div class="legend-color" style="background: #4B5F7A;"></div>M1: Container Runtime (容器运行时)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #6B8272;"></div>M2: Networking & DNS (网络与网关)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #9C6666;"></div>M3: IaC & Cloud Storage (存储卷与IaC)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #7A7A7A;"></div>M4: Observability (可观测性指标)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #9A825A;"></div>M5: Incident Recovery (应急预案高可用)</div>
     </div>
 
     <div id="canvas-container">
@@ -131,7 +131,7 @@
     </div>
 
     <script>
-        const cards = [{'id': 1, 'title': 'OOMKilled 137', ''x': 100, 'y': 120, 'color': '#4B5F7A'}, {'id': 2, 'title': 'CrashLoopBackOff', ''x': 240, 'y': 120, 'color': '#4B5F7A'}, {'id': 3, 'title': 'Pod Pending', ''x': 380, 'y': 120, 'color': '#4B5F7A'}, {'id': 4, 'title': 'ImagePullBackOff', ''x': 520, 'y': 120, 'color': '#4B5F7A'}, {'id': 5, 'title': 'Ephemeral Storage', ''x': 660, 'y': 120, 'color': '#4B5F7A'}, {'id': 6, 'title': 'Pod Evicted QoS', ''x': 800, 'y': 120, 'color': '#4B5F7A'}, {'id': 7, 'title': 'DNS ndots search', ''x': 100, 'y': 260, 'color': '#6B8272'}, {'id': 8, 'title': 'SYN Flood somaxconn', ''x': 240, 'y': 260, 'color': '#6B8272'}, {'id': 9, 'title': 'TCP RST conntrack', ''x': 380, 'y': 260, 'color': '#6B8272'}, {'id': 10, 'title': 'Nginx 502 refused', ''x': 520, 'y': 260, 'color': '#6B8272'}, {'id': 11, 'title': 'Nginx 504 timeout', ''x': 660, 'y': 260, 'color': '#6B8272'}, {'id': 12, 'title': 'Cilium eBPF redirect', ''x': 800, 'y': 260, 'color': '#6B8272'}, {'id': 13, 'title': 'Terraform State Lock', ''x': 100, 'y': 400, 'color': '#9C6666'}, {'id': 14, 'title': 'PV PVC CSI Multi-Attach', ''x': 240, 'y': 400, 'color': '#9C6666'}, {'id': 15, 'title': 'IMDSv2 Hop Limit', ''x': 380, 'y': 400, 'color': '#9C6666'}, {'id': 16, 'title': 'VPC Peering CIDR conflict', ''x': 520, 'y': 400, 'color': '#9C6666'}, {'id': 17, 'title': 'Vault Lease expiration', ''x': 660, 'y': 400, 'color': '#9C6666'}, {'id': 18, 'title': 'Bucket Public Access Allow', ''x': 800, 'y': 400, 'color': '#9C6666'}, {'id': 19, 'title': 'Prometheus Card churn', ''x': 100, 'y': 540, 'color': '#7A7A7A'}, {'id': 20, 'title': 'Fluentd Backpressure queue', ''x': 240, 'y': 540, 'color': '#7A7A7A'}, {'id': 21, 'title': 'Trace Context propagation', ''x': 380, 'y': 540, 'color': '#7A7A7A'}, {'id': 22, 'title': 'Grafana range scan', ''x': 520, 'y': 540, 'color': '#7A7A7A'}, {'id': 23, 'title': 'Alertmanager group wait', ''x': 660, 'y': 540, 'color': '#7A7A7A'}, {'id': 24, 'title': 'SRE SLO Burn Rate', ''x': 800, 'y': 540, 'color': '#7A7A7A'}, {'id': 25, 'title': 'Chaos Mesh network delay', ''x': 100, 'y': 680, 'color': '#9A825A'}, {'id': 26, 'title': 'Feature Flag fallback', ''x': 240, 'y': 680, 'color': '#9A825A'}, {'id': 27, 'title': 'Database PITR recovery', ''x': 380, 'y': 680, 'color': '#9A825A'}, {'id': 28, 'title': 'Blameless Post-Mortem Timeline', ''x': 520, 'y': 680, 'color': '#9A825A'}];
+        const cards = [{'id': 1, 'title': 'OOMKilled 137', 'zh': 'K8s容器内存OOMKilled定位', 'x': 100, 'y': 120, 'color': '#4B5F7A'}, {'id': 2, 'title': 'CrashLoopBackOff', 'zh': 'Pod启动退避重启排错流', 'x': 240, 'y': 120, 'color': '#4B5F7A'}, {'id': 3, 'title': 'Pod Pending', 'zh': '调度硬限制与调度受阻排查', 'x': 380, 'y': 120, 'color': '#4B5F7A'}, {'id': 4, 'title': 'ImagePullBackOff', 'zh': '镜像拉取认证网络故障', 'x': 520, 'y': 120, 'color': '#4B5F7A'}, {'id': 5, 'title': 'Ephemeral Storage', 'zh': '临时存储超限容器驱逐定位', 'x': 660, 'y': 120, 'color': '#4B5F7A'}, {'id': 6, 'title': 'Pod Evicted QoS', 'zh': '节点水位压力与QoS驱逐自愈', 'x': 800, 'y': 120, 'color': '#4B5F7A'}, {'id': 7, 'title': 'DNS ndots search', 'zh': 'CoreDNS ndots search重复路径', 'x': 100, 'y': 260, 'color': '#6B8272'}, {'id': 8, 'title': 'SYN Flood somaxconn', 'zh': 'TCP SYN洪流与半全连接队列', 'x': 240, 'y': 260, 'color': '#6B8272'}, {'id': 9, 'title': 'TCP RST conntrack', 'zh': 'Connection RST与conntrack丢包', 'x': 380, 'y': 260, 'color': '#6B8272'}, {'id': 10, 'title': 'Nginx 502 refused', 'zh': 'Nginx 502上游拒绝与端口存活', 'x': 520, 'y': 260, 'color': '#6B8272'}, {'id': 11, 'title': 'Nginx 504 timeout', 'zh': 'Nginx 504上游等待响应超时', 'x': 660, 'y': 260, 'color': '#6B8272'}, {'id': 12, 'title': 'Cilium eBPF redirect', 'zh': 'SOCKMAP数据面网络重定向', 'x': 800, 'y': 260, 'color': '#6B8272'}, {'id': 13, 'title': 'Terraform State Lock', 'zh': 'Terraform后端状态锁锁定解锁', 'x': 100, 'y': 400, 'color': '#9C6666'}, {'id': 14, 'title': 'PV PVC CSI Multi-Attach', 'zh': 'CSI独占锁多节点挂载卡死', 'x': 240, 'y': 400, 'color': '#9C6666'}, {'id': 15, 'title': 'IMDSv2 Hop Limit', 'zh': '云端元数据IMDSv2跳数限制', 'x': 380, 'y': 400, 'color': '#9C6666'}, {'id': 16, 'title': 'VPC Peering CIDR conflict', 'zh': '对等连接路由重叠冲突排查', 'x': 520, 'y': 400, 'color': '#9C6666'}, {'id': 17, 'title': 'Vault Lease expiration', 'zh': 'Vault动态凭证租约失效灾备', 'x': 660, 'y': 400, 'color': '#9C6666'}, {'id': 18, 'title': 'Bucket Public Access Allow', 'zh': '云存储桶匿名通配授权审计', 'x': 800, 'y': 400, 'color': '#9C6666'}, {'id': 19, 'title': 'Prometheus Card churn', 'zh': 'Prometheus时间序列高基数爆炸', 'x': 100, 'y': 540, 'color': '#7A7A7A'}, {'id': 20, 'title': 'Fluentd Backpressure queue', 'zh': '日志收集端背压卡死与磁盘缓冲', 'x': 240, 'y': 540, 'color': '#7A7A7A'}, {'id': 21, 'title': 'Trace Context propagation', 'zh': '链路Trace Context传递丢失定位', 'x': 380, 'y': 540, 'color': '#7A7A7A'}, {'id': 22, 'title': 'Grafana range scan', 'zh': '大跨度历史指标扫描慢查询优化', 'x': 520, 'y': 540, 'color': '#7A7A7A'}, {'id': 23, 'title': 'Alertmanager group wait', 'zh': 'Alertmanager告警聚合去重抑制', 'x': 660, 'y': 540, 'color': '#7A7A7A'}, {'id': 24, 'title': 'SRE SLO Burn Rate', 'zh': 'SLO错误预算烧钱率告警编写', 'x': 800, 'y': 540, 'color': '#7A7A7A'}, {'id': 25, 'title': 'Chaos Mesh network delay', 'zh': '混沌工程网络延迟丢包故障注入', 'x': 100, 'y': 680, 'color': '#9A825A'}, {'id': 26, 'title': 'Feature Flag fallback', 'zh': '服务分级降级Feature Flag动态控制', 'x': 240, 'y': 680, 'color': '#9A825A'}, {'id': 27, 'title': 'Database PITR recovery', 'zh': '数据库秒级PITR增量WAL回放', 'x': 380, 'y': 680, 'color': '#9A825A'}, {'id': 28, 'title': 'Blameless Post-Mortem Timeline', 'zh': 'SRE无指责复盘时间线事故分析', 'x': 520, 'y': 680, 'color': '#9A825A'}];
         const links = [{'source': 1, 'target': 6}, {'source': 2, 'target': 1}, {'source': 3, 'target': 14}, {'source': 4, 'target': 3}, {'source': 5, 'target': 6}, {'source': 7, 'target': 12}, {'source': 8, 'target': 9}, {'source': 10, 'target': 11}, {'source': 12, 'target': 10}, {'source': 14, 'target': 13}, {'source': 15, 'target': 18}, {'source': 16, 'target': 15}, {'source': 17, 'target': 26}, {'source': 19, 'target': 22}, {'source': 20, 'target': 19}, {'source': 21, 'target': 20}, {'source': 23, 'target': 24}, {'source': 24, 'target': 28}, {'source': 25, 'target': 24}, {'source': 26, 'target': 27}, {'source': 27, 'target': 28}];
 
         const canvas = document.getElementById('canvas');

@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Kubernetes副本弹性与DNS ndots延迟诊断仿真实验室</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #1A202C;
+            color: #E2E8F0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app-header {
+            background-color: #2D3748;
+            padding: 10px 20px;
+            border-bottom: 2px solid #4A5568;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #app-header h1 {
+            margin: 0;
+            font-size: 16px;
+            color: #FFF;
+        }
+        #tab-container {
+            display: flex;
+            background-color: #2D3748;
+            padding: 5px 20px 0 20px;
+            border-bottom: 1px solid #4A5568;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            color: #A0AEC0;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background-color: #1A202C;
+            color: #3182CE;
+            border-bottom: 2px solid #3182CE;
+        }
+        #sandbox-views {
+            flex: 1;
+            position: relative;
+        }
+        .sandbox-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .sandbox-view.active {
+            display: flex;
+        }
+        
+        /* Layout Panels */
+        .left-panel {
+            width: 320px;
+            background-color: #2D3748;
+            border-radius: 6px;
+            padding: 15px;
+            box-sizing: border-box;
+            margin-right: 20px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #4A5568;
+            overflow-y: auto;
+        }
+        .middle-panel {
+            flex: 1;
+            background-color: #2D3748;
+            border-radius: 6px;
+            padding: 15px;
+            box-sizing: border-box;
+            margin-right: 20px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #4A5568;
+            position: relative;
+        }
+        .right-panel {
+            width: 300px;
+            background-color: #2D3748;
+            border-radius: 6px;
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #4A5568;
+        }
+        
+        .panel-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #FFFFFF;
+            border-bottom: 1px solid #4A5568;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Form elements */
+        .control-group {
+            margin-bottom: 12px;
+        }
+        .control-label {
+            font-size: 11px;
+            color: #A0AEC0;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .control-input {
+            width: 100%;
+            background-color: #1A202C;
+            border: 1px solid #4A5568;
+            border-radius: 4px;
+            color: #FFF;
+            padding: 6px;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: bold;
+            color: #FFF;
+        }
+        .badge-green { background-color: #48BB78; }
+        .badge-red { background-color: #E53E3E; }
+        .badge-yellow { background-color: #D69E2E; }
+        
+        .console-log {
+            flex: 1;
+            background-color: #1A202C;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: Consolas, monospace;
+            font-size: 10px;
+            color: #48BB78;
+            overflow-y: auto;
+            border: 1px solid #4A5568;
+        }
+        .console-log .err { color: #E53E3E; }
+        .console-log .warn { color: #DD6B20; }
+        .console-log .info { color: #3182CE; }
+        
+        /* K8s Pods Visualizer */
+        .k8s-nodes-container {
+            flex: 1;
+            background-color: #1A202C;
+            border-radius: 4px;
+            border: 1px solid #4A5568;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            overflow-y: auto;
+            gap: 10px;
+        }
+        .k8s-node {
+            width: 30%;
+            background-color: #2D3748;
+            border: 2px solid #4A5568;
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 250px;
+            transition: all 0.3s ease;
+        }
+        .k8s-node.failed {
+            border-color: #E53E3E;
+            background-color: #3C2329;
+            box-shadow: 0 0 10px rgba(229,62,62,0.5);
+        }
+        .node-title {
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #FFF;
+        }
+        .pod-box {
+            width: 90%;
+            padding: 8px;
+            background-color: #4B5F7A;
+            border-radius: 4px;
+            font-size: 10px;
+            color: #FFF;
+            margin-bottom: 8px;
+            text-align: center;
+            border: 1px solid #2D3748;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .pod-box.unhealthy {
+            background-color: #D69E2E;
+        }
+        .pod-box.failed {
+            background-color: #E53E3E;
+        }
+        
+        /* DNS resolution paths */
+        .dns-viz-area {
+            flex: 1;
+            background-color: #1A202C;
+            border-radius: 4px;
+            border: 1px solid #4A5568;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .dns-step {
+            display: flex;
+            align-items: center;
+            background-color: #2D3748;
+            border: 1px solid #4A5568;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 11px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+        .dns-step.active {
+            border-color: #3182CE;
+            box-shadow: 0 0 8px rgba(49,130,206,0.6);
+            background-color: #2B3D52;
+        }
+        .dns-step.fail {
+            border-color: #E53E3E;
+            background-color: #3C2329;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-header">
+        <h1>Kubernetes副本弹性与DNS ndots延迟诊断仿真实验室</h1>
+        <div><span class="badge badge-green">Production Normal</span></div>
+    </div>
+    
+    <div id="tab-container">
+        <button class="tab-btn active" onclick="switchTab('pods')">1. K8s Pod Replication & Fault-Drift Simulator</button>
+        <button class="tab-btn" onclick="switchTab('dns')">2. CoreDNS Packet Loss & ndots Latency Path</button>
+    </div>
+    
+    <div id="sandbox-views">
+        <!-- TAB 1: K8S POD FAULT-DRIFT -->
+        <div id="view-pods" class="sandbox-view active">
+            <div class="left-panel">
+                <div class="panel-title">Fault Injection Control</div>
+                <div class="control-group">
+                    <label class="control-label">Target Pod Replicas</label>
+                    <input type="range" class="control-input" id="pod-replicas" min="1" max="6" value="3" onchange="scaleReplicas()">
+                    <div class="control-label" id="replicas-val" style="text-align:right;">3 Pods</div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Incoming Traffic Rate</label>
+                    <input type="range" class="control-input" id="traffic-rate" min="10" max="500" step="10" value="100" onchange="updateTrafficVal()">
+                    <div class="control-label" id="traffic-val" style="text-align:right;">100 rps</div>
+                </div>
+                
+                <button onclick="failNode(1)" style="background-color: #E53E3E; border:none; border-radius:4px; color:#FFF; font-weight:bold; padding:8px; cursor:pointer; font-size:11px; margin-bottom:8px;">Kill Node 1 (Net Cut)</button>
+                <button onclick="failPodProbe(2)" style="background-color: #D69E2E; border:none; border-radius:4px; color:#FFF; font-weight:bold; padding:8px; cursor:pointer; font-size:11px; margin-bottom:8px;">Fail Readiness Probe on Pod 2</button>
+                <button onclick="recoverAll()" style="background-color: #48BB78; border:none; border-radius:4px; color:#FFF; font-weight:bold; padding:8px; cursor:pointer; font-size:11px;">Recover All Nodes & Probes</button>
+            </div>
+            
+            <div class="middle-panel">
+                <div class="panel-title">Kubernetes Cluster Node Overview</div>
+                <div class="k8s-nodes-container">
+                    <div class="k8s-node" id="node-1">
+                        <div class="node-title">Node-1 (Physical Host)</div>
+                        <div id="node-1-pods" style="width:100%;"></div>
+                    </div>
+                    <div class="k8s-node" id="node-2">
+                        <div class="node-title">Node-2 (Physical Host)</div>
+                        <div id="node-2-pods" style="width:100%;"></div>
+                    </div>
+                    <div class="k8s-node" id="node-3">
+                        <div class="node-title">Node-3 (Physical Host)</div>
+                        <div id="node-3-pods" style="width:100%;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="panel-title">SRE Live Monitor</div>
+                <div class="control-group">
+                    <span class="control-label">SLA Success Rate:</span>
+                    <span class="badge badge-green" id="success-metric">100%</span>
+                </div>
+                <div class="control-group">
+                    <span class="control-label">Ingress Route Pod Count:</span>
+                    <span class="badge badge-green" id="route-count-metric">3 Pods</span>
+                </div>
+                <div class="console-log" id="k8s-console"></div>
+            </div>
+        </div>
+        
+        <!-- TAB 2: DNS LATENCY PATH -->
+        <div id="view-dns" class="sandbox-view">
+            <div class="left-panel">
+                <div class="panel-title">DNS Resolver Configuration</div>
+                <div class="control-group">
+                    <label class="control-label">Query Destination Domain</label>
+                    <select class="control-input" id="dns-query-domain">
+                        <option value="internal">my-service.prod.svc.cluster.local (Internal)</option>
+                        <option value="external">google.com (External)</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">ndots Configuration (resolv.conf)</label>
+                    <input type="range" class="control-input" id="ndots-val" min="1" max="5" value="5" onchange="updateNdotsText()">
+                    <div class="control-label" id="ndots-text-val" style="text-align:right;">ndots: 5</div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">CoreDNS Packet Loss Rate (%)</label>
+                    <input type="range" class="control-input" id="loss-rate" min="0" max="100" step="5" value="0" onchange="updateLossText()">
+                    <div class="control-label" id="loss-val" style="text-align:right;">0% Packet Loss</div>
+                </div>
+                
+                <button onclick="runDNSLookup()" style="background-color: #3182CE; border:none; border-radius:4px; color:#FFF; font-weight:bold; padding:8px; cursor:pointer; font-size:11px;">Execute DNS Lookup</button>
+            </div>
+            
+            <div class="middle-panel">
+                <div class="panel-title">DNS Resolution Search Iteration Trace</div>
+                <div class="dns-viz-area" id="dns-viz">
+                    <div class="dns-step" id="dns-step-1">Round 1: Querying target.prod.svc.cluster.local</div>
+                    <div class="dns-step" id="dns-step-2">Round 2: Querying target.net.prod.svc.local</div>
+                    <div class="dns-step" id="dns-step-3">Round 3: Querying target.net.prod.local</div>
+                    <div class="dns-step" id="dns-step-4">Round 4: Querying target.local</div>
+                    <div class="dns-step" id="dns-step-5">Round 5: Querying target. (Absolute Lookup)</div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="panel-title">CoreDNS Metrics</div>
+                <div class="control-group">
+                    <span class="control-label">Total Resolving Latency:</span>
+                    <span class="badge badge-green" id="dns-latency-metric">4 ms</span>
+                </div>
+                <div class="control-group">
+                    <span class="control-label">CoreDNS Query Card Churn:</span>
+                    <span class="badge badge-green" id="dns-load-metric">Low</span>
+                </div>
+                <div class="console-log" id="dns-console"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function switchTab(tab) {
+            const views = document.querySelectorAll('.sandbox-view');
+            const btns = document.querySelectorAll('#tab-container .tab-btn');
+            
+            views.forEach(v => v.classList.remove('active'));
+            btns.forEach(b => b.classList.remove('active'));
+            
+            if (tab === 'pods') {
+                document.getElementById('view-pods').classList.add('active');
+                btns[0].classList.add('active');
+            } else {
+                document.getElementById('view-dns').classList.add('active');
+                btns[1].classList.add('active');
+            }
+        }
+
+        // K8S POD REPLICATION & FAULT-DRIFT LOGIC
+        let replicas = 3;
+        let traffic = 100;
+        let node1Failed = false;
+        let pod2ProbeFailed = false;
+        
+        const k8sConsole = document.getElementById('k8s-console');
+        
+        function logK8s(msg, type='info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerText = `[` + new Date().toLocaleTimeString() + `] ` + msg;
+            k8sConsole.appendChild(div);
+            k8sConsole.scrollTop = k8sConsole.scrollHeight;
+        }
+        
+        function scaleReplicas() {
+            replicas = parseInt(document.getElementById('pod-replicas').value);
+            document.getElementById('replicas-val').innerText = replicas + ' Pods';
+            logK8s(`Scaled Deployment replicas target: ` + replicas, 'info');
+            renderPods();
+        }
+        
+        function updateTrafficVal() {
+            traffic = parseInt(document.getElementById('traffic-rate').value);
+            document.getElementById('traffic-val').innerText = traffic + ' rps';
+        }
+
+        function renderPods() {
+            const n1 = document.getElementById('node-1-pods');
+            const n2 = document.getElementById('node-2-pods');
+            const n3 = document.getElementById('node-3-pods');
+            
+            n1.innerHTML = '';
+            n2.innerHTML = '';
+            n3.innerHTML = '';
+            
+            let currentPod = 1;
+            
+            // Distribute replicas across nodes
+            for (let i = 0; i < replicas; i++) {
+                const pod = document.createElement('div');
+                pod.className = 'pod-box';
+                pod.id = 'pod-' + currentPod;
+                pod.innerText = 'web-pod-' + currentPod;
+                
+                // Assign to nodes
+                if (currentPod === 1) {
+                    if (node1Failed) {
+                        // Rescheduled to Node 2
+                        n2.appendChild(pod);
+                        logK8s(`web-pod-1 rescheduled to Node-2`, 'warn');
+                    } else {
+                        n1.appendChild(pod);
+                    }
+                } else if (currentPod === 2) {
+                    if (pod2ProbeFailed) {
+                        pod.classList.add('unhealthy');
+                        pod.innerText += ' (Readiness Fail)';
+                    }
+                    n2.appendChild(pod);
+                } else {
+                    n3.appendChild(pod);
+                }
+                currentPod++;
+            }
+            
+            updateMetrics();
+        }
+
+        function failNode(nodeNum) {
+            if (nodeNum === 1) {
+                node1Failed = true;
+                document.getElementById('node-1').classList.add('failed');
+                logK8s(`CRITICAL: Node-1 Network link disconnected!`, 'err');
+                logK8s(`Kubelet: node-1 status changed to NotReady`, 'err');
+                renderPods();
+            }
+        }
+        
+        function failPodProbe(podNum) {
+            if (podNum === 2) {
+                pod2ProbeFailed = true;
+                logK8s(`Readiness Probe Failed: web-pod-2 endpoint check failed`, 'warn');
+                renderPods();
+            }
+        }
+        
+        function recoverAll() {
+            node1Failed = false;
+            pod2ProbeFailed = false;
+            document.getElementById('node-1').classList.remove('failed');
+            logK8s(`System Recovery: All node links and probes restored.`, 'info');
+            renderPods();
+        }
+
+        function updateMetrics() {
+            let activeRoute = replicas;
+            if (node1Failed && replicas >= 1) {
+                // If Node 1 failed, Pod 1 (which was on node 1) was evicted. It takes time to reschedule,
+                // during which the SLA drops.
+                document.getElementById('success-metric').innerText = '66%';
+                document.getElementById('success-metric').className = 'badge badge-yellow';
+            } else {
+                document.getElementById('success-metric').innerText = '100%';
+                document.getElementById('success-metric').className = 'badge badge-green';
+            }
+            
+            if (pod2ProbeFailed) {
+                activeRoute--;
+            }
+            
+            document.getElementById('route-count-metric').innerText = activeRoute + ' Pods';
+            adjustBadge('route-count-metric', activeRoute, replicas, replicas - 1);
+        }
+        
+        function adjustBadge(id, val, targetVal, warnVal) {
+            const b = document.getElementById(id);
+            b.className = 'badge';
+            if (val <= warnVal) b.classList.add('badge-red');
+            else if (val === targetVal) b.classList.add('badge-green');
+            else b.classList.add('badge-yellow');
+        }
+
+        renderPods();
+
+        // CORE_DNS & NDOTS LOGIC
+        let ndots = 5;
+        let loss = 0;
+        const dnsConsole = document.getElementById('dns-console');
+        
+        function updateNdotsText() {
+            ndots = parseInt(document.getElementById('ndots-val').value);
+            document.getElementById('ndots-text-val').innerText = 'ndots: ' + ndots;
+        }
+        
+        function updateLossText() {
+            loss = parseInt(document.getElementById('loss-rate').value);
+            document.getElementById('loss-val').innerText = loss + '% Packet Loss';
+        }
+        
+        function logDNS(msg, type='info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerText = `[` + new Date().toLocaleTimeString() + `] ` + msg;
+            dnsConsole.appendChild(div);
+            dnsConsole.scrollTop = dnsConsole.scrollHeight;
+        }
+
+        function clearSteps() {
+            document.querySelectorAll('.dns-step').forEach(s => {
+                s.className = 'dns-step';
+            });
+        }
+
+        function runDNSLookup() {
+            clearSteps();
+            const q = document.getElementById('dns-query-domain').value;
+            const latencyMetric = document.getElementById('dns-latency-metric');
+            const loadMetric = document.getElementById('dns-load-metric');
+            
+            let steps = [];
+            let targetFoundStep = -1;
+            
+            logDNS(`Triggered client resolving lookup... target domain type: ` + q, 'info');
+            
+            if (q === 'internal') {
+                // Querying my-service.prod.svc.cluster.local (Internal)
+                steps = [
+                    "my-service.prod.svc.cluster.local.prod.svc.cluster.local (NXDOMAIN)",
+                    "my-service.prod.svc.cluster.local.svc.cluster.local (NXDOMAIN)",
+                    "my-service.prod.svc.cluster.local.cluster.local (NXDOMAIN)",
+                    "my-service.prod.svc.cluster.local (SUCCESS)"
+                ];
+                targetFoundStep = 3;
+            } else {
+                // Querying google.com (External)
+                if (ndots === 5) {
+                    steps = [
+                        "google.com.prod.svc.cluster.local (NXDOMAIN)",
+                        "google.com.svc.cluster.local (NXDOMAIN)",
+                        "google.com.cluster.local (NXDOMAIN)",
+                        "google.com.local (NXDOMAIN)",
+                        "google.com. (SUCCESS)"
+                    ];
+                    targetFoundStep = 4;
+                } else if (ndots === 1) {
+                    steps = [
+                        "google.com. (SUCCESS)"
+                    ];
+                    targetFoundStep = 0;
+                } else {
+                    steps = [
+                        "google.com.prod.svc.cluster.local (NXDOMAIN)",
+                        "google.com. (SUCCESS)"
+                    ];
+                    targetFoundStep = 1;
+                }
+            }
+
+            let currentIdx = 0;
+            let totalLatency = 2; // base local delay
+            
+            function runQueryStep() {
+                if (currentIdx > targetFoundStep) {
+                    latencyMetric.innerText = totalLatency + ' ms';
+                    adjustLatencyColor(totalLatency);
+                    logDNS(`DNS lookup completed. Latency: ` + totalLatency + `ms`, 'info');
+                    return;
+                }
+                
+                const stepEl = document.getElementById('dns-step-' + (currentIdx + 1));
+                if (stepEl) {
+                    stepEl.innerText = `Query ` + (currentIdx + 1) + `: ` + steps[currentIdx];
+                    stepEl.classList.add('active');
+                    
+                    // Simulate loss check
+                    let stepLoss = Math.random() * 100 < loss;
+                    if (stepLoss) {
+                        stepEl.classList.add('fail');
+                        totalLatency += 2000; // timeout delay
+                        logDNS(`[Timeout] UDP request dropped for: ` + steps[currentIdx] + `, Retrying in 2000ms`, 'warn');
+                        setTimeout(runQueryStep, 500); // quick simulated retry
+                    } else {
+                        totalLatency += Math.round(5 + Math.random() * 8);
+                        logDNS(`Querying CoreDNS: ` + steps[currentIdx], 'info');
+                        currentIdx++;
+                        setTimeout(runQueryStep, 300);
+                    }
+                } else {
+                    currentIdx++;
+                    runQueryStep();
+                }
+            }
+
+            // Adjust load metrics based on ndots
+            if (ndots >= 4 && q === 'external') {
+                loadMetric.innerText = 'High';
+                loadMetric.className = 'badge badge-red';
+                logDNS(`WARNING: High search path redundancy. ndots configuration is causing CoreDNS CPU spike.`, 'warn');
+            } else {
+                loadMetric.innerText = 'Low';
+                loadMetric.className = 'badge badge-green';
+            }
+
+            runQueryStep();
+        }
+
+        function adjustLatencyColor(val) {
+            const b = document.getElementById('dns-latency-metric');
+            b.className = 'badge';
+            if (val >= 2000) b.classList.add('badge-red');
+            else if (val >= 50) b.classList.add('badge-yellow');
+            else b.classList.add('badge-green');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Tokio Work-Stealing & Async Coordination Sandbox</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background-color: #1A202C;
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            color: #6B8272;
+            border-bottom: 2px solid #24324F;
+            padding-bottom: 8px;
+            font-size: 15px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            background-color: #9C6666;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn:hover {
+            background-color: #B57D7D;
+        }
+        .visualizer {
+            background-color: #151D30;
+            border-radius: 4px;
+            min-height: 280px;
+            position: relative;
+            margin-bottom: 15px;
+            border: 1px solid #24324F;
+            padding: 10px;
+        }
+        .console {
+            background-color: #0D1117;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #39D353;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .thread-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #1A202C;
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px dashed #4B5F7A;
+        }
+        .queue-slots {
+            display: flex;
+            gap: 4px;
+        }
+        .task-badge {
+            background-color: #4B5F7A;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .task-badge.lifo {
+            background-color: #9C6666;
+            border: 1px solid #E2E8F0;
+        }
+        .task-badge.stolen {
+            background-color: #9A825A;
+        }
+        .mutex-status {
+            background-color: #242A38;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tokio Work-Stealing & Async Coordination Sandbox</h1>
+        <div class="grid">
+            <!-- Sandbox 1: Work-Stealing -->
+            <div class="card">
+                <h2>Tokio Work-Stealing Run Queue Simulator</h2>
+                <div class="control-group">
+                    <button class="btn" onclick="spawnTask()">Spawn Task</button>
+                    <button class="btn" style="background-color:#6B8272;" onclick="tickScheduler()">Tick Scheduler</button>
+                </div>
+                <div class="visualizer" id="steal-container">
+                    <!-- Global Queue -->
+                    <div style="background-color:#0D1117; padding:8px; border-radius:4px; margin-bottom:12px; font-size:11px;" id="global-queue-box">
+                        Global Queue: Empty
+                    </div>
+                    <!-- Workers -->
+                    <div id="workers-box">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+                <div class="console" id="steal-console">
+                    [Scheduler Log] Ready. Spawn tasks and click Tick to simulate Work-Stealing logic.
+                </div>
+            </div>
+
+            <!-- Sandbox 2: Mutex & Channel -->
+            <div class="card">
+                <h2>Tokio Async Mutex & MPSC Coordination</h2>
+                <div class="control-group">
+                    <button class="btn" onclick="sendMPSC()">MPSC Send Msg</button>
+                    <button class="btn" style="background-color:#755B77;" onclick="consumeMPSC()">MPSC Consume & Lock</button>
+                </div>
+                <div class="visualizer" id="coop-container">
+                    <div class="mutex-status" id="mutex-state-box">
+                        Async Mutex State: UNLOCKED | Owner: None
+                    </div>
+                    <div style="background-color:#0D1117; padding:8px; border-radius:4px; margin-bottom:10px; font-size:11px;" id="mpsc-queue-box">
+                        MPSC Bounded Channel Queue (0/8): Empty
+                    </div>
+                    <div style="background-color:#0D1117; padding:8px; border-radius:4px; margin-bottom:10px; font-size:11px;" id="mutex-queue-box">
+                        Mutex Wait Queue: Empty
+                    </div>
+                </div>
+                <div class="console" id="coop-console">
+                    [Async Sync Monitor] Send messages. Consumers will grab a message and lock Mutex for processing.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sandbox 1: Work-Stealing Scheduler
+        let globalQueue = [];
+        let workers = [
+            { id: 1, name: "Worker-1", local: [], lifo: null, status: "Working" },
+            { id: 2, name: "Worker-2", local: [], lifo: null, status: "Working" },
+            { id: 3, name: "Worker-3", local: [], lifo: null, status: "Working" }
+        ];
+        let taskCounter = 0;
+
+        function spawnTask() {
+            taskCounter++;
+            const tName = "T-" + taskCounter;
+            // Add randomly to a worker or global
+            let rand = Math.floor(Math.random() * 4);
+            if (rand === 3) {
+                globalQueue.push(tName);
+                document.getElementById('steal-console').innerHTML = `[Spawn] Task \${tName} added to Global Queue.\n`;
+            } else {
+                let w = workers[rand];
+                if (w.lifo === null) {
+                    w.lifo = tName;
+                    document.getElementById('steal-console').innerHTML = `[Spawn] Task \${tName} placed in LIFO slot of \${w.name}.\n`;
+                } else if (w.local.length < 8) {
+                    w.local.push(tName);
+                    document.getElementById('steal-console').innerHTML = `[Spawn] Task \${tName} added to Local Queue of \${w.name}.\n`;
+                } else {
+                    globalQueue.push(tName);
+                    document.getElementById('steal-console').innerHTML = `[Spawn] Local queue full. Task \${tName} pushed to Global Queue.\n`;
+                }
+            }
+            updateStealVisual();
+        }
+
+        function tickScheduler() {
+            const consoleBox = document.getElementById('steal-console');
+            consoleBox.innerHTML = `[Scheduler Tick]\n`;
+
+            workers.forEach(w => {
+                // 1. Check LIFO
+                if (w.lifo !== null) {
+                    let t = w.lifo;
+                    w.lifo = null;
+                    consoleBox.innerHTML += ` -> \${w.name} executed task from LIFO slot: \${t}.\n`;
+                    return;
+                }
+
+                // 2. Check Local Queue
+                if (w.local.length > 0) {
+                    let t = w.local.shift();
+                    consoleBox.innerHTML += ` -> \${w.name} executed task from Local Queue: \${t}.\n`;
+                    return;
+                }
+
+                // 3. Try Global Queue
+                if (globalQueue.length > 0) {
+                    let t = globalQueue.shift();
+                    consoleBox.innerHTML += ` -> \${w.name}'s queue empty. Pulled from Global Queue: \${t}.\n`;
+                    return;
+                }
+
+                // 4. Try Stealing from other Workers
+                for (let other of workers) {
+                    if (other.id !== w.id && other.local.length > 1) {
+                        let stealCount = Math.floor(other.local.length / 2);
+                        let stolen = other.local.splice(0, stealCount);
+                        w.local = stolen;
+                        consoleBox.innerHTML += ` -> \${w.name} stole \${stealCount} tasks from \${other.name} (Stolen: \${w.local.join(', ')}).\n`;
+                        // Execute first stolen task immediately
+                        let t = w.local.shift();
+                        consoleBox.innerHTML += ` -> \${w.name} executed stolen task: \${t}.\n`;
+                        return;
+                    }
+                }
+
+                consoleBox.innerHTML += ` -> \${w.name} has no work. Status set to Idle.\n`;
+            });
+
+            updateStealVisual();
+        }
+
+        function updateStealVisual() {
+            // Global Queue
+            let gStr = "<strong>Global Queue:</strong> " + (globalQueue.length > 0 ? "" : "Empty");
+            globalQueue.forEach(t => {
+                gStr += `<span class="badge task-badge">\${t}</span> `;
+            });
+            document.getElementById('global-queue-box').innerHTML = gStr;
+
+            // Workers
+            const wBox = document.getElementById('workers-box');
+            wBox.innerHTML = '';
+            workers.forEach(w => {
+                let localStr = '';
+                w.local.forEach(t => {
+                    localStr += `<span class="badge task-badge">\${t}</span> `;
+                });
+                wBox.innerHTML += `
+                    <div class="thread-row">
+                        <div><strong>\${w.name}</strong> <span style="font-size:9px; color:#6B8272;">(\${w.status})</span></div>
+                        <div class="queue-slots">
+                            <span style="font-size:10px; color:#7A7A7A; margin-right:4px;">LIFO:</span>
+                            \${w.lifo ? `<span class="badge task-badge lifo">\${w.lifo}</span>` : `<span style="font-size:10px; color:#595959;">None</span>`}
+                            <span style="font-size:10px; color:#7A7A7A; margin-left:12px; margin-right:4px;">Local:</span>
+                            \${localStr !== '' ? localStr : `<span style="font-size:10px; color:#595959;">Empty</span>`}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Sandbox 2: Async Mutex & MPSC channel
+        let mpscChannel = [];
+        let mutexQueue = [];
+        let mutexLocked = false;
+        let mutexOwner = "None";
+        let mpscCounter = 0;
+
+        function updateCoopVisual() {
+            // Mutex State
+            document.getElementById('mutex-state-box').innerHTML = `
+                <strong>Async Mutex State:</strong> \${mutexLocked ? `LOCKED` : `UNLOCKED`} | <strong>Owner:</strong> \${mutexOwner}
+            `;
+            // MPSC Channel
+            let mStr = `<strong>MPSC Bounded Channel (Max 8):</strong> ` + (mpscChannel.length > 0 ? "" : "Empty");
+            mpscChannel.forEach(m => {
+                mStr += `<span class="badge task-badge">\${m}</span> `;
+            });
+            document.getElementById('mpsc-queue-box').innerHTML = mStr;
+
+            // Mutex Wait Queue
+            let mutexWaitStr = `<strong>Mutex wait list:</strong> ` + (mutexQueue.length > 0 ? "" : "Empty");
+            mutexQueue.forEach(w => {
+                mutexWaitStr += ` ➜ <span class="badge task-badge lifo">\${w} (Pending)</span>`;
+            });
+            document.getElementById('mutex-queue-box').innerHTML = mutexWaitStr;
+        }
+
+        function sendMPSC() {
+            const consoleBox = document.getElementById('coop-console');
+            if (mpscChannel.length >= 8) {
+                consoleBox.innerHTML = `[MPSC Send] Failed! Bounded channel is full (8/8). Sender yielding...\n`;
+                return;
+            }
+            mpscCounter++;
+            const msg = "MSG-" + mpscCounter;
+            mpscChannel.push(msg);
+            consoleBox.innerHTML = `[MPSC Send] Pushed message: \${msg}.\n`;
+            updateCoopVisual();
+        }
+
+        function consumeMPSC() {
+            const consoleBox = document.getElementById('coop-console');
+            if (mpscChannel.length === 0) {
+                consoleBox.innerHTML = `[MPSC Consume] Channel is empty. Consumer parked waiting for sender.\n`;
+                return;
+            }
+
+            let msg = mpscChannel[0]; // peek
+            consoleBox.innerHTML = `[MPSC Consume] Consumer pulled \${msg}, attempting to acquire Async Mutex...\n`;
+
+            if (mutexLocked) {
+                if (!mutexQueue.includes(msg)) {
+                    mutexQueue.push(msg);
+                    mpscChannel.shift(); // remove from channel, put to mutex waiting list
+                    consoleBox.innerHTML += ` -> FAILED. Mutex locked by \${mutexOwner}. \${msg} yields, registered Waker in Mutex wait queue.\n`;
+                } else {
+                    consoleBox.innerHTML += ` -> \${msg} is already in Mutex wait queue.\n`;
+                }
+            } else {
+                mpscChannel.shift(); // remove from channel
+                mutexLocked = true;
+                mutexOwner = msg;
+                consoleBox.innerHTML += ` -> SUCCESS! Mutex acquired. Consumer processing \${msg}.\n`;
+                
+                // Simulate auto release
+                setTimeout(() => {
+                    releaseMutex(msg);
+                }, 2500);
+            }
+            updateCoopVisual();
+        }
+
+        function releaseMutex(msg) {
+            const consoleBox = document.getElementById('coop-console');
+            if (mutexOwner !== msg) return;
+
+            consoleBox.innerHTML = `[Async Mutex] \${msg} finished. Releasing Mutex...\n`;
+            if (mutexQueue.length > 0) {
+                let next = mutexQueue.shift();
+                mutexLocked = true;
+                mutexOwner = next;
+                consoleBox.innerHTML += ` -> Unparked next task: \${next} from wait list. Re-entered processor.\n`;
+            } else {
+                mutexLocked = false;
+                mutexOwner = "None";
+                consoleBox.innerHTML += ` -> No tasks in wait list. Mutex unlocked.\n`;
+            }
+            updateCoopVisual();
+        }
+
+        // Initialize lists
+        updateStealVisual();
+        updateCoopVisual();
+    </script>
+</body>
+</html>

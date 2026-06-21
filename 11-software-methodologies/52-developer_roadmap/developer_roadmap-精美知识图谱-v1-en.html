@@ -70,39 +70,39 @@
 
     <script>
         const nodes = [
-            { id: 1, group: 'M1', x: 80, y: 100, label: 'Card 1: OS Scheduling', zh: '卡片 1: 进程线程协程调度', desc: 'Process vs Thread vs Coroutine switch overheads.' },
-            { id: 2, group: 'M1', x: 80, y: 220, label: 'Card 2: Page Tables', zh: '卡片 2: 虚拟内存与MMU', desc: 'Hierarchical page tables and TLB walks.' },
-            { id: 3, group: 'M1', x: 80, y: 340, label: 'Card 3: IPC Memory', zh: '卡片 3: 进程通信共享内存', desc: 'Pipes, FIFOs and shared memory mutexes.' },
-            { id: 4, group: 'M1', x: 80, y: 460, label: 'Card 4: inode & VFS', zh: '卡片 4: inode与VFS文件系统', desc: 'Inodes, data blocks and virtual system mappings.' },
-            { id: 5, group: 'M1', x: 80, y: 540, label: 'Card 5: Socket & IO', zh: '卡片 5: Socket与五种I/O模型', desc: 'Non-blocking I/O and epoll multiplexing.' },
+            { id: 1, group: 'M1', x: 80, y: 100, label: 'Card 1: OS Scheduling', desc: 'Process vs Thread vs Coroutine switch overheads.' },
+            { id: 2, group: 'M1', x: 80, y: 220, label: 'Card 2: Page Tables', desc: 'Hierarchical page tables and TLB walks.' },
+            { id: 3, group: 'M1', x: 80, y: 340, label: 'Card 3: IPC Memory', desc: 'Pipes, FIFOs and shared memory mutexes.' },
+            { id: 4, group: 'M1', x: 80, y: 460, label: 'Card 4: inode & VFS', desc: 'Inodes, data blocks and virtual system mappings.' },
+            { id: 5, group: 'M1', x: 80, y: 540, label: 'Card 5: Socket & IO', desc: 'Non-blocking I/O and epoll multiplexing.' },
             
-            { id: 6, group: 'M2', x: 260, y: 100, label: 'Card 6: ACID & MVCC', zh: '卡片 6: 数据库隔离与MVCC', desc: 'Transactions, undo logs and locks.' },
-            { id: 7, group: 'M2', x: 260, y: 220, label: 'Card 7: Redis Single', zh: '卡片 7: Redis单线程与持久化', desc: 'Single-thread event loops, RDB and AOF.' },
-            { id: 8, group: 'M2', x: 260, y: 340, label: 'Card 8: Raft Consensus', zh: '卡片 8: Raft分布式共识', desc: 'Leader election and log replication.' },
-            { id: 9, group: 'M2', x: 260, y: 460, label: 'Card 9: Kafka Storage', zh: '卡片 9: Kafka磁盘顺序写', desc: 'Sparse indexing, sendfile and zero-copy.' },
-            { id: 10, group: 'M2', x: 260, y: 540, label: 'Card 10: gRPC Protobuf', zh: '卡片 10: gRPC与Protobuf编码', desc: 'HTTP/2 streaming and Varint tag serialization.' },
+            { id: 6, group: 'M2', x: 260, y: 100, label: 'Card 6: ACID & MVCC', desc: 'Transactions, undo logs and locks.' },
+            { id: 7, group: 'M2', x: 260, y: 220, label: 'Card 7: Redis Single', desc: 'Single-thread event loops, RDB and AOF.' },
+            { id: 8, group: 'M2', x: 260, y: 340, label: 'Card 8: Raft Consensus', desc: 'Leader election and log replication.' },
+            { id: 9, group: 'M2', x: 260, y: 460, label: 'Card 9: Kafka Storage', desc: 'Sparse indexing, sendfile and zero-copy.' },
+            { id: 10, group: 'M2', x: 260, y: 540, label: 'Card 10: gRPC Protobuf', desc: 'HTTP/2 streaming and Varint tag serialization.' },
 
-            { id: 11, group: 'M3', x: 440, y: 100, label: 'Card 11: Browser Pipeline', zh: '卡片 11: 浏览器渲染管线', desc: 'DOM, layout, paint and compositing.' },
-            { id: 12, group: 'M3', x: 440, y: 220, label: 'Card 12: V-DOM & Diff', zh: '卡片 12: 虚拟DOM与Diff算法', desc: 'Reconciliation heuristics and key tracking.' },
-            { id: 13, group: 'M3', x: 440, y: 340, label: 'Card 13: Webpack & Vite', zh: '卡片 13: Webpack打包与Vite ESM', desc: 'Module graphs vs on-demand dev compilations.' },
-            { id: 14, group: 'M3', x: 440, y: 460, label: 'Card 14: SPA Routing', zh: '卡片 14: SPA路由与状态管理', desc: 'PushState router and unidirectional stores.' },
-            { id: 15, group: 'M3', x: 440, y: 540, label: 'Card 15: XSS/CSRF/CORS', zh: '卡片 15: Web安全防御规范', desc: 'Escapes, tokens and CORS origins.' },
+            { id: 11, group: 'M3', x: 440, y: 100, label: 'Card 11: Browser Pipeline', desc: 'DOM, layout, paint and compositing.' },
+            { id: 12, group: 'M3', x: 440, y: 220, label: 'Card 12: V-DOM & Diff', desc: 'Reconciliation heuristics and key tracking.' },
+            { id: 13, group: 'M3', x: 440, y: 340, label: 'Card 13: Webpack & Vite', desc: 'Module graphs vs on-demand dev compilations.' },
+            { id: 14, group: 'M3', x: 440, y: 460, label: 'Card 14: SPA Routing', desc: 'PushState router and unidirectional stores.' },
+            { id: 15, group: 'M3', x: 440, y: 540, label: 'Card 15: XSS/CSRF/CORS', desc: 'Escapes, tokens and CORS origins.' },
 
-            { id: 16, group: 'M4', x: 620, y: 100, label: 'Card 16: Namespace/Cgroup', zh: '卡片 16: 容器Namespace与Cgroup', desc: 'Process isolation and hardware limits.' },
-            { id: 17, group: 'M4', x: 620, y: 220, label: 'Card 17: Kubernetes API', zh: '卡片 17: Kubernetes声明式控制器', desc: 'Reconciliation loops and deployment states.' },
-            { id: 18, group: 'M4', x: 620, y: 340, label: 'Card 18: CI/CD Pipeline', zh: '卡片 18: CI/CD发布与缓存', desc: '金丝雀与蓝绿部署.' },
-            { id: 19, group: 'M4', x: 620, y: 460, label: 'Card 19: Liveness/Readiness', zh: '卡片 19: 存活就绪健康检查', desc: 'Container health check probes.' },
+            { id: 16, group: 'M4', x: 620, y: 100, label: 'Card 16: Namespace/Cgroup', desc: 'Process isolation and hardware limits.' },
+            { id: 17, group: 'M4', x: 620, y: 220, label: 'Card 17: Kubernetes API', desc: 'Reconciliation loops and deployment states.' },
+            { id: 18, group: 'M4', x: 620, y: 340, label: 'Card 18: CI/CD Pipeline', desc: 'Canary and Blue-Green deployments.' },
+            { id: 19, group: 'M4', x: 620, y: 460, label: 'Card 19: Liveness/Readiness', desc: 'Container health check probes.' },
 
-            { id: 20, group: 'M5', x: 800, y: 100, label: 'Card 20: Hashing Ring', zh: '卡片 20: 一致性哈希环', desc: 'Virtual node load redistribution.' },
-            { id: 21, group: 'M5', x: 800, y: 220, label: 'Card 21: Circuit Breaker', zh: '卡片 21: 熔断器与舱壁隔离', desc: 'Failsafe state machines and fallbacks.' },
-            { id: 22, group: 'M5', x: 800, y: 340, label: 'Card 22: Token Bucket', zh: '卡片 22: 漏桶与令牌桶限流', desc: 'Burst traffic rate control.' },
-            { id: 23, group: 'M5', x: 800, y: 460, label: 'Card 23: Shard Key & ID', zh: '卡片 23: 分库分表与全局ID', desc: 'Horizontal database sharding and snowflake.' },
-            { id: 24, group: 'M5', x: 800, y: 540, label: 'Card 24: Observability', zh: '卡片 24: 监控Metrics/Logs/Trace', desc: 'Three pillars of observability.' },
+            { id: 20, group: 'M5', x: 800, y: 100, label: 'Card 20: Hashing Ring', desc: 'Virtual node load redistribution.' },
+            { id: 21, group: 'M5', x: 800, y: 220, label: 'Card 21: Circuit Breaker', desc: 'Failsafe state machines and fallbacks.' },
+            { id: 22, group: 'M5', x: 800, y: 340, label: 'Card 22: Token Bucket', desc: 'Burst traffic rate control.' },
+            { id: 23, group: 'M5', x: 800, y: 460, label: 'Card 23: Shard Key & ID', desc: 'Horizontal database sharding and snowflake.' },
+            { id: 24, group: 'M5', x: 800, y: 540, label: 'Card 24: Observability', desc: 'Three pillars of observability.' },
 
-            { id: 25, group: 'M6', x: 980, y: 100, label: 'Card 25: DDD Boundaries', zh: '卡片 25: DDD战略限界与聚合根', desc: 'Bounded contexts and aggregate roots.' },
-            { id: 26, group: 'M6', x: 980, y: 220, label: 'Card 26: TDD Cycles', zh: '卡片 26: TDD红绿环与重构', desc: 'Red-green-refactor loop testing.' },
-            { id: 27, group: 'M6', x: 980, y: 340, label: 'Card 27: Serverless Cold', zh: '卡片 27: Serverless冷启动优化', desc: 'Scaling to zero and sandbox pre-warm.' },
-            { id: 28, group: 'M6', x: 980, y: 460, label: 'Card 28: RAG Vectors', zh: '卡片 28: RAG向量数据库检索', desc: 'LLMOps, chunking and embedding.' }
+            { id: 25, group: 'M6', x: 980, y: 100, label: 'Card 25: DDD Boundaries', desc: 'Bounded contexts and aggregate roots.' },
+            { id: 26, group: 'M6', x: 980, y: 220, label: 'Card 26: TDD Cycles', desc: 'Red-green-refactor loop testing.' },
+            { id: 27, group: 'M6', x: 980, y: 340, label: 'Card 27: Serverless Cold', desc: 'Scaling to zero and sandbox pre-warm.' },
+            { id: 28, group: 'M6', x: 980, y: 460, label: 'Card 28: RAG Vectors', desc: 'LLMOps, chunking and embedding.' }
         ];
 
         const container = document.getElementById('canvas-container');

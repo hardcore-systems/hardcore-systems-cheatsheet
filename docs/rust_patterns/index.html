@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Rust 高级设计模式与生命所有权图谱</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #4B5F7A;
+            text-align: center;
+            font-size: 20px;
+        }
+        #canvas-container {
+            width: 1000px;
+            height: 750px;
+            margin: 0 auto;
+            position: relative;
+            background-color: #1A202C;
+            border: 2px solid #24324F;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .node {
+            position: absolute;
+            width: 160px;
+            height: 48px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            padding: 5px;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            filter: brightness(1.2);
+        }
+        #detail-panel {
+            width: 1000px;
+            margin: 20px auto 0 auto;
+            background-color: rgba(26, 32, 44, 0.85);
+            border: 1px solid #24324F;
+            border-radius: 8px;
+            padding: 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+        }
+        #detail-title {
+            font-size: 16px;
+            font-weight: bold;
+            border-bottom: 2px solid #4B5F7A;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        #detail-body {
+            font-size: 13px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Rust 高级设计模式与生命所有权图谱</h1>
+    <div id="canvas-container">
+        <div class="node" style="left: 100px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(1)">RAII资源生命周期管理与哨兵锁</div>
+<div class="node" style="left: 240px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(2)">编译期状态机 Typestate 泛型</div>
+<div class="node" style="left: 380px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(3)">编译期字段完整性校验 Builder</div>
+<div class="node" style="left: 520px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(4)">值域强类型Newtype与孤儿规则绕过</div>
+<div class="node" style="left: 660px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(5)">自引用结构移动防御 Pinning 钉住</div>
+<div class="node" style="left: 800px; top: 120px; background-color: #4B5F7A;" onclick="showCardDetail(6)">运行时借用检查 Interior Mutability</div>
+<div class="node" style="left: 100px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(7)">孤儿规则与 Extension Trait</div>
+<div class="node" style="left: 240px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(8)">Serde Visitor 抽象反序列化解耦</div>
+<div class="node" style="left: 380px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(9)">策略模式单态化内联与动态分发</div>
+<div class="node" style="left: 520px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(10)">Panic 恐慌释放事务回滚哨兵</div>
+<div class="node" style="left: 660px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(11)">Typestate 协议握手类型流控制</div>
+<div class="node" style="left: 800px; top: 260px; background-color: #6B8272;" onclick="showCardDetail(12)">Deref与DerefMut智能指针重载</div>
+<div class="node" style="left: 100px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(13)">零开销惰性迭代器链式合并展开</div>
+<div class="node" style="left: 240px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(14)">PhantomData 伪所有权与生命判定</div>
+<div class="node" style="left: 380px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(15)">命令模式 execute/undo 双栈回溯</div>
+<div class="node" style="left: 520px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(16)">Arc/Weak 观察者发布订阅模型</div>
+<div class="node" style="left: 660px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(17)">动态 Trait 接口注册抽象工厂</div>
+<div class="node" style="left: 800px; top: 400px; background-color: #9C6666;" onclick="showCardDetail(18)">OnceCell 线程安全全局单例</div>
+<div class="node" style="left: 100px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(19)">享元模式与 Copy-on-Write (Cow)</div>
+<div class="node" style="left: 240px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(20)">备忘录状态所有权序列化备份</div>
+<div class="node" style="left: 380px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(21)">C-FFI 指针 SafeAdapter 安全转换</div>
+<div class="node" style="left: 520px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(22)">抽象具体剥离多路选择桥接模式</div>
+<div class="node" style="left: 660px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(23)">多泛型嵌套装饰器组合功能注入</div>
+<div class="node" style="left: 800px; top: 540px; background-color: #7A7A7A;" onclick="showCardDetail(24)">责任链 Web 框架拦截器 Middleware</div>
+<div class="node" style="left: 150px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(25)">运行时 Trait Object 状态跳转</div>
+<div class="node" style="left: 320px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(26)">Trait 默认骨架重写 Hook 方法</div>
+<div class="node" style="left: 490px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(27)">catch_unwind 恐慌拦截 FFI 边界</div>
+<div class="node" style="left: 660px; top: 660px; background-color: #9A825A;" onclick="showCardDetail(28)">mpsc 信道 Actor 邮箱隔离并发</div>
+
+    </div>
+    <div id="detail-panel">
+        <div id="detail-title">点击上面的卡片节点，获取硬核技术细节参数</div>
+        <div id="detail-body"></div>
+    </div>
+
+    <script>
+        const cards = [
+            { id: 1, title: 'RAII Guard', zh: 'RAII资源生命周期管理与哨兵锁', color: '#4B5F7A' },
+        { id: 2, title: 'Typestate Pattern', zh: '编译期状态机 Typestate 泛型', color: '#4B5F7A' },
+        { id: 3, title: 'Type-safe Builder', zh: '编译期字段完整性校验 Builder', color: '#4B5F7A' },
+        { id: 4, title: 'Newtype Pattern', zh: '值域强类型Newtype与孤儿规则绕过', color: '#4B5F7A' },
+        { id: 5, title: 'Pinning Self-Refs', zh: '自引用结构移动防御 Pinning 钉住', color: '#4B5F7A' },
+        { id: 6, title: 'Interior Mutability', zh: '运行时借用检查 Interior Mutability', color: '#4B5F7A' },
+        { id: 7, title: 'Orphan Rule Extensions', zh: '孤儿规则与 Extension Trait', color: '#6B8272' },
+        { id: 8, title: 'Visitor AST Deserializer', zh: 'Serde Visitor 抽象反序列化解耦', color: '#6B8272' },
+        { id: 9, title: 'Strategy Dispatch', zh: '策略模式单态化内联与动态分发', color: '#6B8272' },
+        { id: 10, title: 'RAII Rollback Guard', zh: 'Panic 恐慌释放事务回滚哨兵', color: '#6B8272' },
+        { id: 11, title: 'Typestate Protocol', zh: 'Typestate 协议握手类型流控制', color: '#6B8272' },
+        { id: 12, title: 'Deref Coercion', zh: 'Deref与DerefMut智能指针重载', color: '#6B8272' },
+        { id: 13, title: 'Lazy Iterators', zh: '零开销惰性迭代器链式合并展开', color: '#9C6666' },
+        { id: 14, title: 'PhantomData Markers', zh: 'PhantomData 伪所有权与生命判定', color: '#9C6666' },
+        { id: 15, title: 'Command Invoker', zh: '命令模式 execute/undo 双栈回溯', color: '#9C6666' },
+        { id: 16, title: 'Observer Event Bus', zh: 'Arc/Weak 观察者发布订阅模型', color: '#9C6666' },
+        { id: 17, title: 'Abstract Factory', zh: '动态 Trait 接口注册抽象工厂', color: '#9C6666' },
+        { id: 18, title: 'OnceCell Singleton', zh: 'OnceCell 线程安全全局单例', color: '#9C6666' },
+        { id: 19, title: 'Flyweight Cow Pool', zh: '享元模式与 Copy-on-Write (Cow)', color: '#7A7A7A' },
+        { id: 20, title: 'Memento Snapshot', zh: '备忘录状态所有权序列化备份', color: '#7A7A7A' },
+        { id: 21, title: 'Adapter Wrapper', zh: 'C-FFI 指针 SafeAdapter 安全转换', color: '#7A7A7A' },
+        { id: 22, title: 'Bridge Component', zh: '抽象具体剥离多路选择桥接模式', color: '#7A7A7A' },
+        { id: 23, title: 'Decorator Wrapper', zh: '多泛型嵌套装饰器组合功能注入', color: '#7A7A7A' },
+        { id: 24, title: 'Chain Middleware', zh: '责任链 Web 框架拦截器 Middleware', color: '#7A7A7A' },
+        { id: 25, title: 'Dynamic State Trait', zh: '运行时 Trait Object 状态跳转', color: '#9A825A' },
+        { id: 26, title: 'Template Method Hook', zh: 'Trait 默认骨架重写 Hook 方法', color: '#9A825A' },
+        { id: 27, title: 'FFI Safe Wrapper', zh: 'catch_unwind 恐慌拦截 FFI 边界', color: '#9A825A' },
+        { id: 28, title: 'Actor Channel Isolated', zh: 'mpsc 信道 Actor 邮箱隔离并发', color: '#9A825A' }
+        ];
+
+        const detailsZh = {
+            1: "<strong>RAII与哨兵锁:</strong> 物理资源的生命周期与 Rust 的局部变量生存周期深度绑定。资源在构造时被获取，并在变量离开大括号作用域触发 `Drop` 析构函数时被原子解锁释放，从语法源头规避了漏解锁导致的系统死锁故障。",
+            2: "<strong>编译期类型状态机 (Typestate):</strong> 将运行状态（如连接关闭/激活）编码为独立的空结构体，作为泛型参数填充到核心对象（如 `Connection<State>`）中。未到达活跃状态前，应用数据发送等接口根本未被实现，强力将状态漏洞拦截在编译期。",
+            3: "<strong>编译期 Builder 校验:</strong> 多字段初始化设计模式。通过 Phantom Types 泛型在链式填充时进行强校验，如果在未填充必要字段时强行调用 `.build()` 终端函数，编译器会抛出静态类型错误拒绝通过。",
+            4: "<strong>值域强类型 Newtype:</strong> 仅仅消耗 0-cost 运行成本的新类型包装。将通用浮点数/字符串重载为业务定制强类型，强迫编译器在类型比对中划清界线（例如长度单位米与英尺混用直接报错），并用以绕过 Trait 实现的孤儿规则规则限制。",
+            5: "<strong>自引用内存 Pinning 钉住:</strong> 针对数据内部字段互相引用指针的特殊结构，使用 `Pin<P>` 锁定该结构所在的物理内存地址，防止在发生内存交换或移动（Move）时导致引用的指针悬空指向垃圾堆区，是异步 Future 的底层基础。",
+            6: "<strong>运行时 Interior Mutability:</strong> 允许在持有不可变共享引用 `&T` 下修改内部字段数据。`Cell` 适用 Copy 类型，通过物理覆盖写入；`RefCell` 适用复杂结构，在运行时动态统计活跃引用并进行借用校验，超出借用规则抛出 panic。",
+            7: "<strong>Orphan Rule 孤儿规则与 Extension Trait:</strong> 为实现外部库类型的扩展，Rust 规定不能为外部库类型实现外部的 Trait。我们可以通过定义本地的 Extension Trait 桥接，声明本地 Trait 并为第三方目标类型实现之以扩展接口方法。",
+            8: "<strong>Visitor AST 解耦反序列化:</strong> Serde 框架核心模式。将物理反序列化逻辑与具体接收容器完全剥离。通过 Visitor 回调机制实现对源数据字节流的流水式无拷贝提取，完美降低垃圾回收（GC）开销。",
+            9: "<strong>策略 Strategy 静态单态化:</strong> 当面临多算法切换时，静态泛型 `S: Strategy` 会在编译期将全部算法分支实体复制生成多份（单态化），实现零间接寻址开销的内联求值；而 dyn 对象 `Box<dyn Strategy>` 则使用 vtable 虚表跳转减小二进制包尺寸。",
+            10: "<strong>RAII 事务回滚哨兵:</strong> 发生恐慌（Panic）导致线程栈展开（unwind）退出时，局部哨兵结构体析构 Drop 被调用。若检测到事务未成功标记 Commit，自动执行物理 SQL 的 Rollback 动作保证数据原子完整性。",
+            11: "<strong>Typestate 协议流控制:</strong> 网络协议在建立连接前后对方法的支持度完全不同。将 TCP/TLS 的连接过程编码为状态迁移泛型，在编译阶段锁死不同握手时期的方法可调用性，从根源规避协议流顺序错乱漏洞。",
+            12: "<strong>Deref/DerefMut 智能指针重载:</strong> 通过重载 Deref Trait，让智能指针包装类型（如 Box/Arc）在调用底层包裹数据的方法时可以省略多余的手动解包，由编译器根据类型匹配链执行隐式解引用转换。",
+            13: "<strong>零开销惰性迭代器:</strong> `iter().map().filter()` 链式求值并不分配中间数组。该泛型链直到终端收集器（`.collect()`）执行时才被编译器单态化展开成最基础的扁平一维 C 语言级 Loop 循环，优化性能开销。",
+            14: "<strong>PhantomData 泛型伪标记:</strong> 当定义的结构体包含没有物理字段使用的泛型类型或生命周期约束时，使用零大小 `PhantomData<T>` 强行指导编译器的 borrow checker 执行静态生命周期判定。",
+            15: "<strong>命令模式 undo/redo 双栈:</strong> 将物理操作封装为实现 `Command` 接口的结构体，解耦调用者与系统。内部持有执行状态，在系统级管理器中利用双向双栈存储历史指令，实现极速撤销与重做支持。",
+            16: "<strong>观察者 Arc/Weak 并发注册:</strong> 多线程观察者监听设计。数据源持有 `Vec<Weak<dyn Listener>>`，广播时锁住 Mutex 并升级弱引用指针（`Weak::upgrade`）以触发回调。完美破除 Arc 强引用循环所致的死锁陷阱。",
+            17: "<strong>动态 Trait 抽象工厂:</strong> 运行时构建实现了特定业务 Trait 的动态组件，内部依靠静态的类名字符串注册表，运行时自动返回堆装配句柄 `Box<dyn Component>`，彻底屏蔽物理构造细节实现解耦。",
+            18: "<strong>OnceCell 静态安全单例:</strong> 避免了常规全局 mutable 静态变量的并发写灾难。OnceCell 支持在运行时动态执行初次加载，一旦原子写入生效便完全锁定为只读状态，防止配置中途篡改。",
+            19: "<strong>享元 Cow (Copy-on-Write) 模式:</strong> 内存友好型共享模式。享元包装 `Cow<'a, B>` 持有只读引用。当客户端发出可变修改需求时，系统自动深拷贝生成 owned 对象实例，平衡内存消耗与写时效率。",
+            20: "<strong>备忘录快照所有权:</strong> 在不违背面向对象封装原子的前提下，将对象当前核心状态封入只读 Memento 结构中。恢复时通过消耗 Memento 所有权来直接覆盖 Context 状态以复原历史。",
+            21: "<strong>C-FFI SafeAdapter 安全包装:</strong> 将底层不安全、易溢出的 C 语言 naked 指针和回调封装于 SafeAdapter 中。借助 Rust 析构自动执行释放，阻隔内存泄漏和无效野指针跨越 FFI 边界。",
+            22: "<strong>抽象具体隔离桥接:</strong> 抽象功能对象持有底层特化 Trait dyn 的 Box 指针，将行为委派给具体实现的子系统模块，避免系统组件的高频重构导致几何倍数的类级繁衍膨胀。",
+            23: "<strong>多层嵌套装饰器注入:</strong> 类似 HTTP 服务过滤链。每一层装饰器同样实现底层 Trait 并持有 Inner。对 read/write 请求进行多层包装，动态累加日志监控、校验和统计等前置功能。",
+            24: "<strong>责任链 Web 拦截中间件:</strong> 将中间件拦截器组装成链状。当请求流入时，拦截器依次执行前置审计并显式触发 `next.call()` 将控制流递交下层 Handlers，支持就地掐断返回以保护后端系统。",
+            25: "<strong>运行时动态 State 模式:</strong> 上下文持有 `Box<dyn State>`，在运行时根据交互响应，将 state 指针更换为新的状态对象实现类的行为漂移，适合运行时状态跳转极其复杂的场景。",
+            26: "<strong>Template Method Trait Hook:</strong> 在 Trait 中直接编排好带有业务闭环的骨架默认方法，在流程分支中埋下空实现或可选覆写接口（Hooks），引导开发者按预定模版填装功能代码。",
+            27: "<strong>catch_unwind FFI 恐慌拦截:</strong> Rust 默认的 Panic 会执行线程栈 unwind 逻辑，若未被拦截并跨越 FFI 回调到 C 语言环境，会导致操作系统直接崩溃。 catch_unwind 成功将恐慌转为常规负数错误码保护边界。",
+            28: "<strong>Actor mpsc 邮箱隔离并发:</strong> 摒弃高风险的 Mutex 锁并发，将节点建模为持有私有状态的独立并发 Actor 协程任务。Actor 仅仅通过多生产者单消费者 channel（邮箱）读写消息，从设计上灭绝并发竞争死锁。"
+        };
+
+        const detailsEn = {
+            1: "<strong>RAII & Guard Pattern:</strong> Binds physical resource allocations to local variables. Resources are locked on instantiation and automatically freed via the `Drop` trait on variable exit, eliminating lock leaks and deadlocks.",
+            2: "<strong>Typestate Pattern:</strong> Models logical states as discrete empty types passed as generics to core objects (e.g. `Connection<State>`). Methods like `.send()` are implemented only on active states, catching protocol bugs at compile-time.",
+            3: "<strong>Type-safe Builder:</strong> Restricts object building via generic Phantom Types. Compiling fails if users trigger the final `.build()` method before initializing all mandatory properties.",
+            4: "<strong>Newtype Pattern:</strong> Encapsulates raw numeric types in 0-cost tuple structs to force compile-time validation. Prevents mixing different business domains (e.g., Meter and Foot) and bypasses orphan rule limitations.",
+            5: "<strong>Memory Pinning:</strong> Wraps self-referential structures in `Pin<P>` to lock their physical memory coordinates, ensuring internal self-pointers remain valid even if the wrapping structure is moved in memory.",
+            6: "<strong>Interior Mutability:</strong> Grants mutability access when holding immutable references. `Cell` mutates copyable data; `RefCell` dynamically checks borrow rules at runtime, panicking on conflicting simultaneous write-borrows.",
+            7: "<strong>Orphan Rule & Extension Traits:</strong> Rust prohibits implementing external traits on external types. The Extension Trait pattern solves this by defining local traits implemented on external library structures.",
+            8: "<strong>Visitor AST Decoupling:</strong> The architecture backing Serde. Decouples raw formats from in-memory objects, letting format parsers invoke Visitor callbacks to extract data without garbage collection allocations.",
+            9: "<strong>Strategy static dispatch:</strong> Compares generic Strategy dispatches (monomorphized at compile-time for zero indirect pointer overhead) with dynamic strategy structures (`Box<dyn Strategy>` loaded via vtable pointers).",
+            10: "<strong>RAII Rollback Guard:</strong> Utilizes stack unwind mechanisms during a thread panic. Destructors check for incomplete transactions and execute automatic database ROLLBACK commands to guard data integrity.",
+            11: "<strong>Typestate Handshakes:</strong> Tracks network handshake processes using generic type conversions, preventing application frames from being dispatched before the connection matures.",
+            12: "<strong>Deref Coercion:</strong> Overloads Deref and DerefMut traits, directing unresolved method lookups on wrapper types to the inner wrapped object automatically.",
+            13: "<strong>Zero-Cost Iterators:</strong> Chain operations like `map()` or `filter()` retain lazy structures. The nested sequence compiles into a flat, highly optimized loop once terminal collections are triggered.",
+            14: "<strong>PhantomData Markers:</strong> Declares `PhantomData<T>` as a zero-sized marker type to introduce unused generic type configurations and advise borrow checkers on lifetime variances.",
+            15: "<strong>Command undo/redo Stacks:</strong> Wraps actions in structures implementing `Command` traits. Stores command histories in execution stacks to support instant undo/redo actions.",
+            16: "<strong>Observer Arc/Weak Patterns:</strong> Thread-safe observer registries. Databases map listeners as `Vec<Weak<dyn Listener>>`, upgrading weak pointers to broadcast events while preventing reference cycles.",
+            17: "<strong>Abstract Factory:</strong> Declares registry tables for factory allocations. Resolves component constructions dynamically, returning trait objects (`Box<dyn Component>`) to hide concrete constructors.",
+            18: "<strong>OnceCell Singleton:</strong> Prevents concurrency races by allowing dynamic initialization of global variables exactly once at runtime, locking the cell as read-only thereafter.",
+            19: "<strong>Flyweight Cow Pattern:</strong> Saves heap space by keeping references in `Cow<'a, B>`. Automatically clones data to generate owned variables only when mutable writes are triggered.",
+            20: "<strong>Memento Snapshot:</strong> Stores snapshot properties in read-only structures. Recovers historical states by passing the memento's ownership back to the parent context.",
+            21: "<strong>Adapter Wrappers:</strong> Encapsulates unsafe C pointers inside Safe C++ Adapters. Auto-releases resources via custom drop implementations to bridge foreign library bindings.",
+            22: "<strong>Bridge Decoupling:</strong> Splits implementations from abstractions. The high-level struct delegates work to bridgeable backend traits, avoiding combinational class explosions.",
+            23: "<strong>Decorator Composition:</strong> Wraps core readers in functional decorators. Adds logging, compression, or validation functions by wrapping reader traits layers deep.",
+            24: "<strong>Chain of Responsibility:</strong> Standard middleware processor. Iterators execute pre-filters, calling `next.call()` to pass contexts downward or aborting execution on failed checks.",
+            25: "<strong>Dynamic State Pattern:</strong> Switches behavior at runtime by changing a context's inner `Box<dyn State>` trait object, avoiding massive conditional state jumps.",
+            26: "<strong>Template Method Hooks:</strong> Embeds skeleton methods inside default trait implementations, leaving abstract hook methods for struct implementors to override.",
+            27: "<strong>catch_unwind FFI Safety:</strong> Uncaught Rust panics traversing C-FFI boundaries cause process terminations. `catch_unwind` intercepts panics and returns error codes.",
+            28: "<strong>Actor mpsc Channels:</strong> Isolates actor states inside dedicated async tasks. Actors process requests sequentially from mpsc queue mailboxes, avoiding lock contention."
+        };
+
+        function showCardDetail(id) {
+            const card = cards.find(c => c.id === id);
+            const isEn = false;
+            document.getElementById('detail-title').innerText = isEn ? `Card ${id}: ${card.title}` : `卡片 ${id}: ${card.zh}`;
+            document.getElementById('detail-body').innerHTML = isEn ? detailsEn[id] : detailsZh[id];
+        }
+    </script>
+</body>
+</html>

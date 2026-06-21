@@ -214,7 +214,7 @@
                 <span class="card-id" style="background-color: #7A8B99">M1.1</span>
                 <span class="card-module">Load Balancing & Consistent Hashing</span>
             </div>
-            <h3 class="card-title">DNS 智能解析、Anycast IP 广播与 CDN 调度策略</h3>
+            <h3 class="card-title">DNS Routing, Anycast IP & CDN Scheduling</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: The first line of defense in traffic partition. Anycast permits multiple physical routing nodes to announce the same IP address, directing client packets to the nearest node via BGP. This works alongside GeoDNS to resolve requests to nearest CDN edge servers, serving static files directly at network edges and reducing RTT.</li><li>  <strong>Strategy</strong>: In global multi-datacenter deployments, Anycast and CDN geo-routing are critical to distribute high-capacity traffic.</li>
             </div>
@@ -225,7 +225,7 @@
                 <span class="card-id" style="background-color: #7A8B99">M1.2</span>
                 <span class="card-module">Load Balancing & Consistent Hashing</span>
             </div>
-            <h3 class="card-title">四层负载均衡与七层代理的区别及适用场景</h3>
+            <h3 class="card-title">L4 Load Balancing vs L7 Proxying</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: L4 Load Balancers (like LVS DR mode) modify MAC addresses (DR) or IP headers (NAT) at the transport layer without parsing application data, handling millions of concurrent connections. L7 Load Balancers (like Envoy/Nginx) parse HTTP body and headers, enabling cookie stickiness, path-based routing, and SSL termination.</li><li>  <strong>Strategy</strong>: Deploy LVS at the perimeter for packet-level routing, distribution, and multiplexing across downstream Envoy/Nginx clusters for L7 filtering.</li>
             </div>
@@ -236,7 +236,7 @@
                 <span class="card-id" style="background-color: #7A8B99">M1.3</span>
                 <span class="card-module">Load Balancing & Consistent Hashing</span>
             </div>
-            <h3 class="card-title">一致性哈希环的拓扑模型、顺时针寻址与节点变化</h3>
+            <h3 class="card-title">Consistent Hashing Ring Topology, Clockwise Routing & Scaling</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Consistent hashing uses a virtual ring containing $2^{32}$ slots. Nodes and keys are mapped using the same hashing algorithm (e.g., MD5). Keys traverse clockwise to route to the first encountered node. Deleting a node only affects data immediately counter-clockwise to it on the ring.</li><li>  <strong>Strategy</strong>: Apply to distributed caching pools (e.g., Memcached) to ensure cache hit ratios stay above 90% during node scaling.</li>
             </div>
@@ -247,7 +247,7 @@
                 <span class="card-id" style="background-color: #7A8B99">M1.4</span>
                 <span class="card-module">Load Balancing & Consistent Hashing</span>
             </div>
-            <h3 class="card-title">虚拟节点技术在消除数据分配倾斜与热点倾斜中的作用</h3>
+            <h3 class="card-title">Virtual Nodes: Balancing Data Distribution & Preventing Hotspots</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Hashing rings with few physical nodes can suffer from uneven distribution (data hot spots). Virtual Nodes (e.g., `ServerA</li>
             </div>
@@ -258,7 +258,7 @@
                 <span class="card-id" style="background-color: #7D8F7B">M2.1</span>
                 <span class="card-module">Multi-level Cache & Consistency</span>
             </div>
-            <h3 class="card-title">多级缓存体系：客户端缓存、网关缓存、本地内存缓存与分布式缓存</h3>
+            <h3 class="card-title">Multi-Level Caching: Client, Gateway, Local & Distributed Cache</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Layered caching works by mapping memory access speeds: browser cache (HTTP headers), CDN (edge cache), Nginx/Varnish (reverse proxy cache), application local caches (Guava/Ehcache), and distributed caches (Redis). Latency drops exponentially at higher layers.</li><li>  <strong>Strategy</strong>: Utilize a funnel model to filter 95%+ of read queries at edge or memory cache layers, preventing backend DB exhaustion.</li>
             </div>
@@ -269,7 +269,7 @@
                 <span class="card-id" style="background-color: #7D8F7B">M2.2</span>
                 <span class="card-module">Multi-level Cache & Consistency</span>
             </div>
-            <h3 class="card-title">Cache-aside 旁路缓存策略的读写并发序列、双写不一致及其规避</h3>
+            <h3 class="card-title">Cache-Aside Strategy: Concurrency & Inconsistency Mitigation</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Read: Check cache; if miss, query DB and populate cache. Write: Update DB and then delete (invalidate) the cache entry. Updating the cache directly on write causes write races; deleting cache first can cause a concurrent read to fetch stale DB data and write it back.</li><li>  <strong>Strategy</strong>: To prevent stale cache states during complex write races, implement delayed double-deletion or subscribe to DB binary logs to invalidate asynchronously.</li>
             </div>
@@ -280,7 +280,7 @@
                 <span class="card-id" style="background-color: #7D8F7B">M2.3</span>
                 <span class="card-module">Multi-level Cache & Consistency</span>
             </div>
-            <h3 class="card-title">Write-through 与 Write-behind 的数据一致性与延迟折衷</h3>
+            <h3 class="card-title">Write-Through vs Write-Behind: Consistency & Latency Trade-offs</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Write-through synchronous writes: applications write to cache, cache writes to DB, and both must succeed before returning. Write-behind (Write-back) asynchronous writes: application writes to cache and returns; a background task consolidates and flushes queue updates to DB.</li><li>  <strong>Strategy</strong>: Choose Write-behind for high-throughput write scenarios (e.g., logging, metrics) where eventual consistency is acceptable, accepting the risk of loss on crash.</li>
             </div>
@@ -291,7 +291,7 @@
                 <span class="card-id" style="background-color: #7D8F7B">M2.4</span>
                 <span class="card-module">Multi-level Cache & Consistency</span>
             </div>
-            <h3 class="card-title">缓存逐出算法：LRU（双向链表+哈希表）与 LFU（频次桶）的物理实现复杂度</h3>
+            <h3 class="card-title">Cache Eviction Algorithms: LRU & LFU Implementation Complexities</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: LRU (Least Recently Used) tracks recency with a hash table + doubly-linked list, evicting the list tail in $O(1)$ time. LFU (Least Frequently Used) counts access frequencies, grouping elements into frequency buckets to evict low-use entries, protecting against scan pollution.</li><li>  <strong>Strategy</strong>: Redis uses an approximate LRU algorithm by randomly sampling keys (default: 5) and evicting the oldest, saving significant memory.</li>
             </div>
@@ -302,7 +302,7 @@
                 <span class="card-id" style="background-color: #7D8F7B">M2.5</span>
                 <span class="card-module">Multi-level Cache & Consistency</span>
             </div>
-            <h3 class="card-title">应对大并发下的缓存穿透、击穿、雪崩：布隆过滤器与互斥锁的防护策略</h3>
+            <h3 class="card-title">Mitigating Cache Penetration, Breakdown & Avalanche</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Cache Penetration (non-existent keys): filter queries via Bloom Filters. Cache Breakdown (hot key expiry): restrict DB queries to a single worker thread using locks (e.g., Redis <code>SETNX</code>) while others wait. Cache Avalanche (simultaneous key expiry): inject random time jitters into key TTLs.</li><li>  <strong>Strategy</strong>: Implement these protection mechanisms to protect critical database layers from traffic spikes and malicious exploits.</li>
             </div>
@@ -313,7 +313,7 @@
                 <span class="card-id" style="background-color: #9E828A">M3.1</span>
                 <span class="card-module">DB Replication & Sharding</span>
             </div>
-            <h3 class="card-title">主从复制拓扑结构中的同步、半同步、异步机制与主备延迟路由</h3>
+            <h3 class="card-title">Master-Slave Replication: Sync, Semi-Sync, Async & Lag</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Master database handles writes and outputs binary logs; slave replicas pull and replay logs. Async replication returns immediately; sync replication blocks until all replicas write logs; semi-sync replication returns once at least one replica acknowledges log receipt.</li><li>  <strong>Strategy</strong>: To prevent reading stale data due to replica lag, route critical read-after-write requests to master or track transactional state.</li>
             </div>
@@ -324,7 +324,7 @@
                 <span class="card-id" style="background-color: #9E828A">M3.2</span>
                 <span class="card-module">DB Replication & Sharding</span>
             </div>
-            <h3 class="card-title">水平分片（Sharding）与分片键（Shard Key）的选择偏好</h3>
+            <h3 class="card-title">Database Sharding & Shard Key Selection</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Sharding divides a table horizontally across database instances. A Shard Key (e.g., <code>user_id</code>) must have high cardinality and distribute queries evenly. Querying without a shard key forces the middleware to broadcast queries to all database partitions (Scatter-Gather).</li><li>  <strong>Strategy</strong>: Evaluate shard keys to match access query paths, creating secondary indices or syncing data to Elasticsearch for multi-dimensional lookups.</li>
             </div>
@@ -335,7 +335,7 @@
                 <span class="card-id" style="background-color: #9E828A">M3.3</span>
                 <span class="card-module">DB Replication & Sharding</span>
             </div>
-            <h3 class="card-title">分布式全局主键：Snowflake 算法的碰撞消解</h3>
+            <h3 class="card-title">Distributed Global ID: Snowflake Collision Resolution</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Snowflake generates 64-bit unique IDs: 1 sign bit (0), 41 bits timestamp (ms), 10 bits machine identifier (5 bits datacenter + 5 bits worker), and 12 bits sequence number. Clock drift verification and sequence increment ensure lock-free generation.</li><li>  <strong>Strategy</strong>: Snowflake IDs are naturally ordered over time, improving B+ Tree insert performance in database clustering indexes compared to UUIDs.</li>
             </div>
@@ -346,7 +346,7 @@
                 <span class="card-id" style="background-color: #9E828A">M3.4</span>
                 <span class="card-module">DB Replication & Sharding</span>
             </div>
-            <h3 class="card-title">数据库联合与非规范化反范式（Denormalization）的读性能置换</h3>
+            <h3 class="card-title">Database Federation & Denormalization</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Database Federation splits a large database vertically by domain schema (e.g., User DB, Order DB). Denormalization replicates redundant attributes directly inside records, eliminating costly table JOIN operations during read queries.</li><li>  <strong>Strategy</strong>: Rely on denormalization to optimize read pathways, using binary log sync tools (e.g., Canal) to maintain consistency.</li>
             </div>
@@ -357,9 +357,9 @@
                 <span class="card-id" style="background-color: #B58A7D">M4.1</span>
                 <span class="card-module">Distributed Consensus & Coordination</span>
             </div>
-            <h3 class="card-title">CAP 定理的物理局限、BASE 弱一致性模型与 PACELC 折衷矩阵</h3>
+            <h3 class="card-title">CAP Theorem Limits, BASE Model & PACELC Trade-off Matrix</h3>
             <div class="card-body">
-                <li>  <strong>Mechanism</strong>: CAP theorem states that under network partitions (P), a system must trade off between consistency (C) and availability (A). PACELC extends this: even without partition (E), systems must choose between latency (L) and consistency (C). BASE guides AP architectures.</li><li>  <strong>Strategy</strong>: Choose CP (strong consistency) for transactional systems and AP (eventual consistency) for social feeds or点赞 services.</li>
+                <li>  <strong>Mechanism</strong>: CAP theorem states that under network partitions (P), a system must trade off between consistency (C) and availability (A). PACELC extends this: even without partition (E), systems must choose between latency (L) and consistency (C). BASE guides AP architectures.</li><li>  <strong>Strategy</strong>: Choose CP (strong consistency) for transactional systems and AP (eventual consistency) for social feeds or upvote services.</li>
             </div>
         </div>
         
@@ -368,7 +368,7 @@
                 <span class="card-id" style="background-color: #B58A7D">M4.2</span>
                 <span class="card-module">Distributed Consensus & Coordination</span>
             </div>
-            <h3 class="card-title">去中心化 Gossip 协议在集群状态同步中的弱一致收敛</h3>
+            <h3 class="card-title">Decentralized Gossip Protocol in Cluster Synchronization</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Peer-to-peer decentralization. Nodes select $k$ random neighbors periodically to exchange peer metadata and state tables. State updates propagate exponentially across the network, achieving eventual consistency and high fault tolerance.</li><li>  <strong>Strategy</strong>: Used in Cassandra cluster state management and Redis Cluster topological replication to handle node joins and failures.</li>
             </div>
@@ -379,7 +379,7 @@
                 <span class="card-id" style="background-color: #B58A7D">M4.3</span>
                 <span class="card-module">Distributed Consensus & Coordination</span>
             </div>
-            <h3 class="card-title">两阶段提交（2PC）的协调者单点故障与参与者同步阻塞死锁</h3>
+            <h3 class="card-title">Two-Phase Commit (2PC): Coordinator SPOF & Deadlock</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: 2PC relies on Prepare (coordinator asks CanCommit, participants execute local transactions and lock resources) and Commit (coordinator broadcasts DoCommit). If the coordinator crashes mid-commit, participants remain locked, causing resource blockages.</li><li>  <strong>Strategy</strong>: Avoid 2PC in high-scale systems where network latencies are unpredictable, preferring saga or transactional outbox patterns.</li>
             </div>
@@ -390,7 +390,7 @@
                 <span class="card-id" style="background-color: #B58A7D">M4.4</span>
                 <span class="card-module">Distributed Consensus & Coordination</span>
             </div>
-            <h3 class="card-title">三阶段提交（3PC）超时机制与 PreCommit 状态设计</h3>
+            <h3 class="card-title">Three-Phase Commit (3PC): Timeout & PreCommit State</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: 3PC introduces a PreCommit phase and timeout settings. After CanCommit, participants enter PreCommit. If a participant fails to receive a commit message from the coordinator within a timeout, it commits automatically.</li><li>  <strong>Strategy</strong>: While timeouts prevent permanent lock blockages, they can lead to split-brain data discrepancies if the coordinator actually issued an abort.</li>
             </div>
@@ -401,7 +401,7 @@
                 <span class="card-id" style="background-color: #B58A7D">M4.5</span>
                 <span class="card-module">Distributed Consensus & Coordination</span>
             </div>
-            <h3 class="card-title">Raft 强一致共识：Leader 选举与日志复制机制</h3>
+            <h3 class="card-title">Raft Consensus: Leader Election & Log Replication</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Raft defines three node states: Follower, Candidate, and Leader. Followers transition to Candidates and request votes upon election timeouts. Once elected, the Leader replication stream logs, committing updates only after a majority of replicas write.</li><li>  <strong>Strategy</strong>: Implement Raft for storing configuration metadata and orchestrating clustering nodes (e.g., etcd, Kubernetes control plane).</li>
             </div>
@@ -412,7 +412,7 @@
                 <span class="card-id" style="background-color: #5F7582">M5.1</span>
                 <span class="card-module">Asynchronous Queue & Flow Control</span>
             </div>
-            <h3 class="card-title">消息队列在分布式系统中的削峰填谷作用</h3>
+            <h3 class="card-title">Message Queue for Traffic Shaving & Load Levelling</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Message queues act as temporary shock absorbers. Sudden inbound transaction spikes are written to queue partitions, while downstream workers pull messages at a consistent, safe processing rate, shielding database layers.</li><li>  <strong>Strategy</strong>: Implement queues (Kafka/RabbitMQ) to decouple microservices and guarantee system survival during marketing campaigns.</li>
             </div>
@@ -423,7 +423,7 @@
                 <span class="card-id" style="background-color: #5F7582">M5.2</span>
                 <span class="card-module">Asynchronous Queue & Flow Control</span>
             </div>
-            <h3 class="card-title">消息传递交付保障：最多一次、最少一次与精确一次的工程边界</h3>
+            <h3 class="card-title">Message Delivery Guarantees: At-Most-Once, At-Least-Once & Exactly-Once</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: At-most-once (no retries, packets may drop); At-least-once (retries and ACKs ensure packet delivery but allow duplicates); Exactly-once (combines idempotent producers with transactional write protocols, causing high latency).</li><li>  <strong>Strategy</strong>: Standardize on At-least-once delivery for robust transmission, routing duplicate checking to consumer application layers.</li>
             </div>
@@ -434,7 +434,7 @@
                 <span class="card-id" style="background-color: #5F7582">M5.3</span>
                 <span class="card-module">Asynchronous Queue & Flow Control</span>
             </div>
-            <h3 class="card-title">消费者幂等性保障：唯一消息 ID 与乐观锁处理去重</h3>
+            <h3 class="card-title">Consumer Idempotence: Unique Message ID & Optimistic Locking</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Consumer idempotency is key to handling At-least-once duplicates. Each message contains a unique UUID. Consumers lock this UUID via Redis <code>SETNX</code> or write to a database unique constraint, dropping duplicate processing attempts.</li><li>  <strong>Strategy</strong>: Enforce unique transaction keys and optimistic locks on consumer updates to prevent double-charging or duplicate writes.</li>
             </div>
@@ -445,7 +445,7 @@
                 <span class="card-id" style="background-color: #5F7582">M5.4</span>
                 <span class="card-module">Asynchronous Queue & Flow Control</span>
             </div>
-            <h3 class="card-title">队列积压下的回压（Backpressure）机制与生产者控制</h3>
+            <h3 class="card-title">Backpressure Mechanism & Producer Rate Control</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: If consumers slow down and queue depth hits safety thresholds, backpressure triggers. The broker suspends socket reads or transmits flow-control frames, halting the producer's write operations to protect system stability.</li><li>  <strong>Strategy</strong>: Leverage backpressure flow controls to protect message brokers from memory starvation and disk exhaustion under load.</li>
             </div>
@@ -456,7 +456,7 @@
                 <span class="card-id" style="background-color: #5F7582">M5.5</span>
                 <span class="card-module">Asynchronous Queue & Flow Control</span>
             </div>
-            <h3 class="card-title">死信队列（DLQ）的投递时机与隔离处理机制</h3>
+            <h3 class="card-title">Dead Letter Queue (DLQ): Delivery Timing & Isolation</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: If a message fails decoding or triggers persistent errors, the broker isolates it to a Dead Letter Queue (DLQ) after exceeding retry limits, preventing bad payloads from blocking the head of queue.</li><li>  <strong>Strategy</strong>: Set up alerts on DLQ write volumes to detect code regression issues or api integration changes on upstream systems.</li>
             </div>
@@ -467,7 +467,7 @@
                 <span class="card-id" style="background-color: #BFA88F">M6.1</span>
                 <span class="card-module">Resiliency & Fault Tolerance</span>
             </div>
-            <h3 class="card-title">熔断器三态状态机转移控制</h3>
+            <h3 class="card-title">Circuit Breaker: Three-State State Machine Transitions</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Circuit breakers isolate faulty services. States: <strong>Close</strong> (requests pass, error rate monitored); <strong>Open</strong> (error rate exceeds limits, calls bypass downstream to return fallback values); <strong>Half-Open</strong> (limited probes pass; close circuit on success, revert to Open on failure).</li><li>  <strong>Strategy</strong>: Wrap microservice client calls and external integrations with circuit breakers to establish fault boundaries.</li>
             </div>
@@ -478,7 +478,7 @@
                 <span class="card-id" style="background-color: #BFA88F">M6.2</span>
                 <span class="card-module">Resiliency & Fault Tolerance</span>
             </div>
-            <h3 class="card-title">令牌桶与漏桶算法应对突发流量的限流差异</h3>
+            <h3 class="card-title">Token Bucket vs Leaky Bucket Rate Limiting</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Leaky Bucket processes packets at a constant rate, smoothing traffic but causing latency under bursts. Token Bucket adds tokens at a fixed rate, allowing clients to consume accumulated tokens to handle burst traffic.</li><li>  <strong>Strategy</strong>: Apply Leaky Buckets to strictly constrained backend databases, and Token Buckets for consumer-facing public API gateways.</li>
             </div>
@@ -489,7 +489,7 @@
                 <span class="card-id" style="background-color: #BFA88F">M6.3</span>
                 <span class="card-module">Resiliency & Fault Tolerance</span>
             </div>
-            <h3 class="card-title">舱壁隔离（Bulkhead）模式：线程池隔离与信号量隔离</h3>
+            <h3 class="card-title">Bulkhead Pattern: Thread Pool & Semaphore Isolation</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Resource isolation. Sharing a single global thread pool means a slow downstream dependency A can occupy all worker threads, starving requests for dependencies B and C. Bulkheads assign dedicated thread pools to each service.</li><li>  <strong>Strategy</strong>: Implement bulkheads in API gateways to contain downstream crashes and preserve core operations.</li>
             </div>
@@ -500,7 +500,7 @@
                 <span class="card-id" style="background-color: #BFA88F">M6.4</span>
                 <span class="card-module">Resiliency & Fault Tolerance</span>
             </div>
-            <h3 class="card-title">优雅降级机制与动态熔断降级开关（Feature Toggles）</h3>
+            <h3 class="card-title">Graceful Degradation & Feature Toggles</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Trade minor feature experiences for system survival. Graceful degradation drops non-essential services (e.g., recommendations) via feature toggles, freeing up CPU and DB capacity for checkout processes.</li><li>  <strong>Strategy</strong>: Schedule load tests to verify degradation playbooks and categorize toggle tiers (Level 1-3) before peak traffic campaigns.</li>
             </div>
@@ -511,7 +511,7 @@
                 <span class="card-id" style="background-color: #BFA88F">M6.5</span>
                 <span class="card-module">Resiliency & Fault Tolerance</span>
             </div>
-            <h3 class="card-title">分布式系统高可用性评估：MTBF、MTTR 与 SLA 可用度</h3>
+            <h3 class="card-title">High Availability Evaluation: MTBF, MTTR & SLA</h3>
             <div class="card-body">
                 <li>  <strong>Mechanism</strong>: Availability is defined as $\frac{\text{MTBF}}{\text{MTBF} + \text{MTTR}}$, where MTBF is Mean Time Between Failures and MTTR is Mean Time To Repair. Reaching 99.99% availability (annual downtime < 52.56 minutes) requires minimizing MTTR.</li><li>  <strong>Strategy</strong>: Focus on lowering MTTR through automated rollbacks, robust health checks, and detailed telemetry dashboards.</li>
             </div>

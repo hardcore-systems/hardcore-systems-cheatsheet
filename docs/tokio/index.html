@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Tokio 异步运行时并发架构知识图谱</title>
+    <style>
+        body {
+            background-color: #121824;
+            color: #E2E8F0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #4B5F7A;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        #canvas-container {
+            width: 90%;
+            height: 600px;
+            border: 2px solid #24324F;
+            border-radius: 8px;
+            background-color: #1A202C;
+            position: relative;
+            overflow: hidden;
+        }
+        .node {
+            position: absolute;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(255,255,255,0.1);
+        }
+        #tooltip {
+            width: 80%;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #2D3748;
+            border-left: 5px solid #4B5F7A;
+            border-radius: 4px;
+            min-height: 80px;
+        }
+        .colorM1 { background-color: #4B5F7A; }
+        .colorM2 { background-color: #6B8272; }
+        .colorM3 { background-color: #9C6666; }
+        .colorM4 { background-color: #7A7A7A; }
+        .colorM5 { background-color: #9A825A; }
+        .colorM6 { background-color: #755B77; }
+    </style>
+</head>
+<body>
+    <h1>Tokio 异步运行时并发架构知识图谱</h1>
+    <div id="canvas-container"></div>
+    <div id="tooltip">
+        <h3>点击卡片查看 Tokio 并发运行时核心组件</h3>
+    </div>
+
+    <script>
+        const nodes = [
+            { id: 1, group: 'M1', x: 80, y: 80, label: 'Card 1: Work-Stealing', zh: '卡片 1: Work-Stealing 本地队列', desc: 'Lock-free local queues of 256 capacity.' },
+            { id: 2, group: 'M1', x: 80, y: 180, label: 'Card 2: LIFO Slot', zh: '卡片 2: LIFO 插队插槽', desc: 'Cache locality priority slot for woken tasks.' },
+            { id: 3, group: 'M1', x: 80, y: 280, label: 'Card 3: Coop Budget', zh: '卡片 3: Coop 协作式预算', desc: 'Anti-starvation task yielding after 128 decrements.' },
+            { id: 4, group: 'M1', x: 80, y: 380, label: 'Card 4: Spawn & Sleep', zh: '卡片 4: 工作线程睡眠唤醒', desc: 'Futex idle locks and search caps.' },
+            { id: 5, group: 'M1', x: 80, y: 480, label: 'Card 5: Schedulers', zh: '卡片 5: 运行期调度器对比', desc: 'CurrentThread vs MultiThread architectures.' },
+            
+            { id: 6, group: 'M2', x: 260, y: 80, label: 'Card 6: Mio Loop', zh: '卡片 6: Mio 多路复用', desc: 'Mio integration with OS asynchronous primitives.' },
+            { id: 7, group: 'M2', x: 260, y: 180, label: 'Card 7: Token Registry', zh: '卡片 7: 关联 Token 映射', desc: 'FD Waker associations inside atomic slab indexes.' },
+            { id: 8, group: 'M2', x: 260, y: 280, label: 'Card 8: Park Driver', zh: '卡片 8: Park 与 I/O 兼任', desc: 'Idle workers polling Mio inside park timeouts.' },
+            { id: 9, group: 'M2', x: 260, y: 380, label: 'Card 9: OS Multiplex', zh: '卡片 9: Epoll/Kqueue/IOCP', desc: 'Platform readiness vs completion differences.' },
+            { id: 10, group: 'M2', x: 260, y: 480, label: 'Card 10: Polling IO', zh: '卡片 10: AsyncRead & AsyncWrite', desc: 'Poll states and WouldBlock registers.' },
+
+            { id: 11, group: 'M3', x: 440, y: 80, label: 'Card 11: Wheel Timer', zh: '卡片 11: Hashed Wheel 时间轮', desc: '$O(1)$ timeout slots at 1ms ticks.' },
+            { id: 12, group: 'M3', x: 440, y: 180, label: 'Card 12: Delay Futures', zh: '卡片 12: Sleep 与 Timeout', desc: 'Time nodes linked to wheel lists.' },
+            { id: 13, group: 'M3', x: 440, y: 280, label: 'Card 13: Monotonic CLK', zh: '卡片 13: 单调时钟防回拨', desc: 'CLOCK_MONOTONIC and vDSO system calls.' },
+            { id: 14, group: 'M3', x: 440, y: 380, label: 'Card 14: DelayQueue', zh: '卡片 14: DelayQueue 优先级堆', desc: 'Timer wheels combined with binary heaps.' },
+            { id: 15, group: 'M3', x: 440, y: 480, label: 'Card 15: Time Driver', zh: '卡片 15: 时间驱动器协同', desc: 'Injecting timeout offsets into epoll park loops.' },
+
+            { id: 16, group: 'M4', x: 620, y: 80, label: 'Card 16: Async Mutex', zh: '卡片 16: 异步互斥锁', desc: 'Non-blocking waker wait-lists across await boundaries.' },
+            { id: 17, group: 'M4', x: 620, y: 180, label: 'Card 17: Async Sem', zh: '卡片 17: 异步信号量', desc: 'CLH waitlist nodes and CAS counters.' },
+            { id: 18, group: 'M4', x: 620, y: 280, label: 'Card 18: Oneshot Cell', zh: '卡片 18: Oneshot 极速单值', desc: 'Lock-free single cell state transitions.' },
+            { id: 19, group: 'M4', x: 620, y: 380, label: 'Card 19: MPSC Channel', zh: '卡片 19: MPSC 无锁队列', desc: 'CAS tail pushes and backpressure parks.' },
+
+            { id: 20, group: 'M5', x: 800, y: 80, label: 'Card 20: Broadcast Lag', zh: '卡片 20: Broadcast 慢消费者', desc: 'Circular buffers and Lagged error overflows.' },
+            { id: 21, group: 'M5', x: 800, y: 180, label: 'Card 21: Watch SPMC', zh: '卡片 21: Watch 单值状态', desc: 'Single-slot updates tracked via atomic version numbers.' },
+            { id: 22, group: 'M5', x: 800, y: 280, label: 'Card 22: Select Macro', zh: '卡片 22: Select 编排取消安全', desc: 'Randomized fairness and await drops.' },
+            { id: 23, group: 'M5', x: 800, y: 380, label: 'Card 23: Task Local', zh: '卡片 23: Task-Local 跨线程', desc: 'Dynamic scope bindings bypassing standard TLS.' },
+            { id: 24, group: 'M5', x: 800, y: 480, label: 'Card 24: Shutdown', zh: '卡片 24: 优雅停机协调', desc: 'Port closes, task drains and timeout kills.' },
+
+            { id: 25, group: 'M6', x: 980, y: 80, label: 'Card 25: Console', zh: '卡片 25: Tokio Console 遥测', desc: 'gRPC streaming telemetry from tracing spans.' },
+            { id: 26, group: 'M6', x: 980, y: 180, label: 'Card 26: Loom Test', zh: '卡片 26: Loom 并发重排检测', desc: 'State-space exploration of atomic pathways.' },
+            { id: 27, group: 'M6', x: 980, y: 280, label: 'Card 27: Future Size', zh: '卡片 27: Future 尺寸优化', desc: 'Compiler state-machine enum reductions.' },
+            { id: 28, group: 'M6', x: 980, y: 380, label: 'Card 28: Spawn Boxing', zh: '卡片 28: Task Spawn 堆开销', desc: 'Box allocations vs nested inline poll bounds.' }
+        ];
+
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+
+        nodes.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `node color${n.group}`;
+            div.style.left = `${n.x}px`;
+            div.style.top = `${n.y}px`;
+            div.innerText = n.zh;
+            div.onclick = () => {
+                tooltip.innerHTML = `
+                    <h3>\${n.zh}</h3>
+                    <p><strong>Module:</strong> \${n.group} | <strong>Details:</strong> \${n.desc}</p>
+                `;
+            };
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>
